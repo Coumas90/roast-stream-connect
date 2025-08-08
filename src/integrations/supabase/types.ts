@@ -447,6 +447,15 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      assign_role_by_email: {
+        Args: {
+          _email: string
+          _role: Database["public"]["Enums"]["app_role"]
+          _tenant_slug?: string
+          _location_code?: string
+        }
+        Returns: undefined
+      }
       has_role: {
         Args: {
           _user_id: string
@@ -457,6 +466,15 @@ export type Database = {
       is_tupa_admin: {
         Args: Record<PropertyKey, never>
         Returns: boolean
+      }
+      revoke_role_by_email: {
+        Args: {
+          _email: string
+          _role: Database["public"]["Enums"]["app_role"]
+          _tenant_slug?: string
+          _location_code?: string
+        }
+        Returns: undefined
       }
       user_has_location: {
         Args: { _location_id: string }

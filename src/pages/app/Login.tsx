@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { Link } from "react-router-dom";
@@ -10,6 +11,7 @@ import { CheckCircle2, ArrowRight } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+
 export default function AppLogin() {
   const { signInClient } = useAuth();
   const { toast } = useToast();
@@ -20,12 +22,16 @@ export default function AppLogin() {
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    // Guardamos el redirect para que AuthProvider navegue tras resolver el rol
+    localStorage.setItem("tupa_auth_redirect", "/app");
+    console.log("[AppLogin] redirect -> /app guardado en localStorage");
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     setLoading(false);
     if (error) {
       toast({ title: "Error de acceso", description: error.message, variant: "destructive" });
     } else {
       toast({ title: "Acceso exitoso", description: "Redirigiendo..." });
+      console.log("[AppLogin] login OK, esperando onAuthStateChange para navegar");
     }
   };
 
@@ -79,7 +85,7 @@ export default function AppLogin() {
                   <Separator className="flex-1" />
                 </div>
 
-<form onSubmit={handleEmailLogin} className="space-y-4">
+                <form onSubmit={handleEmailLogin} className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="email">Email</Label>
                     <Input
@@ -113,7 +119,7 @@ export default function AppLogin() {
                 </form>
 
                 <p className="text-sm text-muted-foreground text-center">
-                  ¿Eres administrador? {" "}
+                  ¿Eres administrador?{" "}
                   <Link to="/admin/login" className="text-primary underline-offset-4 hover:underline">
                     Ir al acceso de admin
                   </Link>

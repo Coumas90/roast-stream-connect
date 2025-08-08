@@ -18,8 +18,11 @@ import {
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
-import { Home, Coffee, LineChart, Package, Users2, GraduationCap, CircleHelp, Settings } from "lucide-react";
+import { Home, Coffee, LineChart, Package, Users2, GraduationCap, CircleHelp, Settings, Users, Layers, ListChecks, BarChart3 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { NavLink, useLocation } from "react-router-dom";
+import { useDataStore } from "@/lib/data-store";
+import LocationSwitcher from "@/components/app/LocationSwitcher";
 
 export type AppShellProps = {
   children: ReactNode;
@@ -27,17 +30,32 @@ export type AppShellProps = {
   variant?: "client" | "admin";
 };
 
-const NavItems = [
-  { icon: Home, label: "Dashboard", href: "#" },
-  { icon: Coffee, label: "Recetas", href: "#" },
-  { icon: LineChart, label: "Consumo", href: "#" },
-  { icon: Package, label: "Reposición", href: "#" },
-  { icon: Users2, label: "Mi Equipo", href: "#" },
-  { icon: GraduationCap, label: "Academia", href: "#" },
-  { icon: CircleHelp, label: "FAQ", href: "#" },
+type NavItem = { icon: any; label: string; to: string; exact?: boolean };
+
+const clientItems: NavItem[] = [
+  { icon: Home, label: "Dashboard", to: "/app", exact: true },
+  { icon: Coffee, label: "Recetas", to: "/app/recipes" },
+  { icon: LineChart, label: "Consumo", to: "/app/consumption" },
+  { icon: Package, label: "Reposición", to: "/app/replenishment" },
+  { icon: Users2, label: "Mi Equipo", to: "/app/my-team" },
+  { icon: GraduationCap, label: "Academia", to: "/app/academy" },
+  { icon: CircleHelp, label: "FAQ", to: "/app/loyalty" },
+];
+
+const adminItems: NavItem[] = [
+  { icon: Home, label: "Dashboard", to: "/admin", exact: true },
+  { icon: Users, label: "Clientes", to: "/admin/clients" },
+  { icon: Layers, label: "Entitlements", to: "/admin/entitlements" },
+  { icon: Settings, label: "Integraciones", to: "/admin/integrations" },
+  { icon: ListChecks, label: "Cola de Pedidos", to: "/admin/orders-queue" },
+  { icon: BarChart3, label: "Analytics", to: "/admin/reports/analytics" },
 ];
 
 export function AppShell({ children, section = "Dashboard", variant = "client" }: AppShellProps) {
+  const items = variant === "admin" ? adminItems : clientItems;
+  const { pathname } = useLocation();
+  const { ordersQueue } = useDataStore();
+
   return (
     <SidebarProvider>
       <Sidebar variant="inset">
@@ -55,17 +73,22 @@ export function AppShell({ children, section = "Dashboard", variant = "client" }
             <SidebarGroupLabel>Principal</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
-                {NavItems.map((n) => (
-                  <SidebarMenuItem key={n.label}>
-                    <SidebarMenuButton isActive={n.label === section} asChild>
-                      <a href="#" aria-current={n.label === section ? "page" : undefined}>
-                        <n.icon />
-                        <span>{n.label}</span>
-                      </a>
-                    </SidebarMenuButton>
-                    {n.label === "Reposición" && <SidebarMenuBadge>3</SidebarMenuBadge>}
-                  </SidebarMenuItem>
-                ))}
+                {items.map((n) => {
+                  const isActive = n.exact ? pathname === n.to : pathname.startsWith(n.to);
+                  return (
+                    <SidebarMenuItem key={n.label}>
+                      <SidebarMenuButton isActive={isActive} asChild>
+                        <NavLink to={n.to} aria-current={isActive ? "page" : undefined}>
+                          <n.icon />
+                          <span>{n.label}</span>
+                        </NavLink>
+                      </SidebarMenuButton>
+                      {n.label === "Reposición" && ordersQueue.length > 0 && (
+                        <SidebarMenuBadge>{ordersQueue.length}</SidebarMenuBadge>
+                      )}
+                    </SidebarMenuItem>
+                  );
+                })}
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
@@ -76,10 +99,10 @@ export function AppShell({ children, section = "Dashboard", variant = "client" }
               <SidebarMenu>
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild>
-                    <a href="#">
+                    <NavLink to={variant === "admin" ? "/admin/integrations" : "/app/settings/integrations"}>
                       <Settings />
                       <span>Integraciones</span>
-                    </a>
+                    </NavLink>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               </SidebarMenu>
@@ -106,6 +129,7 @@ export function AppShell({ children, section = "Dashboard", variant = "client" }
               </BreadcrumbList>
             </Breadcrumb>
             <div className="ml-auto flex items-center gap-2">
+              {variant === "client" && <LocationSwitcher />}
               <Button variant="soft" className="hidden sm:inline-flex">Recomendación IA</Button>
               <Button variant="pill" size="sm">CO</Button>
             </div>

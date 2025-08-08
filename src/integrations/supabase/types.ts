@@ -14,16 +14,463 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      consumption_daily: {
+        Row: {
+          created_at: string
+          cups: number | null
+          day: string
+          grams_used: number | null
+          id: string
+          item_code: string | null
+          location_id: string
+          tenant_id: string
+        }
+        Insert: {
+          created_at?: string
+          cups?: number | null
+          day: string
+          grams_used?: number | null
+          id?: string
+          item_code?: string | null
+          location_id: string
+          tenant_id: string
+        }
+        Update: {
+          created_at?: string
+          cups?: number | null
+          day?: string
+          grams_used?: number | null
+          id?: string
+          item_code?: string | null
+          location_id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "consumption_daily_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "consumption_daily_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      entitlements: {
+        Row: {
+          academy_enabled: boolean
+          auto_order_enabled: boolean
+          barista_pool_enabled: boolean
+          barista_tool_enabled: boolean
+          created_at: string
+          id: string
+          location_id: string | null
+          loyalty_enabled: boolean
+          mystery_enabled: boolean
+          pos_connected: boolean
+          qa_franchise_enabled: boolean
+          raffles_enabled: boolean
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          academy_enabled?: boolean
+          auto_order_enabled?: boolean
+          barista_pool_enabled?: boolean
+          barista_tool_enabled?: boolean
+          created_at?: string
+          id?: string
+          location_id?: string | null
+          loyalty_enabled?: boolean
+          mystery_enabled?: boolean
+          pos_connected?: boolean
+          qa_franchise_enabled?: boolean
+          raffles_enabled?: boolean
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          academy_enabled?: boolean
+          auto_order_enabled?: boolean
+          barista_pool_enabled?: boolean
+          barista_tool_enabled?: boolean
+          created_at?: string
+          id?: string
+          location_id?: string | null
+          loyalty_enabled?: boolean
+          mystery_enabled?: boolean
+          pos_connected?: boolean
+          qa_franchise_enabled?: boolean
+          raffles_enabled?: boolean
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "entitlements_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entitlements_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      locations: {
+        Row: {
+          code: string | null
+          created_at: string
+          id: string
+          name: string
+          tenant_id: string
+          timezone: string | null
+        }
+        Insert: {
+          code?: string | null
+          created_at?: string
+          id?: string
+          name: string
+          tenant_id: string
+          timezone?: string | null
+        }
+        Update: {
+          code?: string | null
+          created_at?: string
+          id?: string
+          name?: string
+          tenant_id?: string
+          timezone?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "locations_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      order_proposals: {
+        Row: {
+          created_by: string | null
+          id: string
+          items: Json
+          location_id: string
+          odoo_so_number: string | null
+          proposed_at: string
+          source: string
+          status: Database["public"]["Enums"]["order_status"]
+          tenant_id: string
+        }
+        Insert: {
+          created_by?: string | null
+          id?: string
+          items: Json
+          location_id: string
+          odoo_so_number?: string | null
+          proposed_at?: string
+          source?: string
+          status?: Database["public"]["Enums"]["order_status"]
+          tenant_id: string
+        }
+        Update: {
+          created_by?: string | null
+          id?: string
+          items?: Json
+          location_id?: string
+          odoo_so_number?: string | null
+          proposed_at?: string
+          source?: string
+          status?: Database["public"]["Enums"]["order_status"]
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_proposals_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_proposals_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pos_integrations: {
+        Row: {
+          connected: boolean
+          created_at: string
+          id: string
+          metadata: Json | null
+          provider: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          connected?: boolean
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          provider: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          connected?: boolean
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          provider?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pos_integrations_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          default_tenant_id: string | null
+          full_name: string | null
+          id: string
+          phone: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          default_tenant_id?: string | null
+          full_name?: string | null
+          id: string
+          phone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          default_tenant_id?: string | null
+          full_name?: string | null
+          id?: string
+          phone?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profiles_default_tenant_id_fkey"
+            columns: ["default_tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      recipes: {
+        Row: {
+          active: boolean
+          created_at: string
+          created_by: string | null
+          id: string
+          method: string | null
+          name: string
+          params: Json | null
+          tenant_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          method?: string | null
+          name: string
+          params?: Json | null
+          tenant_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          method?: string | null
+          name?: string
+          params?: Json | null
+          tenant_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recipes_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      stock_ledger: {
+        Row: {
+          id: string
+          item_code: string
+          location_id: string
+          notes: string | null
+          occurred_at: string
+          quantity_grams: number
+          tenant_id: string
+          txn_type: Database["public"]["Enums"]["stock_txn_type"]
+        }
+        Insert: {
+          id?: string
+          item_code: string
+          location_id: string
+          notes?: string | null
+          occurred_at?: string
+          quantity_grams: number
+          tenant_id: string
+          txn_type: Database["public"]["Enums"]["stock_txn_type"]
+        }
+        Update: {
+          id?: string
+          item_code?: string
+          location_id?: string
+          notes?: string | null
+          occurred_at?: string
+          quantity_grams?: number
+          tenant_id?: string
+          txn_type?: Database["public"]["Enums"]["stock_txn_type"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_ledger_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_ledger_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tenants: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          slug: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          slug?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          slug?: string | null
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          location_id: string | null
+          role: Database["public"]["Enums"]["app_role"]
+          tenant_id: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          location_id?: string | null
+          role: Database["public"]["Enums"]["app_role"]
+          tenant_id?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          location_id?: string | null
+          role?: Database["public"]["Enums"]["app_role"]
+          tenant_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_roles_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_roles_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _user_id: string
+          _role: Database["public"]["Enums"]["app_role"]
+        }
+        Returns: boolean
+      }
+      is_tupa_admin: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
+      user_has_location: {
+        Args: { _location_id: string }
+        Returns: boolean
+      }
+      user_has_tenant: {
+        Args: { _tenant_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "tupa_admin" | "owner" | "manager" | "coffee_master" | "barista"
+      order_status: "draft" | "approved" | "sent" | "fulfilled" | "cancelled"
+      stock_txn_type: "receipt" | "consumption" | "adjustment"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +597,10 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["tupa_admin", "owner", "manager", "coffee_master", "barista"],
+      order_status: ["draft", "approved", "sent", "fulfilled", "cancelled"],
+      stock_txn_type: ["receipt", "consumption", "adjustment"],
+    },
   },
 } as const

@@ -1,29 +1,88 @@
 import React from "react";
 import { Helmet } from "react-helmet-async";
+import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
+import { Shield, CheckCircle2, ArrowRight } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 
 export default function AdminLogin() {
   const { signInAdmin } = useAuth();
   return (
-    <main className="container mx-auto p-6 max-w-md">
+    <main className="min-h-screen">
       <Helmet>
-        <title>Login Admin | TUPÁ Hub</title>
+        <title>Iniciar sesión Admin | TUPÁ Hub</title>
         <meta name="description" content="Accede al panel admin de TUPÁ Hub" />
         <link rel="canonical" href="/admin/login" />
       </Helmet>
-      <Card>
-        <CardHeader>
-          <CardTitle>Ingresar al Panel Admin</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <label className="text-sm">Email</label>
-          <Input type="email" placeholder="admin@tupa.com" />
-          <Button onClick={signInAdmin} className="w-full">Entrar</Button>
-        </CardContent>
-      </Card>
+
+      <section className="container mx-auto px-4 py-8">
+        <div className="grid gap-8 md:grid-cols-2 items-stretch">
+          <aside className="hidden md:flex flex-col justify-between rounded-2xl bg-gradient-brand p-8 text-primary-foreground shadow-elegant">
+            <div>
+              <div className="flex items-center gap-2">
+                <Shield className="h-5 w-5" />
+                <h2 className="text-3xl font-semibold tracking-tight">Panel Admin</h2>
+              </div>
+              <p className="mt-2 max-w-sm text-sm/6 opacity-90">
+                Control total sobre clientes, integración de sistemas y reportes.
+              </p>
+            </div>
+            <ul className="mt-8 space-y-3 text-sm/6">
+              <li className="flex items-center gap-2">
+                <CheckCircle2 className="h-4 w-4" /> Auditorías y calidad
+              </li>
+              <li className="flex items-center gap-2">
+                <CheckCircle2 className="h-4 w-4" /> Integraciones centralizadas
+              </li>
+              <li className="flex items-center gap-2">
+                <CheckCircle2 className="h-4 w-4" /> Analíticas operativas
+              </li>
+            </ul>
+            <p className="mt-6 text-xs/5 opacity-80">© {new Date().getFullYear()} TUPÁ. Todos los derechos reservados.</p>
+          </aside>
+
+          <article className="flex items-center">
+            <Card className="w-full shadow-elegant">
+              <CardHeader className="space-y-1">
+                <h1 className="text-2xl md:text-3xl font-semibold">Ingresar al panel administrativo</h1>
+                <p className="text-muted-foreground">Gestiona clientes, catálogos e integraciones.</p>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <Button onClick={signInAdmin} variant="secondary" className="w-full">
+                  Continuar con Google
+                </Button>
+
+                <div className="flex items-center gap-2">
+                  <Separator className="flex-1" />
+                  <span className="text-xs text-muted-foreground">o continua con email</span>
+                  <Separator className="flex-1" />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email</Label>
+                  <Input id="email" type="email" placeholder="admin@tupa.com" />
+                </div>
+
+                <Button onClick={signInAdmin} className="w-full">
+                  Entrar
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+
+                <p className="text-sm text-muted-foreground text-center">
+                  ¿Eres cliente? {" "}
+                  <Link to="/app/login" className="text-primary underline-offset-4 hover:underline">
+                    Ir al acceso de cliente
+                  </Link>
+                </p>
+              </CardContent>
+            </Card>
+          </article>
+        </div>
+      </section>
     </main>
   );
 }

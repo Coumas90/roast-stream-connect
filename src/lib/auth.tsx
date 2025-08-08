@@ -57,50 +57,46 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     let isMounted = true;
 
-    const handleSession = async () => {
-      const { data: sessionRes } = await supabase.auth.getSession();
-      const session = sessionRes?.session;
-      console.log("[Auth] getSession ->", !!session);
-
-      if (!isMounted) return;
-
-      if (session?.user) {
-        const role = await resolveAppRole(session.user.id);
-        if (!isMounted) return;
-
-        setState({ role, isAuthenticated: true });
-
-        // Redirección post-auth (si fue establecida por el flujo de login)
-        const next = localStorage.getItem(REDIRECT_KEY);
-        if (next) {
-          localStorage.removeItem(REDIRECT_KEY);
-          navigate(next, { replace: true });
-        }
-      } else {
-        setState({ role: null, isAuthenticated: false });
-      }
-    };
-
-    handleSession();
-
+    // 1) Listener primero
     const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
       console.log("[Auth] onAuthStateChange:", _event);
-      (async () => {
-        if (session?.user) {
-          const role = await resolveAppRole(session.user.id);
-          if (!isMounted) return;
-          setState({ role, isAuthenticated: true });
+      if (!isMounted) return;
+      // Actualiza estado de forma sincrónica
+      setState((prev) => ({ role: session?.user ? prev.role : null, isAuthenticated: !!session?.user }));
 
-          const next = localStorage.getItem(REDIRECT_KEY);
-          if (next) {
-            localStorage.removeItem(REDIRECT_KEY);
-            navigate(next, { replace: true });
-          }
-        } else {
-          if (!isMounted) return;
-          setState({ role: null, isAuthenticated: false });
-        }
-      })();
+      // Diferir resolución de rol para evitar deadlocks
+      if (session?.user) {
+        setTimeout(() => {
+          resolveAppRole(session.user!.id).then((role) => {
+            if (!isMounted) return;
+            setState({ role, isAuthenticated: true });
+            const next = localStorage.getItem(REDIRECT_KEY);
+            if (next) {
+              localStorage.removeItem(REDIRECT_KEY);
+              navigate(next, { replace: true });
+            }
+          });
+        }, 0);
+      }
+    });
+
+    // 2) Luego, recuperar sesión actual
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!isMounted) return;
+      setState((prev) => ({ role: session?.user ? prev.role : null, isAuthenticated: !!session?.user }));
+      if (session?.user) {
+        setTimeout(() => {
+          resolveAppRole(session.user!.id).then((role) => {
+            if (!isMounted) return;
+            setState({ role, isAuthenticated: true });
+            const next = localStorage.getItem(REDIRECT_KEY);
+            if (next) {
+              localStorage.removeItem(REDIRECT_KEY);
+              navigate(next, { replace: true });
+            }
+          });
+        }, 0);
+      }
     });
 
     return () => {

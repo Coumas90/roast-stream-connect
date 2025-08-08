@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
+import type { Enums } from "@/integrations/supabase/types";
 
-export type OrderStatus = "pending" | "approved" | "sent" | "delivered";
+export type OrderStatus = Enums<"order_status">;
 export type Order = {
   id: string;
   tenant: string;
@@ -45,7 +46,7 @@ export function DataStoreProvider({ children }: { children: React.ReactNode }) {
       id: Math.random().toString(36).slice(2, 9),
       tenant,
       location,
-      status: "pending",
+      status: "draft",
       createdAt: new Date().toISOString(),
     };
     setOrdersQueue((q) => [order, ...q]);

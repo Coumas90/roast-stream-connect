@@ -5,15 +5,19 @@ import { Button } from "@/components/ui/button";
 import { useTenant } from "@/lib/tenant";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import type { Tables, Enums } from "@/integrations/supabase/types";
 
 export default function OrdersQueue() {
   const { tenantId, locationId, locations, getLocationIdByName } = useTenant();
-  const [orders, setOrders] = useState<Array<{ id: string; location_id: string; status: string }>>([]);
+  const [orders, setOrders] = useState<Array<Pick<Tables<"order_proposals">, "id" | "location_id" | "status">>>([]);
   const [loading, setLoading] = useState(true);
 
   // Mapeo opcional id->nombre si hiciera falta mostrarlo
   // (por simplicidad, mostramos location_id)
-
+  const getLocationNameById = useCallback((id: string) => {
+    const loc = (locations as any[])?.find((l: any) => l.id === id);
+    return (loc?.name as string) ?? id;
+  }, [locations]);
   const fetchOrders = useCallback(async () => {
     if (!tenantId) { setLoading(false); return; }
     const { data, error } = await supabase
@@ -31,23 +35,24 @@ export default function OrdersQueue() {
 
   useEffect(() => {
     fetchOrders();
+    if (!tenantId) return;
     const channel = supabase
       .channel("order_proposals_changes")
       .on(
         "postgres_changes",
-        { event: "INSERT", schema: "public", table: "order_proposals" },
+        { event: "INSERT", schema: "public", table: "order_proposals", filter: `tenant_id=eq.${tenantId}` },
         () => fetchOrders()
       )
       .on(
         "postgres_changes",
-        { event: "UPDATE", schema: "public", table: "order_proposals" },
+        { event: "UPDATE", schema: "public", table: "order_proposals", filter: `tenant_id=eq.${tenantId}` },
         () => fetchOrders()
       )
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [fetchOrders]);
+  }, [fetchOrders, tenantId]);
 
-  const updateOrderStatus = async (id: string, status: "approved" | "sent" | "delivered") => {
+  const updateOrderStatus = async (id: string, status: Enums<"order_status">) => {
     const { error } = await supabase
       .from("order_proposals")
       .update({ status })
@@ -78,7 +83,7 @@ export default function OrdersQueue() {
             <div key={o.id} className="flex items-center justify-between border rounded-md p-3">
               <div>
                 <div className="font-medium">#{o.id}</div>
-                <div className="text-sm text-muted-foreground">{o.location_id} • {o.status}</div>
+                <div className="text-sm text-muted-foreground">{getLocationNameById(o.location_id)} • {o.status}</div>
               </div>
               <div className="flex gap-2">
                 {o.status === "draft" && (
@@ -88,7 +93,7 @@ export default function OrdersQueue() {
                   <Button size="sm" onClick={() => updateOrderStatus(o.id, "sent")}>Enviar</Button>
                 )}
                 {o.status === "sent" && (
-                  <Button size="sm" onClick={() => updateOrderStatus(o.id, "delivered")}>Marcar entregado</Button>
+                  <Button size="sm" onClick={() => updateOrderStatus(o.id, "fulfilled")}>Marcar entregado</Button>
                 )}
               </div>
             </div>

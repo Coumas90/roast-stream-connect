@@ -11,8 +11,8 @@ export type AuthState = {
 };
 
 export type AuthContextType = AuthState & {
-  signInClient: () => void;
-  signInAdmin: () => void;
+  signInClient: () => Promise<void>;
+  signInAdmin: () => Promise<void>;
   signOut: () => void;
 };
 
@@ -107,25 +107,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const value = useMemo<AuthContextType>(() => ({
     ...state,
-    signInClient: () => {
+    signInClient: async () => {
       // Guardamos a dónde ir tras Google OAuth
       localStorage.setItem(REDIRECT_KEY, "/app");
-      // Redirige a Google para iniciar sesión
-      supabase.auth.signInWithOAuth({
+      const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
           redirectTo: window.location.origin,
+          queryParams: { prompt: "select_account" },
         },
       });
+      if (error) {
+        console.error("[Auth] Google signInClient error:", error);
+      } else {
+        console.log("[Auth] Google OAuth launched (client)");
+      }
     },
-    signInAdmin: () => {
+    signInAdmin: async () => {
       localStorage.setItem(REDIRECT_KEY, "/admin");
-      supabase.auth.signInWithOAuth({
+      const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
           redirectTo: window.location.origin,
+          queryParams: { prompt: "select_account" },
         },
       });
+      if (error) {
+        console.error("[Auth] Google signInAdmin error:", error);
+      } else {
+        console.log("[Auth] Google OAuth launched (admin)");
+      }
     },
     signOut: () => {
       // Cierra sesión en Supabase y resetea estado local

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -8,9 +8,27 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Shield, CheckCircle2, ArrowRight } from "lucide-react";
 import { useAuth } from "@/lib/auth";
-
+import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 export default function AdminLogin() {
   const { signInAdmin } = useAuth();
+  const { toast } = useToast();
+  const [email, setEmail] = useState("comasnicolas@gmail.com");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const handleEmailLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    setLoading(false);
+    if (error) {
+      toast({ title: "Error de acceso", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Acceso exitoso", description: "Redirigiendo..." });
+    }
+  };
+
   return (
     <main className="min-h-screen">
       <Helmet>
@@ -62,15 +80,38 @@ export default function AdminLogin() {
                   <Separator className="flex-1" />
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
-                  <Input id="email" type="email" placeholder="admin@tupa.com" />
-                </div>
+<form onSubmit={handleEmailLogin} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="email">Email</Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      placeholder="admin@tupa.com"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      required
+                      autoComplete="username"
+                    />
+                  </div>
 
-                <Button onClick={signInAdmin} className="w-full">
-                  Entrar
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
+                  <div className="space-y-2">
+                    <Label htmlFor="password">Clave</Label>
+                    <Input
+                      id="password"
+                      type="password"
+                      placeholder="Tu clave"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      required
+                      autoComplete="current-password"
+                    />
+                  </div>
+
+                  <Button type="submit" className="w-full" disabled={loading}>
+                    {loading ? "Entrando..." : "Entrar"}
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
+                </form>
 
                 <p className="text-sm text-muted-foreground text-center">
                   ¿Eres cliente? {" "}

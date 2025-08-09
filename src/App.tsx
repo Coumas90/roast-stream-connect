@@ -81,6 +81,7 @@ const App = () => (
 
                   {/* INVITATIONS */}
                   <Route path="/invite" element={<AcceptInvitation />} />
+                  <Route path="/invite/:token" element={<AcceptInvitation />} />
 
                   {/* ADMIN */}
                   <Route path="/admin/login" element={<AdminLogin />} />

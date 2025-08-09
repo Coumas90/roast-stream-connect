@@ -13,6 +13,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import LocationFormDialog, { LocationFormValues } from "@/components/admin/clients/LocationFormDialog";
 import { Pencil, Trash2, Plus, RefreshCw } from "lucide-react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
 type Tenant = { id: string; name: string; slug: string | null };
 type Location = { id: string; name: string; code: string | null; timezone: string | null; tenant_id: string; created_at: string };
@@ -66,6 +67,7 @@ export default function AdminClientDetail() {
 
   const [openLocForm, setOpenLocForm] = React.useState(false);
   const [editing, setEditing] = React.useState<Location | null>(null);
+  const [toDeleteLoc, setToDeleteLoc] = React.useState<Location | null>(null);
 
   const upsertLocation = useMutation({
     mutationFn: async ({ id, values }: { id?: string; values: LocationFormValues }) => {
@@ -191,6 +193,7 @@ export default function AdminClientDetail() {
   });
 
   return (
+    <>
     <article>
       <Helmet>
         <title>Cliente | TUPÁ Hub</title>
@@ -238,9 +241,7 @@ export default function AdminClientDetail() {
                         <TableCell className="text-right">
                           <div className="flex items-center justify-end gap-2">
                             <Button variant="ghost" size="icon" onClick={() => { setEditing(l); setOpenLocForm(true); }}><Pencil className="h-4 w-4" /></Button>
-                            <Button variant="ghost" size="icon" onClick={() => {
-                              if (confirm(`Eliminar sucursal "${l.name}"?`)) deleteLocation.mutate(l.id);
-                            }}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                            <Button variant="ghost" size="icon" onClick={() => setToDeleteLoc(l)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
                           </div>
                         </TableCell>
                       </TableRow>
@@ -347,7 +348,31 @@ export default function AdminClientDetail() {
         </CardContent>
       </Card>
     </article>
-  );
+
+    <AlertDialog open={!!toDeleteLoc} onOpenChange={(o) => { if (!o) setToDeleteLoc(null); }}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Confirmar eliminación</AlertDialogTitle>
+          <AlertDialogDescription>
+            ¿Eliminar sucursal "{toDeleteLoc?.name}"?
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+          <AlertDialogAction
+            onClick={() => {
+              if (toDeleteLoc) {
+                deleteLocation.mutate(toDeleteLoc.id);
+                setToDeleteLoc(null);
+              }
+            }}
+          >
+            Eliminar
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  </>);
 }
 
 function AssignRoleForm({ tenantSlug, locations }: { tenantSlug: string | null; locations: Location[] }) {

@@ -1,7 +1,7 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
-import { useSearchParams, useNavigate } from "react-router-dom";
+import { useSearchParams, useNavigate, useParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
@@ -10,7 +10,8 @@ import { useAuth } from "@/lib/auth";
 
 export default function AcceptInvitation() {
   const [params] = useSearchParams();
-  const token = useMemo(() => params.get("token") ?? "", [params]);
+  const { token: paramToken } = useParams();
+  const token = useMemo(() => (paramToken ?? params.get("token") ?? ""), [paramToken, params]);
   const { isAuthenticated, signInClient } = useAuth();
   const [isAccepting, setIsAccepting] = useState(false);
   const navigate = useNavigate();

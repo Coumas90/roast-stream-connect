@@ -12,6 +12,7 @@ import { Plus, Pencil, Trash2, Mail, ArrowRight } from "lucide-react";
 import TenantFormDialog, { TenantFormValues } from "@/components/admin/clients/TenantFormDialog";
 import InviteOwnerDialog from "@/components/admin/clients/InviteOwnerDialog";
 import { useNavigate } from "react-router-dom";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
 type Tenant = {
   id: string;
@@ -29,6 +30,7 @@ export default function AdminClients() {
   const [inviteTenant, setInviteTenant] = React.useState<Tenant | null>(null);
   const qc = useQueryClient();
   const navigate = useNavigate();
+  const [toDelete, setToDelete] = React.useState<Tenant | null>(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ["tenants", { search, page, pageSize }],
@@ -141,11 +143,7 @@ export default function AdminClients() {
                         <Button variant="outline" size="sm" onClick={() => setInviteTenant(t)}><Mail className="h-4 w-4 mr-1" />Invitar Owner</Button>
                         <Button variant="outline" size="sm" onClick={() => navigate(`/admin/clients/${t.id}`)}><ArrowRight className="h-4 w-4 mr-1" />Detalles</Button>
                         <Button variant="ghost" size="icon" onClick={() => { setEditing(t); setOpenForm(true); }}><Pencil className="h-4 w-4" /></Button>
-                        <Button variant="ghost" size="icon" onClick={() => {
-                          if (confirm(`Eliminar cliente "${t.name}"? Esta acción no se puede deshacer.`)) {
-                            deleteTenant.mutate(t.id);
-                          }
-                        }}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                        <Button variant="ghost" size="icon" onClick={() => setToDelete(t)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
                       </div>
                     </TableCell>
                   </TableRow>
@@ -189,6 +187,30 @@ export default function AdminClients() {
         tenantId={inviteTenant?.id ?? ""}
         tenantSlug={inviteTenant?.slug ?? null}
       />
+
+      <AlertDialog open={!!toDelete} onOpenChange={(o) => { if (!o) setToDelete(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar eliminación</AlertDialogTitle>
+            <AlertDialogDescription>
+              ¿Eliminar cliente "{toDelete?.name}"? Esta acción no se puede deshacer.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (toDelete) {
+                  deleteTenant.mutate(toDelete.id);
+                  setToDelete(null);
+                }
+              }}
+            >
+              Eliminar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </article>
   );
 }

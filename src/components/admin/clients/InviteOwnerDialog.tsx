@@ -46,7 +46,7 @@ export default function InviteOwnerDialog({ open, onOpenChange, tenantId, tenant
         toast({ title: "Error", description: "No se pudo crear la invitación", variant: "destructive" });
         return;
       }
-      const url = `${window.location.origin}/invite?token=${encodeURIComponent(token)}`;
+      const url = `${window.location.origin}/invite/${encodeURIComponent(token)}`;
       setLink(url);
       toast({ title: "Invitación creada", description: "Copia y comparte el enlace con el usuario" });
     } finally {

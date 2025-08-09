@@ -116,9 +116,9 @@ export function AppShell({ children, section = "Dashboard", variant = "client" }
         </SidebarFooter>
       </Sidebar>
       <SidebarInset>
-        <header className="sticky top-0 z-10 bg-background/70 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
-          <div className="flex h-14 items-center gap-2 px-4">
-            <SidebarTrigger />
+        <header className="sticky top-0 z-40 bg-background/70 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
+          <div className="flex h-14 items-center gap-2 px-4 animate-fade-in">
+            <SidebarTrigger className="hover-scale" />
             <Breadcrumb>
               <BreadcrumbList>
                 <BreadcrumbItem>
@@ -138,7 +138,7 @@ export function AppShell({ children, section = "Dashboard", variant = "client" }
             </div>
           </div>
         </header>
-        <main className="container mx-auto p-4 md:p-6">
+        <main className="container mx-auto p-4 md:p-6 animate-fade-in">
           {children}
         </main>
       </SidebarInset>

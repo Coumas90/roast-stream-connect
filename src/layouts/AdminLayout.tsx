@@ -2,6 +2,7 @@
 import React from "react";
 import { Outlet, useLocation } from "react-router-dom";
 import { AppShell } from "@/components/layout/AppShell";
+import { Helmet } from "react-helmet-async";
 
 const labels: Record<string, string> = {
   "/admin": "Dashboard",
@@ -25,6 +26,11 @@ export default function AdminLayout() {
   const section = Object.keys(labels).find((k) => pathname.startsWith(k));
   return (
     <AppShell variant="admin" section={section ? labels[section] : "Dashboard"}>
+      <Helmet>
+        <title>{`Admin - ${section ? labels[section] : "Dashboard"}`}</title>
+        <meta name="description" content="Panel admin profesional — gestiona clientes, integraciones y analytics." />
+        <link rel="canonical" href={window.location.origin + pathname} />
+      </Helmet>
       <Outlet />
     </AppShell>
   );

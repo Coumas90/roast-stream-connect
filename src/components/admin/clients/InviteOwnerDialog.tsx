@@ -49,6 +49,20 @@ export default function InviteOwnerDialog({ open, onOpenChange, tenantId, tenant
       const url = `${window.location.origin}/invite/${encodeURIComponent(token)}`;
       setLink(url);
       toast({ title: "Invitación creada", description: "Copia y comparte el enlace con el usuario" });
+      try {
+        const { error: mailError } = await supabase.functions.invoke("send-invite", {
+          body: { to: email, inviteUrl: url, tenantName: tenantSlug ?? undefined },
+        });
+        if (mailError) {
+          console.log("[InviteOwnerDialog] send mail error:", mailError);
+          toast({ title: "No se pudo enviar el email", description: "Comparte el enlace manualmente", variant: "destructive" });
+        } else {
+          toast({ title: "Email enviado", description: `Se envió a ${email}` });
+        }
+      } catch (e: any) {
+        console.log("[InviteOwnerDialog] invoke error:", e);
+        toast({ title: "No se pudo enviar el email", description: "Comparte el enlace manualmente", variant: "destructive" });
+      }
     } finally {
       setIsLoading(false);
     }

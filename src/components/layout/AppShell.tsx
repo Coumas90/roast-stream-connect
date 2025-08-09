@@ -1,3 +1,4 @@
+
 import { ReactNode } from "react";
 import {
   SidebarProvider,
@@ -23,6 +24,7 @@ import { cn } from "@/lib/utils";
 import { NavLink, useLocation } from "react-router-dom";
 import { useDataStore } from "@/lib/data-store";
 import LocationSwitcher from "@/components/app/LocationSwitcher";
+import UserMenu from "@/components/layout/UserMenu";
 
 export type AppShellProps = {
   children: ReactNode;
@@ -131,7 +133,8 @@ export function AppShell({ children, section = "Dashboard", variant = "client" }
             <div className="ml-auto flex items-center gap-2">
               {variant === "client" && <LocationSwitcher />}
               <Button variant="soft" className="hidden sm:inline-flex">Recomendación IA</Button>
-              <Button variant="pill" size="sm">CO</Button>
+              {/* Reemplaza el botón "CO" por el menú de usuario */}
+              <UserMenu variant={variant} />
             </div>
           </div>
         </header>

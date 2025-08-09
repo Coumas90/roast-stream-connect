@@ -41,6 +41,7 @@ import AdminMystery from "./pages/admin/quality/Mystery";
 import AdminAnalytics from "./pages/admin/reports/Analytics";
 import AdminClientDetail from "./pages/admin/Clients/Detail";
 import AcceptInvitation from "./pages/AcceptInvitation";
+import ProfilePage from "./pages/app/Profile";
 
 const queryClient = new QueryClient();
 
@@ -77,6 +78,7 @@ const App = () => (
                     <Route path="loyalty" element={<Loyalty />} />
                     <Route path="raffles" element={<Raffles />} />
                     <Route path="settings/integrations" element={<AppIntegrations />} />
+                    <Route path="profile" element={<ProfilePage />} />
                   </Route>
 
                   {/* INVITATIONS */}
@@ -107,6 +109,7 @@ const App = () => (
                     <Route path="quality/audits" element={<AdminAudits />} />
                     <Route path="quality/mystery" element={<AdminMystery />} />
                     <Route path="reports/analytics" element={<AdminAnalytics />} />
+                    <Route path="profile" element={<ProfilePage />} />
                   </Route>
 
                   {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

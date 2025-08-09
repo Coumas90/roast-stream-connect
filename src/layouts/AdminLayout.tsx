@@ -1,3 +1,4 @@
+
 import React from "react";
 import { Outlet, useLocation } from "react-router-dom";
 import { AppShell } from "@/components/layout/AppShell";
@@ -16,6 +17,7 @@ const labels: Record<string, string> = {
   "/admin/quality/audits": "Auditorías",
   "/admin/quality/mystery": "Cliente Oculto",
   "/admin/reports/analytics": "Analytics",
+  "/admin/profile": "Perfil",
 };
 
 export default function AdminLayout() {

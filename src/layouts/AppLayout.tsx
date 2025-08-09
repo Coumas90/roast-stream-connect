@@ -1,3 +1,4 @@
+
 import React from "react";
 import { Outlet, useLocation } from "react-router-dom";
 import { AppShell } from "@/components/layout/AppShell";
@@ -13,6 +14,7 @@ const labels: Record<string, string> = {
   "/app/loyalty": "Loyalty",
   "/app/raffles": "Loterías",
   "/app/settings/integrations": "Integraciones",
+  "/app/profile": "Perfil",
 };
 
 export default function AppLayout() {

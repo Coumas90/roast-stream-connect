@@ -89,28 +89,30 @@ export function usePosActions() {
     async (provider: AppPosProvider, apiKey: string) => {
       if (!locationId) return;
       const trimmed = (apiKey ?? "").trim();
-      const { error } = trimmed
-        ? await posSupabase.rpc("connect_pos_location" as any, {
-            _location_id: locationId,
-            _provider: provider,
-            _api_key: trimmed,
-          })
-        : await posSupabase.rpc("set_pos_location" as any, {
-            _location_id: locationId,
-            _provider: provider,
-            _connected: true,
-            _config: {},
-          });
+      let error: any = null;
+      if (trimmed) {
+        const { error: fxError } = await posSupabase.functions.invoke("connect-pos-location", {
+          body: { locationId, provider, apiKey: trimmed },
+        });
+        error = fxError as any;
+      } else {
+        const resp = await posSupabase.rpc("set_pos_location" as any, {
+          _location_id: locationId,
+          _provider: provider,
+          _connected: true,
+          _config: {},
+        });
+        error = resp.error as any;
+      }
 
       if (error) {
-        const code = (error as any)?.code || (error as any)?.details || "";
-        if (typeof code === "string" && code.includes("23505")) {
+        const msg = (error as any).message || (error as any).error || "";
+        if (typeof msg === "string" && msg.includes("23505")) {
           toast({ title: "Ya hay un POS conectado en esta sucursal.", description: undefined });
         } else if (trimmed) {
-          // validation error surfacing from validate/connect rpc
-          toast({ title: "No se pudo validar la API key", description: (error as any).message || "Revisá la clave e intenta nuevamente." });
+          toast({ title: "No se pudo validar la API key", description: msg || "Revisá la clave e intenta nuevamente." });
         } else {
-          toast({ title: "Error al conectar POS", description: (error as any).message || "Intenta nuevamente" });
+          toast({ title: "Error al conectar POS", description: msg || "Intenta nuevamente" });
         }
         throw error;
       }

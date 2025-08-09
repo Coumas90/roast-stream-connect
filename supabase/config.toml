@@ -2,3 +2,12 @@ project_id = "ipjidjijilhpblxrnaeg"
 
 [functions.validate-credentials]
 verify_jwt = false
+
+[functions.pos-fudo]
+verify_jwt = false
+
+[functions.pos-maxirest]
+verify_jwt = false
+
+[functions.pos-bistrosoft]
+verify_jwt = false

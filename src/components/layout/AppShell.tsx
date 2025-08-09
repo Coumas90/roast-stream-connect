@@ -139,7 +139,7 @@ export function AppShell({ children, section = "Dashboard", variant = "client" }
             </div>
           </div>
         </header>
-        <main className="container mx-auto p-4 md:p-6 animate-fade-in">
+        <main className="w-full p-4 md:p-6 animate-fade-in">
           {children}
         </main>
       </SidebarInset>

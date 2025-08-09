@@ -1,5 +1,5 @@
 import { Helmet } from "react-helmet-async";
-import { AppShell } from "@/components/layout/AppShell";
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { KPITile } from "@/components/admin/dashboard/KPITile";
@@ -7,7 +7,7 @@ import { Plus, UserPlus, PlugZap, ListChecks } from "lucide-react";
 
 export default function AdminHome() {
   return (
-    <AppShell section="Dashboard" variant="admin">
+    <>
       <Helmet>
         <title>TUPÁ Hub – Panel Admin</title>
         <meta name="description" content="Administra tenants, integraciones POS y campañas desde el Panel Admin de TUPÁ Hub." />
@@ -56,6 +56,6 @@ export default function AdminHome() {
           </CardContent>
         </Card>
       </section>
-    </AppShell>
+    </>
   );
 }

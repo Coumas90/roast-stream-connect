@@ -1,5 +1,5 @@
 import { Helmet } from "react-helmet-async";
-import { AppShell } from "@/components/layout/AppShell";
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
@@ -16,7 +16,7 @@ const data = [
 
 export default function AppHome() {
   return (
-    <AppShell section="Dashboard" variant="client">
+    <>
       <Helmet>
         <title>TUPÁ Hub – Dashboard cliente</title>
         <meta name="description" content="Monitorea consumo real, stock y reposición automática con TUPÁ Hub." />
@@ -90,6 +90,6 @@ export default function AppHome() {
           </CardContent>
         </Card>
       </section>
-    </AppShell>
+    </>
   );
 }

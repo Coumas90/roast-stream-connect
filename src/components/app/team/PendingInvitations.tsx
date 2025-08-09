@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { useInvitations, useResendInvitation, useRevokeInvitation } from "@/hooks/useTeam";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { Mail, RotateCcw, Trash2, Clock, Copy } from "lucide-react";
+import { Mail, RotateCcw, Trash2, Clock, Copy, Plus } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
 import { toast } from "sonner";
@@ -85,7 +85,10 @@ export function PendingInvitations({ onInviteClick, canInvite = false }: Pending
             <p className="text-muted-foreground">
               No hay invitaciones enviadas. Envía una para que tu equipo se una.
             </p>
-            <Button onClick={onInviteClick} disabled={!canInvite}>Invitar ahora</Button>
+            <Button onClick={onInviteClick} disabled={!canInvite} title={!canInvite ? 'No tienes permisos para invitar' : undefined}>
+              <Plus className="w-4 h-4 mr-2" />
+              Invitar ahora
+            </Button>
             {!canInvite && (
               <p className="text-sm text-muted-foreground">
                 No tienes permisos para invitar miembros. Contacta a un administrador.

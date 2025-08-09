@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useTeamMembers } from "@/hooks/useTeam";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Users } from "lucide-react";
+import { Users, Plus } from "lucide-react";
 
 const ROLE_LABELS = {
   owner: 'Propietario',
@@ -88,7 +88,10 @@ export function TeamMembersList({ onInviteClick, canInvite = false }: TeamMember
             <p className="text-muted-foreground">
               Aún no tienes miembros en esta sucursal. Invita a tu primer colaborador.
             </p>
-            <Button onClick={onInviteClick} disabled={!canInvite}>Invitar miembro</Button>
+            <Button onClick={onInviteClick} disabled={!canInvite} title={!canInvite ? 'No tienes permisos para invitar' : undefined}>
+              <Plus className="w-4 h-4 mr-2" />
+              Invitar miembro
+            </Button>
             {!canInvite && (
               <p className="text-sm text-muted-foreground">
                 No tienes permisos para invitar miembros. Contacta a un administrador.

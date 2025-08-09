@@ -26,7 +26,7 @@ import { useDataStore } from "@/lib/data-store";
 import LocationSwitcher from "@/components/app/LocationSwitcher";
 import UserMenu from "@/components/layout/UserMenu";
 import GlobalSearch from "@/components/admin/GlobalSearch";
-
+import { useFeatureFlags } from "@/hooks/useFeatureFlags";
 export type AppShellProps = {
   children: ReactNode;
   section?: string;
@@ -58,7 +58,7 @@ export function AppShell({ children, section = "Dashboard", variant = "client" }
   const baseItems = variant === "admin" ? adminItems : clientItems;
   const { pathname } = useLocation();
   const { ordersQueue } = useDataStore();
-  const { isLoading, flags, posEffective } = variant === "client" ? require("@/hooks/useFeatureFlags").useFeatureFlags() : { isLoading: false, flags: null, posEffective: true } as any;
+  const { isLoading, flags, posEffective } = useFeatureFlags();
 
   // Compute gated items for client variant
   const items = variant === "client" && flags

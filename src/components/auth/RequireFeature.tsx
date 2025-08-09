@@ -32,7 +32,7 @@ export default function RequireFeature({ feature, canAccess = true, children, fa
     );
   }
 
-  const allowed = Boolean((flags as any)[feature]) && canAccess;
+  const allowed = Boolean(flags[feature]) && canAccess;
   if (!allowed) return <>{fallback}</>;
 
   return <>{children}</>;

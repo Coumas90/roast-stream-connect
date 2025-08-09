@@ -64,10 +64,13 @@ export default function UserMenu({ variant = "client" }: Props) {
 
         <DropdownMenuSeparator />
 
-        <DropdownMenuItem onSelect={handleChangeBranch}>Cambiar sucursal</DropdownMenuItem>
-        {/* Cambiar organización/tenant: oculto si no hay multi-tenant disponible */}
-
-        <DropdownMenuSeparator />
+        {variant === "client" && (
+          <>
+            <DropdownMenuItem onSelect={handleChangeBranch}>Cambiar sucursal</DropdownMenuItem>
+            {/* Cambiar organización/tenant: oculto si no hay multi-tenant disponible */}
+            <DropdownMenuSeparator />
+          </>
+        )}
 
         <DropdownMenuLabel>Tema</DropdownMenuLabel>
         <DropdownMenuRadioGroup value={currentTheme} onValueChange={(v) => setTheme(v as any)}>

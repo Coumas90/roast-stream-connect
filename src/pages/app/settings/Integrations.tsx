@@ -75,9 +75,21 @@ export default function AppIntegrations() {
       <h1 className="sr-only">Integraciones</h1>
       <Card>
         <CardHeader><CardTitle>POS</CardTitle></CardHeader>
-        <CardContent className="flex items-center gap-3">
-          <Switch checked={posConnected} disabled aria-label="Estado POS" />
-          <Label>{loading ? "Cargando..." : posConnected ? "Conectado" : "Desconectado"}</Label>
+        <CardContent className="flex flex-wrap items-center gap-4">
+          <div className="flex items-center gap-3">
+            <Switch checked={posConnected} disabled aria-label="Estado POS" />
+            <Label>{loading ? "Cargando..." : posConnected ? "Conectado" : "Desconectado"}</Label>
+          </div>
+          <div className="text-sm text-muted-foreground">
+            {loading ? null : (
+              <>
+                <span className="mr-4">
+                  Proveedor: {provider ? ({ fudo: "Fudo", maxirest: "Maxirest", bistrosoft: "Bistrosoft", other: "ERP/Otro" } as Record<AppPosProvider, string>)[provider] : "—"}
+                </span>
+                <span>Origen: {source ? (source === "location" ? "Sucursal" : "Tenant") : "—"}</span>
+              </>
+            )}
+          </div>
         </CardContent>
       </Card>
     </article>

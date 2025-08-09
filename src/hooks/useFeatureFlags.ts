@@ -65,6 +65,7 @@ export function useFeatureFlags() {
           .from("pos_integrations")
           .select("connected")
           .eq("tenant_id", tenantId)
+          .eq("provider", "odoo")
           .limit(1)
           .maybeSingle(),
       ]);
@@ -137,7 +138,7 @@ export function useFeatureFlags() {
   }, [tenantId, locationId]);
 
   const value = useMemo(() => ({
-    isLoading: query.isLoading || !enabled,
+    isLoading: enabled ? query.isLoading : false,
     error: query.error,
     flags: query.data?.flags ?? DEFAULT_FLAGS,
     tenantPos: query.data?.tenantPos ?? false,

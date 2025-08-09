@@ -63,15 +63,15 @@ export function useFeatureFlags() {
           .limit(1)
           .maybeSingle(),
         // POS efectivo a nivel tenant (sin override de sucursal)
-        (supabase as any).rpc("effective_pos", { _tenant_id: tenantId, _location_id: null }),
+        (supabase as import("@/integrations/supabase/pos-types").PosSupabaseClient).rpc("effective_pos", { _tenant_id: tenantId, _location_id: null }),
         // POS efectivo para la sucursal actual (considera overrides)
-        (supabase as any).rpc("effective_pos", { _tenant_id: tenantId, _location_id: locationId }),
+        (supabase as import("@/integrations/supabase/pos-types").PosSupabaseClient).rpc("effective_pos", { _tenant_id: tenantId, _location_id: locationId }),
       ]);
 
       const flags = (entitlementsRes.data as FeatureFlags | null) ?? DEFAULT_FLAGS;
 
-      const effTenant = Array.isArray((effTenantRes as any).data) ? (effTenantRes as any).data[0] as any : null;
-      const effLoc = Array.isArray((effLocationRes as any).data) ? (effLocationRes as any).data[0] as any : null;
+      const effTenant = Array.isArray(effTenantRes.data) ? effTenantRes.data[0] : null;
+      const effLoc = Array.isArray(effLocationRes.data) ? effLocationRes.data[0] : null;
 
       const tenantPos = Boolean(effTenant?.connected);
       // Habilitación efectiva: POS conectado (tenant o override de location) + flag por sucursal
@@ -119,11 +119,11 @@ export function useFeatureFlags() {
     // Realtime en POS tenant-scope
     ch.on(
       "postgres_changes",
-      { event: "*", schema: "public", table: "pos_integrations_tenant" as any },
+      { event: "*", schema: "public", table: "pos_integrations_tenant" },
       (payload) => {
-        const row: any = payload.new ?? payload.old;
+        const row = (payload.new ?? payload.old) as { tenant_id?: string } | null;
         if (!row) return;
-        if (row.tenant_id !== tenantId) return;
+        if (row.tenant_id && row.tenant_id !== tenantId) return;
         if (debounceRef.current) window.clearTimeout(debounceRef.current);
         debounceRef.current = window.setTimeout(() => query.refetch(), 200);
       }
@@ -132,12 +132,11 @@ export function useFeatureFlags() {
     // Realtime en POS location-scope
     ch.on(
       "postgres_changes",
-      { event: "*", schema: "public", table: "pos_integrations_location" as any },
+      { event: "*", schema: "public", table: "pos_integrations_location" },
       (payload) => {
-        const row: any = payload.new ?? payload.old;
+        const row = (payload.new ?? payload.old) as { location_id?: string } | null;
         if (!row) return;
-        if (row.tenant_id !== tenantId) return;
-        if (locationId && row.location_id !== locationId) return;
+        if (locationId && row.location_id && row.location_id !== locationId) return;
         if (debounceRef.current) window.clearTimeout(debounceRef.current);
         debounceRef.current = window.setTimeout(() => query.refetch(), 200);
       }

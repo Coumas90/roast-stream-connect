@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -6,10 +5,13 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { useTenant } from "@/lib/tenant";
+import type { PosSupabaseClient, AppPosProvider } from "@/integrations/supabase/pos-types";
 
 export default function AppIntegrations() {
   const { tenantId, locationId } = useTenant();
   const [posConnected, setPosConnected] = useState<boolean>(false);
+  const [provider, setProvider] = useState<AppPosProvider | null>(null);
+  const [source, setSource] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -21,7 +23,7 @@ export default function AppIntegrations() {
         return;
       }
       // POS efectivo para esta sucursal (override de location prioriza sobre tenant)
-      const { data, error } = await (supabase as any).rpc("effective_pos", {
+      const { data, error } = await (supabase as PosSupabaseClient).rpc("effective_pos", {
         _tenant_id: tenantId,
         _location_id: locationId,
       });
@@ -32,8 +34,10 @@ export default function AppIntegrations() {
         console.log("[AppIntegrations] effective_pos error:", error);
       }
 
-      const row = Array.isArray(data) ? (data[0] as any) : null;
+      const row = Array.isArray(data) ? data[0] : null;
       setPosConnected(Boolean(row?.connected));
+      setProvider((row?.provider as AppPosProvider) ?? null);
+      setSource(row?.source ?? null);
       setLoading(false);
     };
 
@@ -44,13 +48,13 @@ export default function AppIntegrations() {
       // Cambios a nivel tenant
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "pos_integrations_tenant" as any },
+        { event: "*", schema: "public", table: "pos_integrations_tenant" },
         () => fetchStatus()
       )
       // Cambios a nivel location
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "pos_integrations_location" as any },
+        { event: "*", schema: "public", table: "pos_integrations_location" },
         () => fetchStatus()
       )
       .subscribe();

@@ -4,34 +4,35 @@ import { Helmet } from "react-helmet-async";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { useTenant } from "@/lib/tenant";
 import { toast } from "@/hooks/use-toast";
+import type { PosAugmentedDatabase, PosSupabaseClient, AppPosProvider } from "@/integrations/supabase/pos-types";
 
 export default function AdminIntegrations() {
   const { tenantId } = useTenant();
   const [posConnected, setPosConnected] = useState<boolean>(false);
+  const [provider, setProvider] = useState<AppPosProvider>("other");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-
   const fetchStatus = useCallback(async () => {
     if (!tenantId) {
       setLoading(false);
       return;
     }
-    // Estado de Odoo a nivel tenant en la nueva tabla (casting laxo por tipos generados)
-    const { data, error } = await (supabase as any)
-      .from("pos_integrations_tenant")
-      .select("connected")
-      .eq("tenant_id", tenantId)
-      .eq("provider", "odoo")
-      .maybeSingle();
+    // Estado efectivo a nivel tenant (sin override de sucursal)
+    const sb = supabase as PosSupabaseClient;
+    const { data, error } = await sb.rpc("effective_pos", { _tenant_id: tenantId, _location_id: null });
 
     if (error) {
-      console.log("[AdminIntegrations] fetchStatus error:", error);
+      console.log("[AdminIntegrations] effective_pos error:", error);
       toast({ title: "Error", description: "No se pudo cargar el estado del POS", variant: "destructive" });
     }
-    setPosConnected(Boolean(data?.connected));
+
+    const row = Array.isArray(data) ? data[0] : null;
+    setPosConnected(Boolean(row?.connected));
+    setProvider((row?.provider as AppPosProvider) ?? "other");
     setLoading(false);
   }, [tenantId]);
 
@@ -42,7 +43,7 @@ export default function AdminIntegrations() {
       .channel("pos_integrations_admin_updates")
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "pos_integrations_tenant" as any },
+        { event: "*", schema: "public", table: "pos_integrations_tenant" },
         () => fetchStatus()
       )
       .subscribe();
@@ -58,9 +59,10 @@ export default function AdminIntegrations() {
     setPosConnected(checked);
     setSaving(true);
 
-    const { error } = await (supabase as any).rpc("set_pos_tenant", {
+    const sb = supabase as PosSupabaseClient;
+    const { error } = await sb.rpc("set_pos_tenant", {
       _tenant_id: tenantId,
-      _provider: "odoo",
+      _provider: provider,
       _connected: checked,
       _config: {},
     });
@@ -69,7 +71,11 @@ export default function AdminIntegrations() {
     if (error) {
       console.log("[AdminIntegrations] set_pos_tenant error:", error);
       setPosConnected(prev);
-      toast({ title: "Error", description: "No se pudo actualizar el POS", variant: "destructive" });
+      if ((error as { code?: string }).code === "23505") {
+        toast({ title: "Conflicto", description: "Ya hay un POS conectado en este ámbito", variant: "destructive" });
+      } else {
+        toast({ title: "Error", description: "No se pudo actualizar el POS", variant: "destructive" });
+      }
     } else {
       toast({ title: "Actualizado", description: checked ? "POS conectado" : "POS desconectado" });
     }
@@ -86,8 +92,22 @@ export default function AdminIntegrations() {
       <Card>
         <CardHeader><CardTitle>POS</CardTitle></CardHeader>
         <CardContent className="flex items-center gap-3">
-          <Switch checked={posConnected} onCheckedChange={onToggle} disabled={loading || saving} />
-          <Label>{loading ? "Cargando..." : posConnected ? "Conectado" : "Desconectado"}</Label>
+          <div className="flex items-center gap-2">
+            <Label htmlFor="pos-provider">Proveedor</Label>
+            <Select value={provider} onValueChange={(v) => setProvider(v as AppPosProvider)} disabled={loading || saving}>
+              <SelectTrigger id="pos-provider" className="w-40"><SelectValue placeholder="Seleccionar" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="fudo">Fudo</SelectItem>
+                <SelectItem value="maxirest">Maxirest</SelectItem>
+                <SelectItem value="bistrosoft">Bistrosoft</SelectItem>
+                <SelectItem value="other">ERP/Otro</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex items-center gap-3">
+            <Switch checked={posConnected} onCheckedChange={onToggle} disabled={loading || saving} />
+            <Label>{loading ? "Cargando..." : posConnected ? "Conectado" : "Desconectado"}</Label>
+          </div>
         </CardContent>
       </Card>
     </article>

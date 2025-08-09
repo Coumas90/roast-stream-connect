@@ -30,6 +30,7 @@ import AppIntegrations from "./pages/app/settings/Integrations";
 import AdminClients from "./pages/admin/Clients";
 import AdminEntitlements from "./pages/admin/Entitlements";
 import AdminIntegrations from "./pages/admin/Integrations";
+import AdminPosStatus from "./pages/admin/Integrations/PosStatus";
 import OrdersQueue from "./pages/admin/OrdersQueue";
 import AdminAdvisory from "./pages/admin/Advisory";
 import AdminRecipes from "./pages/admin/Recipes";
@@ -104,9 +105,10 @@ const App = () => (
                     <Route index element={<AdminHome />} />
                     <Route path="clients" element={<AdminClients />} />
                     <Route path="clients/:tenantId" element={<AdminClientDetail />} />
-                    <Route path="entitlements" element={<AdminEntitlements />} />
-                    <Route path="integrations" element={<AdminIntegrations />} />
-                    <Route path="orders-queue" element={<OrdersQueue />} />
+<Route path="entitlements" element={<AdminEntitlements />} />
+<Route path="integrations" element={<AdminIntegrations />} />
+<Route path="integrations/pos/status" element={<AdminPosStatus />} />
+<Route path="orders-queue" element={<OrdersQueue />} />
                     <Route path="advisory" element={<AdminAdvisory />} />
                     <Route path="recipes" element={<AdminRecipes />} />
                     <Route path="academy" element={<AdminAcademy />} />

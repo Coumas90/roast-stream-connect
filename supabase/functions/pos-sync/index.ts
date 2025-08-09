@@ -227,10 +227,11 @@ await writeLog(supabase, {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {
-    console.error("pos-sync error", error);
-    return new Response(JSON.stringify({ ok: false, error: (error as Error)?.message ?? String(error) }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+console.error("pos-sync error", error);
+await writeLog(supabase, { scope: "pos-sync", level: "error", message: "exception", meta: { error: String(error) } });
+return new Response(JSON.stringify({ ok: false, error: (error as Error)?.message ?? String(error) }), {
+  status: 500,
+  headers: { ...corsHeaders, "Content-Type": "application/json" },
+});
   }
 });

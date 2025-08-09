@@ -31,15 +31,21 @@ export default function AppLayout() {
       navigate("/app", { replace: true });
     };
 
-    if (pathname.startsWith("/app/replenishment")) {
-      if (!(flags.auto_order_enabled && posEffective)) redirect();
-    } else if (pathname.startsWith("/app/academy")) {
-      if (!flags.academy_enabled) redirect();
-    } else if (pathname.startsWith("/app/loyalty")) {
-      if (!flags.loyalty_enabled) redirect();
-    } else if (pathname.startsWith("/app/raffles")) {
-      if (!flags.raffles_enabled) redirect();
-    }
+if (pathname.startsWith("/app/replenishment")) {
+  if (!flags.auto_order_enabled) {
+    toast({ title: "Auto‑orden deshabilitado", description: "Activa el flag de sucursal para usar Reposición." });
+    navigate("/app", { replace: true });
+  } else if (!posEffective) {
+    toast({ title: "POS desconectado", description: "Conecta tu POS para habilitar Reposición." });
+    navigate("/app", { replace: true });
+  }
+} else if (pathname.startsWith("/app/academy")) {
+  if (!flags.academy_enabled) redirect();
+} else if (pathname.startsWith("/app/loyalty")) {
+  if (!flags.loyalty_enabled) redirect();
+} else if (pathname.startsWith("/app/raffles")) {
+  if (!flags.raffles_enabled) redirect();
+}
   }, [pathname, isLoading, flags, posEffective, navigate]);
 
   const section = Object.keys(labels).find((k) => pathname.startsWith(k));

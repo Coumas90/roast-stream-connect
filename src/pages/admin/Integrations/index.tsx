@@ -92,22 +92,28 @@ export default function AdminIntegrations() {
       <h1 className="sr-only">Integraciones</h1>
       <Card>
         <CardHeader><CardTitle>POS</CardTitle></CardHeader>
-        <CardContent className="flex items-center gap-3">
-          <div className="flex items-center gap-2">
-            <Label htmlFor="pos-provider">Proveedor</Label>
-            <Select value={provider} onValueChange={(v) => setProvider(v as AppPosProvider)} disabled={loading || saving}>
-              <SelectTrigger id="pos-provider" className="w-40"><SelectValue placeholder="Seleccionar" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="fudo">Fudo</SelectItem>
-                <SelectItem value="maxirest">Maxirest</SelectItem>
-                <SelectItem value="bistrosoft">Bistrosoft</SelectItem>
-                <SelectItem value="other">ERP/Otro</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+        <CardContent className="flex flex-col gap-3">
           <div className="flex items-center gap-3">
-            <Switch checked={posConnected} onCheckedChange={onToggle} disabled={loading || saving} />
-            <Label>{loading ? "Cargando..." : posConnected ? "Conectado" : "Desconectado"}</Label>
+            <div className="flex items-center gap-2">
+              <Label htmlFor="pos-provider">Proveedor</Label>
+              <Select value={provider} onValueChange={(v) => setProvider(v as AppPosProvider)} disabled={loading || saving}>
+                <SelectTrigger id="pos-provider" className="w-40"><SelectValue placeholder="Seleccionar" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="fudo">Fudo</SelectItem>
+                  <SelectItem value="maxirest">Maxirest</SelectItem>
+                  <SelectItem value="bistrosoft">Bistrosoft</SelectItem>
+                  <SelectItem value="other">ERP/Otro</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex items-center gap-3">
+              <Switch checked={posConnected} onCheckedChange={onToggle} disabled={loading || saving} />
+              <Label>{loading ? "Cargando..." : posConnected ? "Conectado" : "Desconectado"}</Label>
+            </div>
+          </div>
+
+          <div className="text-sm">
+            <a href="/admin/integrations/pos/status" className="underline underline-offset-4">Ver estado y errores</a>
           </div>
         </CardContent>
       </Card>

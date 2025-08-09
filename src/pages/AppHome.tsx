@@ -4,6 +4,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts";
+import React from "react";
+import PosConnectModal from "@/components/app/PosConnectModal";
+import { useEffectivePos } from "@/hooks/usePosProvider";
+import { useUserRole } from "@/hooks/useTeam";
+import { useFeatureFlags } from "@/hooks/useFeatureFlags";
+import type { AppPosProvider } from "@/integrations/supabase/pos-types";
 
 const data = [
   { name: "Ene", consumo: 12 },
@@ -15,6 +21,12 @@ const data = [
 ];
 
 export default function AppHome() {
+  const { provider, source, connected, isLoading } = useEffectivePos();
+  const { data: userRole } = useUserRole();
+  const { flags, posEffective } = useFeatureFlags();
+  const canManage = userRole === "owner" || userRole === "manager" || userRole === "tupa_admin";
+  const [open, setOpen] = React.useState(false);
+  const [defaultProvider, setDefaultProvider] = React.useState<AppPosProvider | undefined>(undefined);
   return (
     <>
       <Helmet>
@@ -29,6 +41,37 @@ export default function AppHome() {
           offers: { "@type": "Offer", price: "0" }
         })}</script>
       </Helmet>
+      {/* POS status card */}
+      <section className="grid gap-4 mt-2">
+        <Card>
+          <CardHeader>
+            <CardTitle>POS</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-wrap items-center gap-4 justify-between">
+            <div className="text-sm">
+              {isLoading ? "Cargando…" : connected ? "Conectado" : "Desconectado"}
+              {!posEffective && !isLoading ? (
+                <div className="text-muted-foreground text-xs mt-1">
+                  {flags.auto_order_enabled ? (!connected ? "POS no conectado" : null) : "Auto‑orden deshabilitado"}
+                </div>
+              ) : null}
+            </div>
+            <div className="text-sm text-muted-foreground">
+              {!isLoading && (
+                <>
+                  <span className="mr-4">Proveedor: {provider ? ({ fudo: "Fudo", maxirest: "Maxirest", bistrosoft: "Bistrosoft", other: "ERP/Otro" } as Record<AppPosProvider, string>)[provider] : "—"}</span>
+                  <span>Origen: {source ? (source === "location" ? "Sucursal" : "Tenant") : "—"}</span>
+                </>
+              )}
+            </div>
+            {canManage && !isLoading && !connected ? (
+              <Button onClick={() => { setDefaultProvider(undefined); setOpen(true); }}>Conectar ahora</Button>
+            ) : null}
+          </CardContent>
+        </Card>
+      </section>
+
+      {/* Metrics grid */}
       <section className="grid gap-4 md:grid-cols-4">
         <Card>
           <CardHeader>
@@ -90,6 +133,7 @@ export default function AppHome() {
           </CardContent>
         </Card>
       </section>
+      <PosConnectModal open={open} onOpenChange={setOpen} defaultProvider={defaultProvider} />
     </>
   );
 }

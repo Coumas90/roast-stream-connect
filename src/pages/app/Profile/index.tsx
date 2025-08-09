@@ -14,6 +14,7 @@ import { toast } from "@/components/ui/sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { useUserRole } from "@/hooks/useTeam";
+import { useTenant } from "@/lib/tenant";
 
 const ProfileSchema = z.object({
   full_name: z.string().min(1, "El nombre es requerido"),
@@ -88,7 +89,9 @@ export default function ProfilePage() {
   const displayName = useMemo(() => profile?.full_name || email || "Usuario", [profile?.full_name, email]);
 
   const { data: userRole } = useUserRole();
+  const { tenantId } = useTenant();
   const [isPlatformAdmin, setIsPlatformAdmin] = useState(false);
+  const [fallbackRole, setFallbackRole] = useState<string | null>(null);
   useEffect(() => {
     if (!userId) return;
     let ignore = false;
@@ -96,18 +99,26 @@ export default function ProfilePage() {
       try {
         const { data } = await supabase
           .from('user_roles')
-          .select('role')
+          .select('role, tenant_id, location_id')
           .eq('user_id', userId);
+        if (ignore) return;
+        setIsPlatformAdmin(!!data?.some((r: any) => r.role === 'tupa_admin'));
+        const roles = (tenantId ? data?.filter((r: any) => r.tenant_id === tenantId) : data) || [];
+        const priority = ['owner', 'manager', 'coffee_master', 'barista'] as const;
+        const derived = priority.find(p => roles.some((r: any) => r.role === p)) || null;
+        setFallbackRole(derived);
+      } catch {
         if (!ignore) {
-          setIsPlatformAdmin(!!data?.some((r: any) => r.role === 'tupa_admin'));
+          setIsPlatformAdmin(false);
+          setFallbackRole(null);
         }
-      } catch {}
+      }
     };
     load();
     return () => { ignore = true; };
-  }, [userId]);
+  }, [userId, tenantId]);
 
-  const effectiveRole = userRole ?? (isPlatformAdmin ? 'tupa_admin' : null);
+  const effectiveRole = userRole ?? (isPlatformAdmin ? 'tupa_admin' : fallbackRole);
   const roleLabel = useMemo(() => {
     const map: Record<string, string> = {
       tupa_admin: 'Administrador de plataforma',

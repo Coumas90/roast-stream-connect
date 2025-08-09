@@ -55,9 +55,20 @@ const adminItems: NavItem[] = [
 ];
 
 export function AppShell({ children, section = "Dashboard", variant = "client" }: AppShellProps) {
-  const items = variant === "admin" ? adminItems : clientItems;
+  const baseItems = variant === "admin" ? adminItems : clientItems;
   const { pathname } = useLocation();
   const { ordersQueue } = useDataStore();
+  const { isLoading, flags, posEffective } = variant === "client" ? require("@/hooks/useFeatureFlags").useFeatureFlags() : { isLoading: false, flags: null, posEffective: true } as any;
+
+  // Compute gated items for client variant
+  const items = variant === "client" && flags
+    ? baseItems.filter((n) => {
+        if (n.to === "/app/replenishment") return flags.auto_order_enabled && posEffective;
+        if (n.to === "/app/academy") return flags.academy_enabled;
+        if (n.to === "/app/loyalty") return flags.loyalty_enabled;
+        return true;
+      })
+    : baseItems;
 
   return (
     <SidebarProvider>
@@ -76,22 +87,31 @@ export function AppShell({ children, section = "Dashboard", variant = "client" }
             <SidebarGroupLabel>Principal</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
-                {items.map((n) => {
-                  const isActive = n.exact ? pathname === n.to : pathname.startsWith(n.to);
-                  return (
-                    <SidebarMenuItem key={n.label}>
-                      <SidebarMenuButton isActive={isActive} asChild>
-                        <NavLink to={n.to} aria-current={isActive ? "page" : undefined}>
-                          <n.icon />
-                          <span>{n.label}</span>
-                        </NavLink>
-                      </SidebarMenuButton>
-                      {n.label === "Reposición" && ordersQueue.length > 0 && (
-                        <SidebarMenuBadge>{ordersQueue.length}</SidebarMenuBadge>
-                      )}
+                {variant === "client" && isLoading ? (
+                  // Preserve layout with skeletons while flags load
+                  Array.from({ length: 5 }).map((_, i) => (
+                    <SidebarMenuItem key={`sk-${i}`}>
+                      <div className="h-8 rounded bg-muted w-full" />
                     </SidebarMenuItem>
-                  );
-                })}
+                  ))
+                ) : (
+                  items.map((n) => {
+                    const isActive = n.exact ? pathname === n.to : pathname.startsWith(n.to);
+                    return (
+                      <SidebarMenuItem key={n.label}>
+                        <SidebarMenuButton isActive={isActive} asChild>
+                          <NavLink to={n.to} aria-current={isActive ? "page" : undefined}>
+                            <n.icon />
+                            <span>{n.label}</span>
+                          </NavLink>
+                        </SidebarMenuButton>
+                        {n.label === "Reposición" && ordersQueue.length > 0 && (
+                          <SidebarMenuBadge>{ordersQueue.length}</SidebarMenuBadge>
+                        )}
+                      </SidebarMenuItem>
+                    );
+                  })
+                )}
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>

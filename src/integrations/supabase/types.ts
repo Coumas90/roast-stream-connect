@@ -128,6 +128,36 @@ export type Database = {
           },
         ]
       }
+      invitation_audit: {
+        Row: {
+          created_at: string
+          email: string | null
+          event: string
+          id: string
+          invitation_id: string | null
+          metadata: Json | null
+          tenant_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          event: string
+          id?: string
+          invitation_id?: string | null
+          metadata?: Json | null
+          tenant_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          event?: string
+          id?: string
+          invitation_id?: string | null
+          metadata?: Json | null
+          tenant_id?: string | null
+        }
+        Relationships: []
+      }
       invitations: {
         Row: {
           accepted_at: string | null
@@ -517,6 +547,16 @@ export type Database = {
       is_tupa_admin: {
         Args: Record<PropertyKey, never>
         Returns: boolean
+      }
+      log_invitation_event: {
+        Args: {
+          _event: string
+          _invitation_id: string
+          _email: string
+          _tenant_id: string
+          _metadata?: Json
+        }
+        Returns: undefined
       }
       revoke_role_by_email: {
         Args: {

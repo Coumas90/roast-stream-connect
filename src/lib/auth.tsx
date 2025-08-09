@@ -2,6 +2,7 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 export type Role = "client" | "admin";
 
@@ -40,6 +41,7 @@ async function resolveAppRole(userId: string): Promise<Role> {
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [state, setState] = useState<AuthState>(() => {
     // Conservamos compat localStorage por si ya existía algo
     try {
@@ -110,30 +112,40 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     signInClient: async () => {
       // Guardamos a dónde ir tras Google OAuth
       localStorage.setItem(REDIRECT_KEY, "/app");
-      const { error } = await supabase.auth.signInWithOAuth({
+      const result = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
           redirectTo: window.location.origin,
           queryParams: { prompt: "select_account" },
         },
       });
-      if (error) {
-        console.error("[Auth] Google signInClient error:", error);
+      if (result.error) {
+        console.error("[Auth] Google signInClient error:", result.error);
+        toast({
+          title: "Error de acceso",
+          description: result.error.message,
+          variant: "destructive",
+        });
       } else {
         console.log("[Auth] Google OAuth launched (client)");
       }
     },
     signInAdmin: async () => {
       localStorage.setItem(REDIRECT_KEY, "/admin");
-      const { error } = await supabase.auth.signInWithOAuth({
+      const result = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
           redirectTo: window.location.origin,
           queryParams: { prompt: "select_account" },
         },
       });
-      if (error) {
-        console.error("[Auth] Google signInAdmin error:", error);
+      if (result.error) {
+        console.error("[Auth] Google signInAdmin error:", result.error);
+        toast({
+          title: "Error de acceso",
+          description: result.error.message,
+          variant: "destructive",
+        });
       } else {
         console.log("[Auth] Google OAuth launched (admin)");
       }
@@ -145,7 +157,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setState({ role: null, isAuthenticated: false });
       navigate("/", { replace: true });
     },
-  }), [state, navigate]);
+  }), [state, navigate, toast]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

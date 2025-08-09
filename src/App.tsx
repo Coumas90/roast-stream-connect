@@ -42,6 +42,8 @@ import AdminAnalytics from "./pages/admin/reports/Analytics";
 import AdminClientDetail from "./pages/admin/Clients/Detail";
 import AcceptInvitation from "./pages/AcceptInvitation";
 import ProfilePage from "./pages/app/Profile";
+import ForgotPassword from "./pages/auth/ForgotPassword";
+import ResetPassword from "./pages/auth/ResetPassword";
 
 const queryClient = new QueryClient();
 
@@ -57,6 +59,10 @@ const App = () => (
               <DataStoreProvider>
                 <Routes>
                   <Route path="/" element={<Index />} />
+
+                  {/* AUTH */}
+                  <Route path="/auth/forgot-password" element={<ForgotPassword />} />
+                  <Route path="/auth/reset-password" element={<ResetPassword />} />
 
                   {/* CLIENTE */}
                   <Route path="/app/login" element={<AppLogin />} />

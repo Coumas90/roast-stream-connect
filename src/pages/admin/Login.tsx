@@ -113,6 +113,12 @@ export default function AdminLogin() {
                     />
                   </div>
 
+                  <div className="text-right">
+                    <Link to="/auth/forgot-password?ctx=admin" className="text-sm text-primary underline-offset-4 hover:underline">
+                      ¿Olvidaste tu contraseña?
+                    </Link>
+                  </div>
+
                   <Button type="submit" className="w-full" disabled={loading}>
                     {loading ? "Entrando..." : "Entrar"}
                     <ArrowRight className="ml-2 h-4 w-4" />

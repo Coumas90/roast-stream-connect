@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -38,6 +39,8 @@ import AdminRaffles from "./pages/admin/Raffles";
 import AdminAudits from "./pages/admin/quality/Audits";
 import AdminMystery from "./pages/admin/quality/Mystery";
 import AdminAnalytics from "./pages/admin/reports/Analytics";
+import AdminClientDetail from "./pages/admin/Clients/Detail";
+import AcceptInvitation from "./pages/AcceptInvitation";
 
 const queryClient = new QueryClient();
 
@@ -76,6 +79,9 @@ const App = () => (
                     <Route path="settings/integrations" element={<AppIntegrations />} />
                   </Route>
 
+                  {/* INVITATIONS */}
+                  <Route path="/invite" element={<AcceptInvitation />} />
+
                   {/* ADMIN */}
                   <Route path="/admin/login" element={<AdminLogin />} />
                   <Route
@@ -88,6 +94,7 @@ const App = () => (
                   >
                     <Route index element={<AdminHome />} />
                     <Route path="clients" element={<AdminClients />} />
+                    <Route path="clients/:tenantId" element={<AdminClientDetail />} />
                     <Route path="entitlements" element={<AdminEntitlements />} />
                     <Route path="integrations" element={<AdminIntegrations />} />
                     <Route path="orders-queue" element={<OrdersQueue />} />

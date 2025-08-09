@@ -9,6 +9,24 @@ const corsHeaders = {
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
+const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+
+async function writeLog(entry: { location_id?: string | null; provider?: string | null; level: "info" | "error" | "warn" | "debug"; message: string; meta?: Record<string, unknown> }) {
+  try {
+    const client = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, { global: { headers: { Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}` } } });
+    await client.from("pos_logs").insert({
+      ts: new Date().toISOString(),
+      location_id: entry.location_id ?? null,
+      provider: (entry.provider as any) ?? null,
+      scope: "connect-pos",
+      level: entry.level,
+      message: entry.message,
+      meta: entry.meta ?? {},
+    });
+  } catch (e) {
+    console.warn("connect-pos-location: failed to write log", e);
+  }
+}
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -38,25 +56,31 @@ serve(async (req) => {
       return new Response(JSON.stringify({ error: reason }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-      global: { headers: { Authorization: req.headers.get("Authorization") || "" } },
-    });
+const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  global: { headers: { Authorization: req.headers.get("Authorization") || "" } },
+});
 
-    const { error } = await supabase.rpc("connect_pos_location", {
-      _location_id: locationId,
-      _provider: provider,
-      _api_key: apiKey,
-    });
+await writeLog({ location_id: locationId, provider, level: "info", message: "connect attempt", meta: {} });
 
-    if (error) {
-      const msg = error.message || "Error al conectar POS";
-      const status = /forbidden/i.test(msg) ? 403 : /authentication required/i.test(msg) ? 401 : 400;
-      return new Response(JSON.stringify({ error: msg }), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-    }
+const { error } = await supabase.rpc("connect_pos_location", {
+  _location_id: locationId,
+  _provider: provider,
+  _api_key: apiKey,
+});
+
+if (error) {
+  const msg = error.message || "Error al conectar POS";
+  const status = /forbidden/i.test(msg) ? 403 : /authentication required/i.test(msg) ? 401 : 400;
+  await writeLog({ location_id: locationId, provider, level: "error", message: "connect failed", meta: { msg } });
+  return new Response(JSON.stringify({ error: msg }), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+}
+
+await writeLog({ location_id: locationId, provider, level: "info", message: "connect ok" });
 
     return new Response(JSON.stringify({ ok: true }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (error) {
     console.error("connect-pos-location error", error);
+    await writeLog({ level: "error", message: "exception", meta: { error: String(error) } });
     return new Response(JSON.stringify({ error: "Server error" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
 });

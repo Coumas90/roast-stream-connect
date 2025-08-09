@@ -14,6 +14,31 @@ const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 // Simple jittered backoff in ms
 const backoff = (attempt: number) => 500 * Math.pow(2, attempt) + Math.floor(Math.random() * 100);
 
+async function writeLog(client: ReturnType<typeof createClient>, entry: {
+  tenant_id?: string | null;
+  location_id?: string | null;
+  provider?: string | null;
+  scope: string;
+  level: "debug" | "info" | "warn" | "error";
+  message: string;
+  meta?: Record<string, unknown>;
+}) {
+  try {
+    await client.from("pos_logs").insert({
+      ts: new Date().toISOString(),
+      tenant_id: entry.tenant_id ?? null,
+      location_id: entry.location_id ?? null,
+      provider: (entry.provider as any) ?? null,
+      scope: entry.scope,
+      level: entry.level,
+      message: entry.message,
+      meta: entry.meta ?? {},
+    });
+  } catch (e) {
+    console.warn("pos-sync: failed to write log", e);
+  }
+}
+
 type Kind = "products" | "orders";
 
 type RunInput = {
@@ -72,9 +97,19 @@ serve(async (req) => {
           .limit(1)
           .maybeSingle();
         if (lastRunErr) throw lastRunErr;
-        const since = lastRunData?.finished_at ? new Date(lastRunData.finished_at) : null;
+const since = lastRunData?.finished_at ? new Date(lastRunData.finished_at) : null;
 
-        // Create run row
+// Log start
+await writeLog(supabase, {
+  location_id: t.location_id,
+  provider: t.provider,
+  scope: "pos-sync",
+  level: "info",
+  message: `sync ${kind} start`,
+  meta: { since: since?.toISOString() ?? null }
+});
+
+// Create run row
         {
           const { data: ins, error: insErr } = await supabase
             .from("pos_sync_runs")
@@ -161,19 +196,28 @@ serve(async (req) => {
           }
         }
 
-        // Finish run
-        if (runId) {
-          const { error: finErr } = await supabase
-            .from("pos_sync_runs")
-            .update({
-              finished_at: new Date().toISOString(),
-              ok,
-              error: ok ? null : errorMsg,
-              items,
-            })
-            .eq("id", runId);
-          if (finErr) throw finErr;
-        }
+// Finish run
+if (runId) {
+  const { error: finErr } = await supabase
+    .from("pos_sync_runs")
+    .update({
+      finished_at: new Date().toISOString(),
+      ok,
+      error: ok ? null : errorMsg,
+      items,
+    })
+    .eq("id", runId);
+  if (finErr) throw finErr;
+}
+
+await writeLog(supabase, {
+  location_id: t.location_id,
+  provider: t.provider,
+  scope: "pos-sync",
+  level: ok ? "info" : "error",
+  message: `sync ${kind} ${ok ? "ok" : "failed"}`,
+  meta: { items, attempts: attempt, error: errorMsg }
+});
 
         results.push({ ...t, kind, ok, items, attempts: attempt, error: errorMsg });
       }

@@ -447,6 +447,42 @@ export type Database = {
         }
         Relationships: []
       }
+      pos_logs: {
+        Row: {
+          id: string
+          level: string
+          location_id: string | null
+          message: string
+          meta: Json
+          provider: Database["public"]["Enums"]["app_pos_provider"] | null
+          scope: string
+          tenant_id: string | null
+          ts: string
+        }
+        Insert: {
+          id?: string
+          level: string
+          location_id?: string | null
+          message: string
+          meta?: Json
+          provider?: Database["public"]["Enums"]["app_pos_provider"] | null
+          scope: string
+          tenant_id?: string | null
+          ts?: string
+        }
+        Update: {
+          id?: string
+          level?: string
+          location_id?: string | null
+          message?: string
+          meta?: Json
+          provider?: Database["public"]["Enums"]["app_pos_provider"] | null
+          scope?: string
+          tenant_id?: string | null
+          ts?: string
+        }
+        Relationships: []
+      }
       pos_orders: {
         Row: {
           external_id: string

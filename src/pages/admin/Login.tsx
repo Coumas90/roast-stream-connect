@@ -15,7 +15,7 @@ import { supabase } from "@/integrations/supabase/client";
 export default function AdminLogin() {
   const { signInAdmin } = useAuth();
   const { toast } = useToast();
-  const [email, setEmail] = useState("comasnicolas@gmail.com");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
 

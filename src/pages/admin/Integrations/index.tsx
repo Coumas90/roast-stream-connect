@@ -5,10 +5,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { supabase } from "@/integrations/supabase/client";
+import { posSupabase } from "@/integrations/supabase/pos-client";
 import { useTenant } from "@/lib/tenant";
 import { toast } from "@/hooks/use-toast";
-import type { PosSupabaseClient, AppPosProvider, EffectivePosRow } from "@/integrations/supabase/pos-types";
+import type { AppPosProvider, EffectivePosRow } from "@/integrations/supabase/pos-types";
 
 export default function AdminIntegrations() {
   const { tenantId } = useTenant();
@@ -16,14 +16,14 @@ export default function AdminIntegrations() {
   const [provider, setProvider] = useState<AppPosProvider>("other");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const sb = supabase as PosSupabaseClient;
+  const sb = posSupabase;
   const fetchStatus = useCallback(async () => {
     if (!tenantId) {
       setLoading(false);
       return;
     }
     // Estado efectivo a nivel tenant (sin override de sucursal)
-    const sb = supabase as PosSupabaseClient;
+    const sb = posSupabase;
     const { data, error } = await sb.rpc("effective_pos", { _tenant_id: tenantId, _location_id: null });
 
     if (error) {
@@ -60,7 +60,7 @@ export default function AdminIntegrations() {
     setPosConnected(checked);
     setSaving(true);
 
-    const sb = supabase as PosSupabaseClient;
+    const sb = posSupabase;
     const { error } = await sb.rpc("set_pos_tenant", {
       _tenant_id: tenantId,
       _provider: provider,

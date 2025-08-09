@@ -3,9 +3,9 @@ import { Helmet } from "react-helmet-async";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { supabase } from "@/integrations/supabase/client";
+import { posSupabase } from "@/integrations/supabase/pos-client";
 import { useTenant } from "@/lib/tenant";
-import type { PosSupabaseClient, AppPosProvider, EffectivePosRow } from "@/integrations/supabase/pos-types";
+import type { AppPosProvider, EffectivePosRow } from "@/integrations/supabase/pos-types";
 
 export default function AppIntegrations() {
   const { tenantId, locationId } = useTenant();
@@ -13,7 +13,7 @@ export default function AppIntegrations() {
   const [provider, setProvider] = useState<AppPosProvider | null>(null);
   const [source, setSource] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const sb = supabase as PosSupabaseClient;
+  const sb = posSupabase;
 
   useEffect(() => {
     let active = true;

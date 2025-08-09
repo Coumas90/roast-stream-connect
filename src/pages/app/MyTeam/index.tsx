@@ -8,10 +8,10 @@ import { TeamMembersList } from "@/components/app/team/TeamMembersList";
 import { PendingInvitations } from "@/components/app/team/PendingInvitations";
 import { InviteDialog } from "@/components/app/team/InviteDialog";
 import { supabase } from "@/integrations/supabase/client";
-
+import { useNavigate } from "react-router-dom";
 export default function MyTeam() {
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
-  const { location, locationId } = useTenant();
+  const { location, locationId, tenantId } = useTenant();
   const { data: userRole } = useUserRole();
 
   // Real-time updates for team data
@@ -59,7 +59,8 @@ export default function MyTeam() {
   }, [locationId]);
 
   const canInvite = userRole === 'owner' || userRole === 'manager';
-
+  const isPlatformAdmin = userRole === 'tupa_admin';
+  const navigate = useNavigate();
   return (
     <article>
       <Helmet>
@@ -83,14 +84,26 @@ export default function MyTeam() {
             </p>
           )}
         </div>
-        <Button 
-          onClick={() => setInviteDialogOpen(true)}
-          disabled={!canInvite}
-          title={!canInvite ? 'No tienes permisos para invitar' : undefined as any}
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          Invitar miembro
-        </Button>
+        <div className="flex items-center gap-2">
+          {isPlatformAdmin && (
+            <Button
+              variant="outline"
+              onClick={() => tenantId && navigate(`/admin/clients/${tenantId}`)}
+              disabled={!tenantId}
+              title={!tenantId ? 'Tenant no disponible' : 'Ver cliente en Admin'}
+            >
+              Ver cliente
+            </Button>
+          )}
+          <Button 
+            onClick={() => setInviteDialogOpen(true)}
+            disabled={!canInvite}
+            title={!canInvite ? 'No tienes permisos para invitar' : undefined as any}
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Invitar miembro
+          </Button>
+        </div>
       </header>
 
       <section className="grid gap-6 lg:grid-cols-2">

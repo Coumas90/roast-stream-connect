@@ -8,7 +8,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Mail, RotateCcw, Trash2, Clock, Copy } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
-
+import { toast } from "sonner";
 const ROLE_LABELS = {
   manager: 'Encargado',
   coffee_master: 'Coffee Master', 
@@ -134,11 +134,20 @@ export function PendingInvitations({ onInviteClick, canInvite = false }: Pending
               <Button
                 size="sm"
                 variant="ghost"
-                onClick={() => {
-                  const link = invitation.token ? `${window.location.origin}/invite/${invitation.token}` : '';
-                  if (link) navigator.clipboard.writeText(link);
+                onClick={async () => {
+                  try {
+                    const { data } = await resendInvitation.mutateAsync(invitation.id);
+                    const newToken = data?.[0]?.token || (invitation as any).token;
+                    const link = newToken ? `${window.location.origin}/invite/${newToken}` : '';
+                    if (link) {
+                      await navigator.clipboard.writeText(link);
+                      toast.success('Link de invitación copiado');
+                    }
+                  } catch (e) {
+                    // handled by hook toast
+                  }
                 }}
-                disabled={!invitation.token}
+                disabled={resendInvitation.isPending}
                 title="Copiar link"
               >
                 <Copy className="w-4 h-4" />

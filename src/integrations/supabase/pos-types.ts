@@ -80,4 +80,6 @@ export type PosAugmentedDatabase = BaseDatabase & {
   };
 };
 
+export type EffectivePosRow = { provider: AppPosProvider; source: "tenant" | "location"; connected: boolean };
+
 export type PosSupabaseClient = SupabaseClient<PosAugmentedDatabase>;

@@ -5,7 +5,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { useTenant } from "@/lib/tenant";
-import type { PosSupabaseClient, AppPosProvider } from "@/integrations/supabase/pos-types";
+import type { PosSupabaseClient, AppPosProvider, EffectivePosRow } from "@/integrations/supabase/pos-types";
 
 export default function AppIntegrations() {
   const { tenantId, locationId } = useTenant();
@@ -34,7 +34,7 @@ export default function AppIntegrations() {
         console.log("[AppIntegrations] effective_pos error:", error);
       }
 
-      const row = Array.isArray(data) ? data[0] : null;
+      const row = Array.isArray(data) ? (data as EffectivePosRow[])[0] : null;
       setPosConnected(Boolean(row?.connected));
       setProvider((row?.provider as AppPosProvider) ?? null);
       setSource(row?.source ?? null);

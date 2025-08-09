@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { useTenant } from "@/lib/tenant";
 import { toast } from "@/hooks/use-toast";
-import type { PosAugmentedDatabase, PosSupabaseClient, AppPosProvider } from "@/integrations/supabase/pos-types";
+import type { PosAugmentedDatabase, PosSupabaseClient, AppPosProvider, EffectivePosRow } from "@/integrations/supabase/pos-types";
 
 export default function AdminIntegrations() {
   const { tenantId } = useTenant();
@@ -30,7 +30,7 @@ export default function AdminIntegrations() {
       toast({ title: "Error", description: "No se pudo cargar el estado del POS", variant: "destructive" });
     }
 
-    const row = Array.isArray(data) ? data[0] : null;
+    const row = Array.isArray(data) ? (data as EffectivePosRow[])[0] : null;
     setPosConnected(Boolean(row?.connected));
     setProvider((row?.provider as AppPosProvider) ?? "other");
     setLoading(false);

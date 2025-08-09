@@ -7,12 +7,10 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { CheckCircle2, ArrowRight, Eye, EyeOff, Loader2 } from "lucide-react";
+import { Shield, CheckCircle2, ArrowRight } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import AuthLayout from "@/components/auth/AuthLayout";
-import AuthIllustration from "@/components/auth/AuthIllustration";
 
 export default function AdminLogin() {
   const { signInAdmin } = useAuth();
@@ -20,7 +18,6 @@ export default function AdminLogin() {
   const [email, setEmail] = useState("comasnicolas@gmail.com");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
 
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault();

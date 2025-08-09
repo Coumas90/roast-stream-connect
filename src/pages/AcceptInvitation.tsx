@@ -1,4 +1,3 @@
-
 import React, { useEffect, useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { useSearchParams, useNavigate, useParams } from "react-router-dom";
@@ -38,7 +37,16 @@ export default function AcceptInvitation() {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     } else {
       toast({ title: "Invitación aceptada" });
-      navigate("/app", { replace: true });
+      // Role-based redirect: if user is tupa_admin -> /admin, else /app
+      const { data: userRes } = await supabase.auth.getUser();
+      const userId = userRes?.user?.id;
+      if (userId) {
+        const { data: roles } = await supabase.from("user_roles").select("role").eq("user_id", userId);
+        const hasAdmin = (roles ?? []).some((r: any) => r.role === "tupa_admin");
+        navigate(hasAdmin ? "/admin" : "/app", { replace: true });
+      } else {
+        navigate("/app", { replace: true });
+      }
     }
   };
 

@@ -1,3 +1,4 @@
+
 import React from "react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -19,6 +20,7 @@ export default function InviteOwnerDialog({ open, onOpenChange, tenantId, tenant
   const [email, setEmail] = React.useState("");
   const [link, setLink] = React.useState<string | null>(null);
   const [isLoading, setIsLoading] = React.useState(false);
+  const [isRevoking, setIsRevoking] = React.useState(false);
 
   const createInvitation = async () => {
     if (!email) return;
@@ -68,6 +70,28 @@ export default function InviteOwnerDialog({ open, onOpenChange, tenantId, tenant
     }
   };
 
+  const revokeInvitations = async () => {
+    if (!email) {
+      toast({ title: "Falta email", description: "Ingresa el email para revocar invitaciones pendientes", variant: "destructive" });
+      return;
+    }
+    setIsRevoking(true);
+    const { error } = await supabase
+      .from("invitations")
+      .delete()
+      .eq("tenant_id", tenantId)
+      .eq("email", email.toLowerCase())
+      .is("accepted_at", null);
+    setIsRevoking(false);
+    if (error) {
+      console.log("[InviteOwnerDialog] revoke error:", error);
+      toast({ title: "Error", description: "No se pudo revocar la invitación", variant: "destructive" });
+    } else {
+      toast({ title: "Invitación revocada" });
+      setLink(null);
+    }
+  };
+
   const onCopy = async () => {
     if (link) {
       await navigator.clipboard.writeText(link);
@@ -77,8 +101,7 @@ export default function InviteOwnerDialog({ open, onOpenChange, tenantId, tenant
 
   const onRegenerate = () => {
     setLink(null);
-    // Admin can create a new invitation. The unique index on open invitations may require deleting the previous one first.
-    // Keep it simple: we just allow creating a new one after the previous is accepted or deleted externally.
+    // Admin can create a new invitation after revoking or once the previous is accepted/expired.
   };
 
   return (
@@ -104,9 +127,14 @@ export default function InviteOwnerDialog({ open, onOpenChange, tenantId, tenant
             </div>
           )}
         </div>
-        <DialogFooter>
+        <DialogFooter className="flex items-center gap-2">
           <Button variant="ghost" onClick={() => onOpenChange(false)}>Cerrar</Button>
-          <Button onClick={createInvitation} disabled={isLoading || !email}>Crear invitación</Button>
+          <Button variant="outline" onClick={revokeInvitations} disabled={isLoading || isRevoking || !email}>
+            {isRevoking ? "Revocando..." : "Revocar invitación"}
+          </Button>
+          <Button onClick={createInvitation} disabled={isLoading || !email}>
+            {isLoading ? "Creando..." : "Crear invitación"}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

@@ -1,5 +1,6 @@
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useTeamMembers } from "@/hooks/useTeam";
@@ -22,7 +23,11 @@ const ROLE_VARIANTS = {
   tupa_admin: 'destructive',
 } as const;
 
-export function TeamMembersList() {
+interface TeamMembersListProps {
+  onInviteClick?: () => void;
+  canInvite?: boolean;
+}
+export function TeamMembersList({ onInviteClick, canInvite = false }: TeamMembersListProps) {
   const { data: members, isLoading, error } = useTeamMembers();
 
   if (isLoading) {
@@ -77,10 +82,19 @@ export function TeamMembersList() {
             Miembros del equipo
           </CardTitle>
         </CardHeader>
-        <CardContent>
-          <p className="text-muted-foreground text-center py-4">
-            No hay miembros en este equipo
-          </p>
+        <CardContent className="py-8 text-center">
+          <div className="flex flex-col items-center gap-3">
+            <Users className="w-10 h-10 text-muted-foreground" />
+            <p className="text-muted-foreground">
+              Aún no tienes miembros en esta sucursal. Invita a tu primer colaborador.
+            </p>
+            <Button onClick={onInviteClick} disabled={!canInvite}>Invitar miembro</Button>
+            {!canInvite && (
+              <p className="text-sm text-muted-foreground">
+                No tienes permisos para invitar miembros. Contacta a un administrador.
+              </p>
+            )}
+          </div>
         </CardContent>
       </Card>
     );

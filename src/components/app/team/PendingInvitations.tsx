@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { useInvitations, useResendInvitation, useRevokeInvitation } from "@/hooks/useTeam";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { Mail, RotateCcw, Trash2, Clock } from "lucide-react";
+import { Mail, RotateCcw, Trash2, Clock, Copy } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
 
@@ -15,7 +15,11 @@ const ROLE_LABELS = {
   barista: 'Barista',
 } as const;
 
-export function PendingInvitations() {
+interface PendingInvitationsProps {
+  onInviteClick?: () => void;
+  canInvite?: boolean;
+}
+export function PendingInvitations({ onInviteClick, canInvite = false }: PendingInvitationsProps) {
   const { data: invitations, isLoading, error } = useInvitations();
   const resendInvitation = useResendInvitation();
   const revokeInvitation = useRevokeInvitation();
@@ -75,10 +79,19 @@ export function PendingInvitations() {
             Invitaciones pendientes
           </CardTitle>
         </CardHeader>
-        <CardContent>
-          <p className="text-muted-foreground text-center py-4">
-            No hay invitaciones pendientes
-          </p>
+        <CardContent className="py-8 text-center">
+          <div className="flex flex-col items-center gap-3">
+            <Clock className="w-10 h-10 text-muted-foreground" />
+            <p className="text-muted-foreground">
+              No hay invitaciones enviadas. Envía una para que tu equipo se una.
+            </p>
+            <Button onClick={onInviteClick} disabled={!canInvite}>Invitar ahora</Button>
+            {!canInvite && (
+              <p className="text-sm text-muted-foreground">
+                No tienes permisos para invitar miembros. Contacta a un administrador.
+              </p>
+            )}
+          </div>
         </CardContent>
       </Card>
     );
@@ -97,7 +110,8 @@ export function PendingInvitations() {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Clock className="w-5 h-5" />
-          Invitaciones pendientes ({invitations.length})
+          Invitaciones pendientes
+          <Badge variant="secondary" className="ml-2">{invitations.length}</Badge>
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
@@ -117,6 +131,18 @@ export function PendingInvitations() {
               {ROLE_LABELS[invitation.role as keyof typeof ROLE_LABELS] || invitation.role}
             </Badge>
             <div className="flex gap-1">
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => {
+                  const link = invitation.token ? `${window.location.origin}/invite/${invitation.token}` : '';
+                  if (link) navigator.clipboard.writeText(link);
+                }}
+                disabled={!invitation.token}
+                title="Copiar link"
+              >
+                <Copy className="w-4 h-4" />
+              </Button>
               <Button
                 size="sm"
                 variant="ghost"

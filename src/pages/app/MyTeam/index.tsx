@@ -77,18 +77,31 @@ export default function MyTeam() {
           <p className="text-muted-foreground mt-1">
             Gestiona el equipo de <strong>{location}</strong>
           </p>
+          {!canInvite && (
+            <p className="text-sm text-muted-foreground mt-2">
+              No tienes permisos para invitar miembros. Contacta a un administrador.
+            </p>
+          )}
         </div>
-        {canInvite && (
-          <Button onClick={() => setInviteDialogOpen(true)}>
-            <Plus className="w-4 h-4 mr-2" />
-            Invitar miembro
-          </Button>
-        )}
+        <Button 
+          onClick={() => setInviteDialogOpen(true)}
+          disabled={!canInvite}
+          title={!canInvite ? 'No tienes permisos para invitar' : undefined as any}
+        >
+          <Plus className="w-4 h-4 mr-2" />
+          Invitar miembro
+        </Button>
       </header>
 
       <section className="grid gap-6 lg:grid-cols-2">
-        <TeamMembersList />
-        <PendingInvitations />
+        <TeamMembersList 
+          onInviteClick={() => setInviteDialogOpen(true)} 
+          canInvite={canInvite}
+        />
+        <PendingInvitations 
+          onInviteClick={() => setInviteDialogOpen(true)} 
+          canInvite={canInvite}
+        />
       </section>
 
       <InviteDialog 

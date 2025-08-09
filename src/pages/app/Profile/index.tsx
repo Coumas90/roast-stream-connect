@@ -12,6 +12,8 @@ import { useForm } from "react-hook-form";
 import { useProfile, useUpdateProfile } from "@/hooks/useProfile";
 import { toast } from "@/components/ui/sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { Badge } from "@/components/ui/badge";
+import { useUserRole } from "@/hooks/useTeam";
 
 const ProfileSchema = z.object({
   full_name: z.string().min(1, "El nombre es requerido"),
@@ -85,11 +87,46 @@ export default function ProfilePage() {
 
   const displayName = useMemo(() => profile?.full_name || email || "Usuario", [profile?.full_name, email]);
 
+  const { data: userRole } = useUserRole();
+  const [isPlatformAdmin, setIsPlatformAdmin] = useState(false);
+  useEffect(() => {
+    if (!userId) return;
+    let ignore = false;
+    const load = async () => {
+      try {
+        const { data } = await supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', userId);
+        if (!ignore) {
+          setIsPlatformAdmin(!!data?.some((r: any) => r.role === 'tupa_admin'));
+        }
+      } catch {}
+    };
+    load();
+    return () => { ignore = true; };
+  }, [userId]);
+
+  const effectiveRole = userRole ?? (isPlatformAdmin ? 'tupa_admin' : null);
+  const roleLabel = useMemo(() => {
+    const map: Record<string, string> = {
+      tupa_admin: 'Administrador de plataforma',
+      owner: 'Propietario',
+      manager: 'Gerente',
+      coffee_master: 'Coffee Master',
+      barista: 'Barista',
+    };
+    return effectiveRole ? (map[effectiveRole] ?? effectiveRole) : '-';
+  }, [effectiveRole]);
+
   return (
     <div className="max-w-3xl mx-auto">
       <Card>
         <CardHeader>
-          <CardTitle>Mi perfil</CardTitle>
+          <div className="flex items-center gap-2">
+            <CardTitle>Mi perfil</CardTitle>
+            {effectiveRole && <Badge variant="secondary">{roleLabel}</Badge>}
+          </div>
           <CardDescription>Gestiona tus datos personales</CardDescription>
         </CardHeader>
         <CardContent>
@@ -127,6 +164,11 @@ export default function ProfilePage() {
                   <div className="space-y-2">
                     <Label htmlFor="email">Email</Label>
                     <Input id="email" value={email ?? ""} readOnly />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="role">Rol</Label>
+                    <Input id="role" value={roleLabel} readOnly />
                   </div>
                 </div>
 

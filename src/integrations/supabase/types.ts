@@ -447,6 +447,120 @@ export type Database = {
         }
         Relationships: []
       }
+      pos_orders: {
+        Row: {
+          external_id: string
+          id: string
+          inserted_at: string
+          location_id: string
+          occurred_at: string
+          provider: Database["public"]["Enums"]["app_pos_provider"]
+          status: string | null
+          tenant_id: string
+          total: number | null
+          updated_at: string
+        }
+        Insert: {
+          external_id: string
+          id?: string
+          inserted_at?: string
+          location_id: string
+          occurred_at: string
+          provider: Database["public"]["Enums"]["app_pos_provider"]
+          status?: string | null
+          tenant_id: string
+          total?: number | null
+          updated_at?: string
+        }
+        Update: {
+          external_id?: string
+          id?: string
+          inserted_at?: string
+          location_id?: string
+          occurred_at?: string
+          provider?: Database["public"]["Enums"]["app_pos_provider"]
+          status?: string | null
+          tenant_id?: string
+          total?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      pos_products: {
+        Row: {
+          external_id: string
+          id: string
+          inserted_at: string
+          location_id: string
+          name: string | null
+          price: number | null
+          provider: Database["public"]["Enums"]["app_pos_provider"]
+          sku: string | null
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          external_id: string
+          id?: string
+          inserted_at?: string
+          location_id: string
+          name?: string | null
+          price?: number | null
+          provider: Database["public"]["Enums"]["app_pos_provider"]
+          sku?: string | null
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          external_id?: string
+          id?: string
+          inserted_at?: string
+          location_id?: string
+          name?: string | null
+          price?: number | null
+          provider?: Database["public"]["Enums"]["app_pos_provider"]
+          sku?: string | null
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      pos_sync_runs: {
+        Row: {
+          error: string | null
+          finished_at: string | null
+          id: string
+          items: number
+          kind: string
+          location_id: string
+          ok: boolean
+          provider: Database["public"]["Enums"]["app_pos_provider"]
+          started_at: string
+        }
+        Insert: {
+          error?: string | null
+          finished_at?: string | null
+          id?: string
+          items?: number
+          kind: string
+          location_id: string
+          ok?: boolean
+          provider: Database["public"]["Enums"]["app_pos_provider"]
+          started_at?: string
+        }
+        Update: {
+          error?: string | null
+          finished_at?: string | null
+          id?: string
+          items?: number
+          kind?: string
+          location_id?: string
+          ok?: boolean
+          provider?: Database["public"]["Enums"]["app_pos_provider"]
+          started_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string

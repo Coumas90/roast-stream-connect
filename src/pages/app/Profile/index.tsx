@@ -111,8 +111,8 @@ export default function ProfilePage() {
   const roleLabel = useMemo(() => {
     const map: Record<string, string> = {
       tupa_admin: 'Administrador de plataforma',
-      owner: 'Propietario',
-      manager: 'Gerente',
+      owner: 'Dueño',
+      manager: 'Encargado',
       coffee_master: 'Coffee Master',
       barista: 'Barista',
     };

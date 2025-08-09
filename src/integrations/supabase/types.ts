@@ -304,6 +304,51 @@ export type Database = {
           },
         ]
       }
+      pos_credentials: {
+        Row: {
+          created_at: string
+          id: string
+          location_id: string | null
+          provider: Database["public"]["Enums"]["app_pos_provider"]
+          secret_ref: string
+          tenant_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          location_id?: string | null
+          provider: Database["public"]["Enums"]["app_pos_provider"]
+          secret_ref: string
+          tenant_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          location_id?: string | null
+          provider?: Database["public"]["Enums"]["app_pos_provider"]
+          secret_ref?: string
+          tenant_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pos_credentials_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_credentials_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pos_integrations: {
         Row: {
           connected: boolean
@@ -607,6 +652,14 @@ export type Database = {
           _role: Database["public"]["Enums"]["app_role"]
           _tenant_slug?: string
           _location_code?: string
+        }
+        Returns: undefined
+      }
+      connect_pos_location: {
+        Args: {
+          _location_id: string
+          _provider: Database["public"]["Enums"]["app_pos_provider"]
+          _api_key: string
         }
         Returns: undefined
       }

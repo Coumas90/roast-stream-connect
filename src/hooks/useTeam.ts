@@ -215,14 +215,31 @@ export function useUserRole() {
     queryFn: async () => {
       if (!locationId || !tenantId) return null;
 
-      const { data, error } = await supabase
+      const { data: userRes, error: userErr } = await supabase.auth.getUser();
+      if (userErr) throw userErr;
+      const userId = userRes.user?.id;
+      if (!userId) return null;
+
+      const { data: roles, error } = await supabase
         .from('user_roles')
-        .select('role')
-        .or(`and(tenant_id.eq.${tenantId},location_id.eq.${locationId}),and(tenant_id.eq.${tenantId},location_id.is.null)`) 
-        .maybeSingle();
+        .select('role, tenant_id, location_id')
+        .eq('user_id', userId);
 
       if (error) throw error;
-      return data?.role || null;
+      if (!roles?.length) return null;
+
+      // Global platform admin has highest precedence
+      if (roles.some((r: any) => r.role === 'tupa_admin')) return 'tupa_admin';
+
+      // Consider roles for this tenant: either exact location or tenant-wide (null location)
+      const relevant = roles.filter(
+        (r: any) => r.tenant_id === tenantId && (r.location_id === locationId || r.location_id === null)
+      );
+      if (!relevant.length) return null;
+
+      const priority = ['owner', 'manager', 'coffee_master', 'barista'] as const;
+      const effective = priority.find(p => relevant.some((r: any) => r.role === p)) || null;
+      return effective;
     },
     enabled: !!locationId && !!tenantId,
   });

@@ -11,6 +11,7 @@ export default function AdminIntegrations() {
   const { tenantId } = useTenant();
   const [posConnected, setPosConnected] = useState<boolean>(false);
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
 
   const fetchStatus = useCallback(async () => {
     if (!tenantId) {
@@ -46,17 +47,21 @@ export default function AdminIntegrations() {
 
   const onToggle = async (checked: boolean) => {
     if (!tenantId) return;
+    const prev = posConnected;
+    setPosConnected(checked);
+    setSaving(true);
     const { error } = await supabase
       .from("pos_integrations")
       .update({ connected: checked })
       .eq("tenant_id", tenantId)
       .eq("provider", "odoo");
+    setSaving(false);
     if (error) {
       console.log("[AdminIntegrations] update error:", error);
+      setPosConnected(prev);
       toast({ title: "Error", description: "No se pudo actualizar el POS", variant: "destructive" });
     } else {
       toast({ title: "Actualizado", description: checked ? "POS conectado" : "POS desconectado" });
-      setPosConnected(checked);
     }
   };
 
@@ -71,7 +76,7 @@ export default function AdminIntegrations() {
       <Card>
         <CardHeader><CardTitle>POS</CardTitle></CardHeader>
         <CardContent className="flex items-center gap-3">
-          <Switch checked={posConnected} onCheckedChange={onToggle} disabled={loading} />
+          <Switch checked={posConnected} onCheckedChange={onToggle} disabled={loading || saving} />
           <Label>{loading ? "Cargando..." : posConnected ? "Conectado" : "Desconectado"}</Label>
         </CardContent>
       </Card>

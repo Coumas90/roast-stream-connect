@@ -88,20 +88,33 @@ export function usePosActions() {
   const connect = useCallback(
     async (provider: AppPosProvider, apiKey: string) => {
       if (!locationId) return;
-      const { error } = await posSupabase.rpc("connect_pos_location" as any, {
-        _location_id: locationId,
-        _provider: provider,
-        _api_key: apiKey,
-      });
+      const trimmed = (apiKey ?? "").trim();
+      const { error } = trimmed
+        ? await posSupabase.rpc("connect_pos_location" as any, {
+            _location_id: locationId,
+            _provider: provider,
+            _api_key: trimmed,
+          })
+        : await posSupabase.rpc("set_pos_location" as any, {
+            _location_id: locationId,
+            _provider: provider,
+            _connected: true,
+            _config: {},
+          });
 
       if (error) {
-        toast({
-          title: "API key inválida o permisos insuficientes",
-          description: (error as any).message || "Revisá la clave y tus permisos.",
-        });
+        const code = (error as any)?.code || (error as any)?.details || "";
+        if (typeof code === "string" && code.includes("23505")) {
+          toast({ title: "Ya hay un POS conectado en esta sucursal.", description: undefined });
+        } else if (trimmed) {
+          // validation error surfacing from validate/connect rpc
+          toast({ title: "No se pudo validar la API key", description: (error as any).message || "Revisá la clave e intenta nuevamente." });
+        } else {
+          toast({ title: "Error al conectar POS", description: (error as any).message || "Intenta nuevamente" });
+        }
         throw error;
       }
-      toast({ title: "POS conectado", description: "La sucursal quedó vinculada correctamente." });
+      toast({ title: "POS conectado para Sucursal. Comenzaremos a sincronizar en minutos.", description: undefined });
     },
     [locationId]
   );

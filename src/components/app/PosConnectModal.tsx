@@ -42,12 +42,12 @@ export default function PosConnectModal({ open, onOpenChange, defaultProvider }:
     }
   }, [open, defaultProvider]);
 
-  const isValid = useMemo(() => !!provider && apiKey.trim().length > 0, [provider, apiKey]);
+  const isValid = useMemo(() => !!provider, [provider]);
 
   const onSubmit = async () => {
     const nextErrors: typeof errors = {};
     if (!provider) nextErrors.provider = "Selecciona un proveedor";
-    if (!apiKey.trim()) nextErrors.apiKey = "Ingresa tu API Key";
+    // La API key es opcional: si la ingresás, validamos y guardamos credenciales
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length) return;
 
@@ -100,7 +100,7 @@ export default function PosConnectModal({ open, onOpenChange, defaultProvider }:
           <div>
             <Label>API Key</Label>
             <Input
-              placeholder="Ingresa tu API Key"
+              placeholder="Opcional: ingresa tu API Key"
               value={apiKey}
               onChange={(e) => setApiKey(e.target.value)}
               aria-invalid={!!errors.apiKey}
@@ -108,6 +108,7 @@ export default function PosConnectModal({ open, onOpenChange, defaultProvider }:
             {errors.apiKey ? (
               <p className="text-sm text-destructive mt-1">{errors.apiKey}</p>
             ) : null}
+            <p className="text-xs text-muted-foreground mt-1">Si el nuevo proveedor requiere credenciales, te las pediremos.</p>
           </div>
 
           <div className="flex justify-end gap-2 pt-2">

@@ -161,11 +161,13 @@ export type Database = {
       invitations: {
         Row: {
           accepted_at: string | null
+          accepted_by: string | null
           created_at: string
           created_by: string | null
           email: string
           expires_at: string
           id: string
+          location_id: string | null
           role: Database["public"]["Enums"]["app_role"]
           tenant_id: string
           token_hash: string
@@ -173,11 +175,13 @@ export type Database = {
         }
         Insert: {
           accepted_at?: string | null
+          accepted_by?: string | null
           created_at?: string
           created_by?: string | null
           email: string
           expires_at: string
           id?: string
+          location_id?: string | null
           role?: Database["public"]["Enums"]["app_role"]
           tenant_id: string
           token_hash: string
@@ -185,17 +189,26 @@ export type Database = {
         }
         Update: {
           accepted_at?: string | null
+          accepted_by?: string | null
           created_at?: string
           created_by?: string | null
           email?: string
           expires_at?: string
           id?: string
+          location_id?: string | null
           role?: Database["public"]["Enums"]["app_role"]
           tenant_id?: string
           token_hash?: string
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "invitations_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "invitations_tenant_id_fkey"
             columns: ["tenant_id"]
@@ -537,6 +550,23 @@ export type Database = {
         }
         Returns: undefined
       }
+      create_location_invitation: {
+        Args: {
+          _email: string
+          _role: Database["public"]["Enums"]["app_role"]
+          _location_id: string
+          _expires_in_minutes?: number
+        }
+        Returns: {
+          id: string
+          token: string
+          email: string
+          role: Database["public"]["Enums"]["app_role"]
+          tenant_id: string
+          location_id: string
+          expires_at: string
+        }[]
+      }
       has_role: {
         Args: {
           _user_id: string
@@ -548,6 +578,21 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: boolean
       }
+      list_location_invitations: {
+        Args: { _location_id: string }
+        Returns: {
+          id: string
+          email: string
+          role: Database["public"]["Enums"]["app_role"]
+          tenant_id: string
+          location_id: string
+          created_at: string
+          updated_at: string
+          expires_at: string
+          accepted_at: string
+          created_by: string
+        }[]
+      }
       log_invitation_event: {
         Args: {
           _event: string
@@ -558,6 +603,10 @@ export type Database = {
         }
         Returns: undefined
       }
+      revoke_invitation: {
+        Args: { _invitation_id: string }
+        Returns: undefined
+      }
       revoke_role_by_email: {
         Args: {
           _email: string
@@ -566,6 +615,14 @@ export type Database = {
           _location_code?: string
         }
         Returns: undefined
+      }
+      rotate_invitation_token: {
+        Args: { _invitation_id: string; _expires_in_minutes?: number }
+        Returns: {
+          id: string
+          token: string
+          expires_at: string
+        }[]
       }
       user_has_location: {
         Args: { _location_id: string }

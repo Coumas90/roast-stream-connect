@@ -1,8 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useTenant } from "@/lib/tenant";
-
 export type TeamMember = {
   id: string;
   user_id: string;
@@ -33,6 +33,14 @@ export type CreateInvitationParams = {
 
 export function useTeamMembers() {
   const { locationId } = useTenant();
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    const handler = () =>
+      queryClient.invalidateQueries({ queryKey: ['team-members', locationId] });
+    window.addEventListener('team-data-changed', handler);
+    return () => window.removeEventListener('team-data-changed', handler);
+  }, [queryClient, locationId]);
 
   return useQuery({
     queryKey: ['team-members', locationId],
@@ -75,29 +83,24 @@ export function useTeamMembers() {
 
 export function useInvitations() {
   const { locationId } = useTenant();
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    const handler = () =>
+      queryClient.invalidateQueries({ queryKey: ['invitations', locationId] });
+    window.addEventListener('team-data-changed', handler);
+    return () => window.removeEventListener('team-data-changed', handler);
+  }, [queryClient, locationId]);
 
   return useQuery({
     queryKey: ['invitations', locationId],
     queryFn: async (): Promise<any[]> => {
       if (!locationId) return [];
 
-      // Use raw SQL to avoid type issues with new columns
-      const { data, error } = await supabase
-        .rpc('list_location_invitations' as any, { _location_id: locationId })
-        .select();
-
-      if (error) {
-        // Fallback to direct table query if RPC doesn't exist yet
-        console.warn('RPC not available, using direct query');
-        const { data: fallbackData, error: fallbackError } = await supabase
-          .from('invitations')
-          .select('*')
-          .eq('tenant_id', 'dummy'); // This will return empty array for now
-
-        if (fallbackError) throw fallbackError;
-        return fallbackData || [];
-      }
-
+      const { data, error } = await supabase.rpc('list_location_invitations', {
+        _location_id: locationId,
+      });
+      if (error) throw error;
       return data || [];
     },
     enabled: !!locationId,
@@ -106,13 +109,13 @@ export function useInvitations() {
 
 export function useCreateInvitation() {
   const queryClient = useQueryClient();
-  const { locationId } = useTenant();
+  const { locationId, location } = useTenant();
 
   return useMutation({
     mutationFn: async (params: CreateInvitationParams) => {
       if (!locationId) throw new Error('No location selected');
 
-      const { data, error } = await supabase.rpc('create_location_invitation' as any, {
+      const { data, error } = await supabase.rpc('create_location_invitation', {
         _email: params.email,
         _role: params.role,
         _location_id: locationId,
@@ -124,13 +127,13 @@ export function useCreateInvitation() {
     onSuccess: (data, params) => {
       queryClient.invalidateQueries({ queryKey: ['invitations', locationId] });
       
-      // Call send-invite edge function
       if (data?.[0]) {
+        const inviteUrl = `${window.location.origin}/invite/${data[0].token}`;
         supabase.functions.invoke('send-invite', {
           body: {
-            email: params.email,
-            token: data[0].token,
-            role: params.role,
+            to: params.email,
+            inviteUrl,
+            tenantName: location || '',
           }
         }).catch(console.error);
       }
@@ -146,18 +149,33 @@ export function useCreateInvitation() {
 
 export function useResendInvitation() {
   const queryClient = useQueryClient();
-  const { locationId } = useTenant();
+  const { locationId, location } = useTenant();
 
   return useMutation({
     mutationFn: async (invitationId: string) => {
-      const { data, error } = await supabase.rpc('rotate_invitation_token' as any, {
+      const { data, error } = await supabase.rpc('rotate_invitation_token', {
         _invitation_id: invitationId,
       });
 
       if (error) throw error;
-      return data;
+      return { data, invitationId };
     },
-    onSuccess: () => {
+    onSuccess: ({ data, invitationId }) => {
+      const cache = queryClient.getQueryData<any[]>(['invitations', locationId]);
+      const inv = cache?.find((i) => i.id === invitationId);
+      const to = inv?.email as string | undefined;
+
+      if (to && data?.[0]) {
+        const inviteUrl = `${window.location.origin}/invite/${data[0].token}`;
+        supabase.functions.invoke('send-invite', {
+          body: {
+            to,
+            inviteUrl,
+            tenantName: location || '',
+          },
+        }).catch(console.error);
+      }
+
       queryClient.invalidateQueries({ queryKey: ['invitations', locationId] });
       toast.success('Invitación reenviada');
     },
@@ -200,10 +218,10 @@ export function useUserRole() {
       const { data, error } = await supabase
         .from('user_roles')
         .select('role')
-        .or(`and(tenant_id.eq.${tenantId},location_id.eq.${locationId}),and(tenant_id.eq.${tenantId},location_id.is.null)`)
-        .single();
+        .or(`and(tenant_id.eq.${tenantId},location_id.eq.${locationId}),and(tenant_id.eq.${tenantId},location_id.is.null)`) 
+        .maybeSingle();
 
-      if (error && error.code !== 'PGRST116') throw error;
+      if (error) throw error;
       return data?.role || null;
     },
     enabled: !!locationId && !!tenantId,

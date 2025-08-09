@@ -13,6 +13,7 @@ export default function AppIntegrations() {
   const [provider, setProvider] = useState<AppPosProvider | null>(null);
   const [source, setSource] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const sb = supabase as PosSupabaseClient;
 
   useEffect(() => {
     let active = true;
@@ -23,7 +24,7 @@ export default function AppIntegrations() {
         return;
       }
       // POS efectivo para esta sucursal (override de location prioriza sobre tenant)
-      const { data, error } = await (supabase as PosSupabaseClient).rpc("effective_pos", {
+      const { data, error } = await sb.rpc("effective_pos", {
         _tenant_id: tenantId,
         _location_id: locationId,
       });
@@ -43,7 +44,7 @@ export default function AppIntegrations() {
 
     fetchStatus();
 
-    const channel = supabase
+    const channel = sb
       .channel("pos_integrations_updates")
       // Cambios a nivel tenant
       .on(
@@ -61,7 +62,7 @@ export default function AppIntegrations() {
 
     return () => {
       active = false;
-      supabase.removeChannel(channel);
+      sb.removeChannel(channel);
     };
   }, [tenantId, locationId]);
 

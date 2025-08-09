@@ -16,6 +16,7 @@ export default function AdminIntegrations() {
   const [provider, setProvider] = useState<AppPosProvider>("other");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const sb = supabase as PosSupabaseClient;
   const fetchStatus = useCallback(async () => {
     if (!tenantId) {
       setLoading(false);
@@ -39,7 +40,7 @@ export default function AdminIntegrations() {
   useEffect(() => {
     fetchStatus();
 
-    const channel = supabase
+    const channel = sb
       .channel("pos_integrations_admin_updates")
       .on(
         "postgres_changes",
@@ -49,7 +50,7 @@ export default function AdminIntegrations() {
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      sb.removeChannel(channel);
     };
   }, [fetchStatus]);
 

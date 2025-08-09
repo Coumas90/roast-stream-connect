@@ -21,7 +21,7 @@ export default function AppIntegrations() {
         return;
       }
       // POS efectivo para esta sucursal (override de location prioriza sobre tenant)
-      const { data, error } = await supabase.rpc("effective_pos", {
+      const { data, error } = await (supabase as any).rpc("effective_pos", {
         _tenant_id: tenantId,
         _location_id: locationId,
       });
@@ -44,13 +44,13 @@ export default function AppIntegrations() {
       // Cambios a nivel tenant
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "pos_integrations_tenant" },
+        { event: "*", schema: "public", table: "pos_integrations_tenant" as any },
         () => fetchStatus()
       )
       // Cambios a nivel location
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "pos_integrations_location" },
+        { event: "*", schema: "public", table: "pos_integrations_location" as any },
         () => fetchStatus()
       )
       .subscribe();

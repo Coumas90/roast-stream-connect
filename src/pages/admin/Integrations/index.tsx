@@ -19,8 +19,8 @@ export default function AdminIntegrations() {
       setLoading(false);
       return;
     }
-    // Estado de Odoo a nivel tenant en la nueva tabla
-    const { data, error } = await supabase
+    // Estado de Odoo a nivel tenant en la nueva tabla (casting laxo por tipos generados)
+    const { data, error } = await (supabase as any)
       .from("pos_integrations_tenant")
       .select("connected")
       .eq("tenant_id", tenantId)
@@ -42,7 +42,7 @@ export default function AdminIntegrations() {
       .channel("pos_integrations_admin_updates")
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "pos_integrations_tenant" },
+        { event: "*", schema: "public", table: "pos_integrations_tenant" as any },
         () => fetchStatus()
       )
       .subscribe();
@@ -58,7 +58,7 @@ export default function AdminIntegrations() {
     setPosConnected(checked);
     setSaving(true);
 
-    const { error } = await supabase.rpc("set_pos_tenant", {
+    const { error } = await (supabase as any).rpc("set_pos_tenant", {
       _tenant_id: tenantId,
       _provider: "odoo",
       _connected: checked,

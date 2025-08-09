@@ -88,20 +88,17 @@ export function usePosActions() {
   const connect = useCallback(
     async (provider: AppPosProvider, apiKey: string) => {
       if (!locationId) return;
-      const { error } = await posSupabase.rpc("set_pos_location", {
+      const { error } = await posSupabase.rpc("connect_pos_location" as any, {
         _location_id: locationId,
         _provider: provider,
-        _connected: true,
-        _config: { apiKey },
-      } as any);
+        _api_key: apiKey,
+      });
 
       if (error) {
-        const code = (error as any)?.code || (error as any)?.details || "";
-        if (typeof code === "string" && code.includes("23505")) {
-          toast({ title: "Ya hay un POS conectado en esta sucursal", description: "Desconecta primero para cambiar." });
-        } else {
-          toast({ title: "Error al conectar POS", description: (error as any).message || "Intenta nuevamente" });
-        }
+        toast({
+          title: "API key inválida o permisos insuficientes",
+          description: (error as any).message || "Revisá la clave y tus permisos.",
+        });
         throw error;
       }
       toast({ title: "POS conectado", description: "La sucursal quedó vinculada correctamente." });

@@ -25,6 +25,7 @@ import { NavLink, useLocation } from "react-router-dom";
 import { useDataStore } from "@/lib/data-store";
 import LocationSwitcher from "@/components/app/LocationSwitcher";
 import UserMenu from "@/components/layout/UserMenu";
+import GlobalSearch from "@/components/admin/GlobalSearch";
 
 export type AppShellProps = {
   children: ReactNode;
@@ -131,9 +132,9 @@ export function AppShell({ children, section = "Dashboard", variant = "client" }
               </BreadcrumbList>
             </Breadcrumb>
             <div className="ml-auto flex items-center gap-2">
+              <GlobalSearch variant={variant} />
               {variant === "client" && <LocationSwitcher />}
               <Button variant="soft" className="hidden sm:inline-flex">Recomendación IA</Button>
-              {/* Reemplaza el botón "CO" por el menú de usuario */}
               <UserMenu variant={variant} />
             </div>
           </div>

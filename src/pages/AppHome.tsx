@@ -49,12 +49,12 @@ export default function AppHome() {
           </CardHeader>
           <CardContent className="flex flex-wrap items-center gap-4 justify-between">
             <div className="text-sm">
-              {isLoading ? "Cargando…" : connected ? "Conectado" : "Desconectado"}
-              {!posEffective && !isLoading ? (
-                <div className="text-muted-foreground text-xs mt-1">
-                  {flags.auto_order_enabled ? (!connected ? "POS no conectado" : null) : "Auto‑orden deshabilitado"}
-                </div>
-              ) : null}
+{isLoading ? "Cargando…" : connected ? "Conectado" : "Desconectado"}
+{!posEffective && !isLoading ? (
+  <div className="text-muted-foreground text-xs mt-1">
+    {flags.auto_order_enabled ? (!connected ? "Tu POS no está conectado en esta sucursal." : null) : "Auto‑orden deshabilitado"}
+  </div>
+) : null}
             </div>
             <div className="text-sm text-muted-foreground">
               {!isLoading && (

@@ -64,16 +64,23 @@ export default function AppIntegrations() {
             )}
           </div>
 
-          <div className="text-sm text-muted-foreground min-w-[16rem]">
-            {isLoading ? (
-              <Skeleton className="h-4 w-48" />
-            ) : (
-              <>
-                <span className="mr-4">Proveedor: {provider ? providerLabels[provider] : "—"}</span>
-                <span>Origen: {source ? (source === "location" ? "Sucursal" : "Tenant") : "—"}</span>
-              </>
-            )}
-          </div>
+<div className="text-sm text-muted-foreground min-w-[16rem]">
+  {isLoading ? (
+    <Skeleton className="h-4 w-48" />
+  ) : (
+    <>
+      <span className="mr-4">Proveedor: {provider ? providerLabels[provider] : "—"}</span>
+      <span>Origen: {source ? (source === "location" ? "Sucursal" : "Tenant") : "—"}</span>
+      {!connected ? (
+        <p className="mt-2 text-xs">Tu POS no está conectado en esta sucursal.</p>
+      ) : source === "tenant" ? (
+        <p className="mt-2 text-xs">Conectado • Origen: Tenant • Proveedor: {provider ? providerLabels[provider] : "—"}</p>
+      ) : (
+        <p className="mt-2 text-xs">Conectado • Origen: Sucursal • Proveedor: {provider ? providerLabels[provider] : "—"}</p>
+      )}
+    </>
+  )}
+</div>
 
           {/* CTAs por rol */}
           {!isLoading && canManage ? (
@@ -103,9 +110,12 @@ export default function AppIntegrations() {
                   </Button>
                 </>
               ) : (
-                <Button variant="outline" onClick={pedirAlAdmin}>
-                  Pedir al Admin
-                </Button>
+                <div className="flex items-center gap-2">
+                  <Button variant="outline" onClick={pedirAlAdmin}>
+                    Pedir al Admin
+                  </Button>
+                  <span className="text-xs text-muted-foreground">Los cambios de proveedor a nivel empresa los hace el Admin.</span>
+                </div>
               )}
             </div>
           ) : null}

@@ -107,13 +107,13 @@ export function usePosActions() {
 
       if (error) {
         const msg = (error as any).message || (error as any).error || "";
-        if (typeof msg === "string" && msg.includes("23505")) {
-          toast({ title: "Ya hay un POS conectado en esta sucursal.", description: undefined });
-        } else if (trimmed) {
-          toast({ title: "No se pudo validar la API key", description: msg || "Revisá la clave e intenta nuevamente." });
-        } else {
-          toast({ title: "Error al conectar POS", description: msg || "Intenta nuevamente" });
-        }
+if (typeof msg === "string" && msg.includes("23505")) {
+  toast({ title: "Error", description: "Ya hay un POS conectado en esta sucursal." });
+} else if (trimmed) {
+  toast({ title: "Validación", description: `No pudimos validar la API key: ${msg || "Motivo desconocido"}.` });
+} else {
+  toast({ title: "Error al conectar POS", description: msg || "Intenta nuevamente" });
+}
         throw error;
       }
       toast({ title: "POS conectado para Sucursal. Comenzaremos a sincronizar en minutos.", description: undefined });

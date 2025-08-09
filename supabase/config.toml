@@ -11,3 +11,6 @@ verify_jwt = false
 
 [functions.pos-bistrosoft]
 verify_jwt = false
+
+[functions.pos-sync]
+verify_jwt = false

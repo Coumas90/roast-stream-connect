@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,37 +8,49 @@ import { supabase } from "@/integrations/supabase/client";
 import { useTenant } from "@/lib/tenant";
 
 export default function AppIntegrations() {
-  const { tenantId } = useTenant();
+  const { tenantId, locationId } = useTenant();
   const [posConnected, setPosConnected] = useState<boolean>(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let active = true;
+
     const fetchStatus = async () => {
-      if (!tenantId) {
+      if (!tenantId || !locationId) {
         setLoading(false);
         return;
       }
-      const { data, error } = await supabase
-        .from("pos_integrations")
-        .select("connected")
-        .eq("tenant_id", tenantId)
-        .eq("provider", "odoo")
-        .maybeSingle();
+      // POS efectivo para esta sucursal (override de location prioriza sobre tenant)
+      const { data, error } = await supabase.rpc("effective_pos", {
+        _tenant_id: tenantId,
+        _location_id: locationId,
+      });
+
       if (!active) return;
+
       if (error) {
-        console.log("[AppIntegrations] error:", error);
+        console.log("[AppIntegrations] effective_pos error:", error);
       }
-      setPosConnected(Boolean(data?.connected));
+
+      const row = Array.isArray(data) ? (data[0] as any) : null;
+      setPosConnected(Boolean(row?.connected));
       setLoading(false);
     };
+
     fetchStatus();
 
     const channel = supabase
       .channel("pos_integrations_updates")
+      // Cambios a nivel tenant
       .on(
         "postgres_changes",
-        { event: "UPDATE", schema: "public", table: "pos_integrations" },
+        { event: "*", schema: "public", table: "pos_integrations_tenant" },
+        () => fetchStatus()
+      )
+      // Cambios a nivel location
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "pos_integrations_location" },
         () => fetchStatus()
       )
       .subscribe();
@@ -46,7 +59,7 @@ export default function AppIntegrations() {
       active = false;
       supabase.removeChannel(channel);
     };
-  }, [tenantId]);
+  }, [tenantId, locationId]);
 
   return (
     <article>

@@ -1,3 +1,4 @@
+
 import React, { useCallback, useEffect, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -18,14 +19,16 @@ export default function AdminIntegrations() {
       setLoading(false);
       return;
     }
+    // Estado de Odoo a nivel tenant en la nueva tabla
     const { data, error } = await supabase
-      .from("pos_integrations")
+      .from("pos_integrations_tenant")
       .select("connected")
       .eq("tenant_id", tenantId)
       .eq("provider", "odoo")
       .maybeSingle();
+
     if (error) {
-      console.log("[AdminIntegrations] error:", error);
+      console.log("[AdminIntegrations] fetchStatus error:", error);
       toast({ title: "Error", description: "No se pudo cargar el estado del POS", variant: "destructive" });
     }
     setPosConnected(Boolean(data?.connected));
@@ -34,15 +37,19 @@ export default function AdminIntegrations() {
 
   useEffect(() => {
     fetchStatus();
+
     const channel = supabase
       .channel("pos_integrations_admin_updates")
       .on(
         "postgres_changes",
-        { event: "UPDATE", schema: "public", table: "pos_integrations" },
+        { event: "*", schema: "public", table: "pos_integrations_tenant" },
         () => fetchStatus()
       )
       .subscribe();
-    return () => { supabase.removeChannel(channel); };
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [fetchStatus]);
 
   const onToggle = async (checked: boolean) => {
@@ -50,14 +57,17 @@ export default function AdminIntegrations() {
     const prev = posConnected;
     setPosConnected(checked);
     setSaving(true);
-    const { error } = await supabase
-      .from("pos_integrations")
-      .update({ connected: checked })
-      .eq("tenant_id", tenantId)
-      .eq("provider", "odoo");
+
+    const { error } = await supabase.rpc("set_pos_tenant", {
+      _tenant_id: tenantId,
+      _provider: "odoo",
+      _connected: checked,
+      _config: {},
+    });
+
     setSaving(false);
     if (error) {
-      console.log("[AdminIntegrations] update error:", error);
+      console.log("[AdminIntegrations] set_pos_tenant error:", error);
       setPosConnected(prev);
       toast({ title: "Error", description: "No se pudo actualizar el POS", variant: "destructive" });
     } else {

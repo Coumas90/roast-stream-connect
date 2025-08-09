@@ -342,6 +342,66 @@ export type Database = {
           },
         ]
       }
+      pos_integrations_location: {
+        Row: {
+          config: Json | null
+          connected: boolean
+          created_at: string
+          id: string
+          location_id: string
+          provider: Database["public"]["Enums"]["app_pos_provider"]
+          updated_at: string
+        }
+        Insert: {
+          config?: Json | null
+          connected?: boolean
+          created_at?: string
+          id?: string
+          location_id: string
+          provider: Database["public"]["Enums"]["app_pos_provider"]
+          updated_at?: string
+        }
+        Update: {
+          config?: Json | null
+          connected?: boolean
+          created_at?: string
+          id?: string
+          location_id?: string
+          provider?: Database["public"]["Enums"]["app_pos_provider"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      pos_integrations_tenant: {
+        Row: {
+          config: Json | null
+          connected: boolean
+          created_at: string
+          id: string
+          provider: Database["public"]["Enums"]["app_pos_provider"]
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          config?: Json | null
+          connected?: boolean
+          created_at?: string
+          id?: string
+          provider: Database["public"]["Enums"]["app_pos_provider"]
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          config?: Json | null
+          connected?: boolean
+          created_at?: string
+          id?: string
+          provider?: Database["public"]["Enums"]["app_pos_provider"]
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
@@ -567,6 +627,14 @@ export type Database = {
           expires_at: string
         }[]
       }
+      effective_pos: {
+        Args: { _tenant_id: string; _location_id?: string }
+        Returns: {
+          provider: Database["public"]["Enums"]["app_pos_provider"]
+          source: string
+          connected: boolean
+        }[]
+      }
       has_role: {
         Args: {
           _user_id: string
@@ -624,6 +692,24 @@ export type Database = {
           expires_at: string
         }[]
       }
+      set_pos_location: {
+        Args: {
+          _location_id: string
+          _provider: Database["public"]["Enums"]["app_pos_provider"]
+          _connected: boolean
+          _config?: Json
+        }
+        Returns: undefined
+      }
+      set_pos_tenant: {
+        Args: {
+          _tenant_id: string
+          _provider: Database["public"]["Enums"]["app_pos_provider"]
+          _connected: boolean
+          _config?: Json
+        }
+        Returns: undefined
+      }
       user_has_location: {
         Args: { _location_id: string }
         Returns: boolean
@@ -634,6 +720,7 @@ export type Database = {
       }
     }
     Enums: {
+      app_pos_provider: "fudo" | "maxirest" | "bistrosoft" | "other"
       app_role: "tupa_admin" | "owner" | "manager" | "coffee_master" | "barista"
       order_status: "draft" | "approved" | "sent" | "fulfilled" | "cancelled"
       stock_txn_type: "receipt" | "consumption" | "adjustment"
@@ -764,6 +851,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      app_pos_provider: ["fudo", "maxirest", "bistrosoft", "other"],
       app_role: ["tupa_admin", "owner", "manager", "coffee_master", "barista"],
       order_status: ["draft", "approved", "sent", "fulfilled", "cancelled"],
       stock_txn_type: ["receipt", "consumption", "adjustment"],

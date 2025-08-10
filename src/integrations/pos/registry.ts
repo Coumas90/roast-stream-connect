@@ -1,21 +1,37 @@
 import type { POSAdapterFactory, POSConfig, POSMeta, POSService } from "../../../sdk/pos";
+import { fudoFactory } from "./fudo/service";
 
-// Minimal registry scaffold. Real adapters can register their factories here in the future.
+
+// Registered factories per provider
+const factories: Record<string, POSAdapterFactory> = {
+  fudo: fudoFactory,
+};
 
 const META: POSMeta[] = [
-  { id: "fudo", label: "Fudo", kindsSupported: ["orders", "products"], website: "https://fudo.com/" },
+  {
+    id: "fudo",
+    label: "Fudo POS",
+    name: "Fudo POS",
+    version: "1.0.0",
+    kindsSupported: ["orders"],
+    website: "https://fudo.com/",
+    batchLimit: 1000,
+    realtime: true,
+    capabilities: ["customers", "modifiers", "tables", "realtime"],
+  },
   { id: "maxirest", label: "MaxiRest", kindsSupported: ["orders", "products"], website: "https://maxirest.com/" },
   { id: "bistrosoft", label: "Bistrosoft", kindsSupported: ["orders", "products"], website: "https://bistrosoft.com/" },
   { id: "other", label: "Otro / Custom", kindsSupported: ["orders" ] },
 ];
 
 export function getAvailablePOSTypes(): POSMeta[] {
-  // Dummy meta for acceptance; will be dynamic when adapters are plugged in
   return META;
 }
 
 export function getPOSAdapter(provider: string, config: POSConfig, factoryOverride?: POSAdapterFactory): POSService {
-  // For now, only allow an explicit override factory (used in tests or callers providing their own adapter)
   if (factoryOverride) return factoryOverride(config);
+  const factory = factories[provider];
+  if (factory) return factory(config);
   throw new Error(`No adapter factory registered for provider '${provider}'`);
 }
+

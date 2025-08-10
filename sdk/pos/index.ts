@@ -47,7 +47,13 @@ export interface POSMeta {
   kindsSupported: POSKind[];
   website?: string;
   version?: string;
+  // Extended optional metadata for richer capabilities
+  name?: string;
+  batchLimit?: number;
+  realtime?: boolean;
+  capabilities?: string[];
 }
+
 
 // High-level service used by the app to perform sync tasks
 export interface POSService {

@@ -75,7 +75,7 @@ export default function AppLogin() {
                 <p className="text-muted-foreground">Gestiona pedidos, programa reposiciones y más.</p>
               </CardHeader>
               <CardContent className="space-y-4">
-                <Button onClick={signInClient} variant="secondary" className="w-full">
+                <Button onClick={() => signInClient()} variant="secondary" className="w-full">
                   Continuar con Google
                 </Button>
 

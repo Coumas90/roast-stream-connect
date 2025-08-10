@@ -3,13 +3,15 @@ import { fudoFactory } from "./fudo/service";
 import { bistrosoftFactory } from "./bistrosoft/service";
 
 // Registered factories per provider
-const factories: Record<string, POSAdapterFactory> = {
+const factories = {
   fudo: fudoFactory,
   bistrosoft: bistrosoftFactory,
-};
+} as const;
 
-const META: POSMeta[] = [
-  {
+type ProviderId = keyof typeof factories;
+
+const META: Record<ProviderId, POSMeta> = {
+  fudo: {
     id: "fudo",
     label: "Fudo POS",
     name: "Fudo POS",
@@ -20,7 +22,7 @@ const META: POSMeta[] = [
     realtime: true,
     capabilities: ["customers", "modifiers", "tables", "realtime"],
   },
-  {
+  bistrosoft: {
     id: "bistrosoft",
     label: "Bistrosoft POS",
     name: "Bistrosoft POS",
@@ -31,13 +33,13 @@ const META: POSMeta[] = [
     realtime: false,
     capabilities: ["customers", "discounts", "tables"],
   },
-];
+} as const;
 
 export function getAvailablePOSTypes(): POSMeta[] {
-  return META;
+  return Object.values(META);
 }
 
-export function getPOSAdapter(provider: string, config: POSConfig, factoryOverride?: POSAdapterFactory): POSService {
+export function getPOSAdapter(provider: ProviderId, config: POSConfig, factoryOverride?: POSAdapterFactory): POSService {
   if (factoryOverride) return factoryOverride(config);
   const factory = factories[provider];
   if (factory) return factory(config);

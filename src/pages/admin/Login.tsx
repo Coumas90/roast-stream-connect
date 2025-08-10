@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Helmet } from "react-helmet-async";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { Shield, CheckCircle2, ArrowRight } from "lucide-react";
+import { Shield, CheckCircle2, ArrowRight, Loader2 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -18,16 +18,30 @@ export default function AdminLogin() {
   const [email, setEmail] = useState("comasnicolas@gmail.com");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [attempted, setAttempted] = useState(false);
+
+  useEffect(() => {
+    const { data: sub } = supabase.auth.onAuthStateChange((event) => {
+      if (attempted && (event === "SIGNED_IN" || event === "USER_UPDATED")) {
+        setLoading(false);
+      }
+    });
+    return () => {
+      sub.subscription.unsubscribe();
+    };
+  }, [attempted]);
 
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (loading) return;
+    setAttempted(true);
     setLoading(true);
     // Guardamos el redirect para que AuthProvider navegue tras resolver el rol
     localStorage.setItem("tupa_auth_redirect", "/admin");
     console.log("[AdminLogin] redirect -> /admin guardado en localStorage");
     const { error } = await supabase.auth.signInWithPassword({ email, password });
-    setLoading(false);
     if (error) {
+      setLoading(false);
       toast({ title: "Error de acceso", description: error.message, variant: "destructive" });
     } else {
       toast({ title: "Acceso exitoso", description: "Redirigiendo..." });
@@ -95,6 +109,7 @@ export default function AdminLogin() {
                       placeholder="admin@tupa.com"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
+                      disabled={loading}
                       required
                       autoComplete="username"
                     />
@@ -108,6 +123,7 @@ export default function AdminLogin() {
                       placeholder="Tu clave"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
+                      disabled={loading}
                       required
                       autoComplete="current-password"
                     />
@@ -119,9 +135,17 @@ export default function AdminLogin() {
                     </Link>
                   </div>
 
-                  <Button type="submit" className="w-full" disabled={loading}>
-                    {loading ? "Entrando..." : "Entrar"}
-                    <ArrowRight className="ml-2 h-4 w-4" />
+                  <Button type="submit" className="w-full" disabled={loading} aria-busy={loading}>
+                    {loading ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Entrando...
+                      </>
+                    ) : (
+                      <>
+                        Entrar
+                        <ArrowRight className="ml-2 h-4 w-4" />
+                      </>
+                    )}
                   </Button>
                 </form>
 

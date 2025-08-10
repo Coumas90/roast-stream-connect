@@ -961,6 +961,21 @@ export type Database = {
         }
         Returns: undefined
       }
+      upsert_consumption: {
+        Args: {
+          _client_id: string
+          _location_id: string
+          _provider: string
+          _date: string
+          _total: number
+          _orders: number
+          _items: number
+          _discounts: number
+          _taxes: number
+          _meta: Json
+        }
+        Returns: string
+      }
       user_has_location: {
         Args: { _location_id: string }
         Returns: boolean

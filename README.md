@@ -71,3 +71,18 @@ Yes, you can!
 To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
 
 Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+
+## CI & Branch Protection
+
+This repo includes a GitHub Actions workflow named `ci` at `.github/workflows/ci.yml` that runs on pushes to `main` and on pull requests. It performs:
+- Checkout, Node 20 setup with npm cache
+- `npm ci`
+- Typecheck: `tsc --noEmit`
+- Lint (if present): `npm run lint --if-present`
+- Tests: `vitest --run`
+- Build: `npm run build`
+
+Recommended branch protection for `main`:
+- Require 1 approval review
+- Require status check `ci` to pass before merging
+- Optionally require up-to-date branch

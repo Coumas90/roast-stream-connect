@@ -62,6 +62,54 @@ export type Database = {
           },
         ]
       }
+      consumptions: {
+        Row: {
+          client_id: string
+          created_at: string
+          date: string
+          discounts: number
+          id: string
+          items: number
+          location_id: string
+          meta: Json
+          orders: number
+          provider: string
+          taxes: number
+          total: number
+          updated_at: string
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          date: string
+          discounts?: number
+          id?: string
+          items?: number
+          location_id: string
+          meta?: Json
+          orders?: number
+          provider: string
+          taxes?: number
+          total?: number
+          updated_at?: string
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          date?: string
+          discounts?: number
+          id?: string
+          items?: number
+          location_id?: string
+          meta?: Json
+          orders?: number
+          provider?: string
+          taxes?: number
+          total?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       entitlements: {
         Row: {
           academy_enabled: boolean

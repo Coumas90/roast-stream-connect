@@ -1,4 +1,4 @@
-import { supabase } from "@/integrations/supabase/client";
+import { consumptionSupabase as supabase } from "@/integrations/supabase/consumption-client";
 import type { TupaSale } from "../../../sdk/pos";
 
 export type TupaConsumption = {
@@ -87,14 +87,14 @@ export async function storeClientConsumption(consumption: TupaConsumption): Prom
     items: consumption.items,
     discounts: consumption.discounts,
     taxes: consumption.taxes,
-    meta: consumption.meta ?? {},
+    meta: (consumption.meta ?? {}) as any,
   } as const;
 
   const { data, error } = await supabase
     .from("consumptions")
     .upsert(payload, { onConflict: "client_id,location_id,provider,date" })
     .select("id")
-    .maybeSingle();
+    .single();
 
   if (error) throw new Error(error.message);
   if (!data?.id) throw new Error("upsert failed: missing id");

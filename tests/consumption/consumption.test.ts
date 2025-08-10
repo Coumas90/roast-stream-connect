@@ -9,6 +9,7 @@ vi.mock("@/integrations/supabase/client", () => {
     upsert: vi.fn().mockImplementation(function () { return builder; }),
     select: vi.fn().mockImplementation(function () { return builder; }),
     maybeSingle: vi.fn().mockImplementation(async function () { return { data: builder.__single, error: null }; }),
+    single: vi.fn().mockImplementation(async function () { return { data: builder.__single, error: null }; }),
     eq: vi.fn().mockImplementation(function () { return builder; }),
     gte: vi.fn().mockImplementation(function () { return builder; }),
     lte: vi.fn().mockImplementation(function () { return builder; }),

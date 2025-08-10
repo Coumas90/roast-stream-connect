@@ -1,10 +1,11 @@
 import type { POSAdapterFactory, POSConfig, POSMeta, POSService } from "../../../sdk/pos";
 import { fudoFactory } from "./fudo/service";
-
+import { bistrosoftFactory } from "./bistrosoft/service";
 
 // Registered factories per provider
 const factories: Record<string, POSAdapterFactory> = {
   fudo: fudoFactory,
+  bistrosoft: bistrosoftFactory,
 };
 
 const META: POSMeta[] = [
@@ -19,9 +20,17 @@ const META: POSMeta[] = [
     realtime: true,
     capabilities: ["customers", "modifiers", "tables", "realtime"],
   },
-  { id: "maxirest", label: "MaxiRest", kindsSupported: ["orders", "products"], website: "https://maxirest.com/" },
-  { id: "bistrosoft", label: "Bistrosoft", kindsSupported: ["orders", "products"], website: "https://bistrosoft.com/" },
-  { id: "other", label: "Otro / Custom", kindsSupported: ["orders" ] },
+  {
+    id: "bistrosoft",
+    label: "Bistrosoft POS",
+    name: "Bistrosoft POS",
+    version: "1.0.0",
+    kindsSupported: ["orders"],
+    website: "https://bistrosoft.com/",
+    batchLimit: 500,
+    realtime: false,
+    capabilities: ["customers", "discounts", "tables"],
+  },
 ];
 
 export function getAvailablePOSTypes(): POSMeta[] {

@@ -66,12 +66,21 @@ export function useTeamMembers() {
 
       if (profilesError) throw profilesError;
 
+      // Get email addresses from auth.users
+      const { data: users, error: usersError } = await (supabase as any)
+        .from('auth.users')
+        .select('id, email')
+        .in('id', userIds);
+
+      if (usersError) throw usersError;
+
       const members = roles.map(role => {
         const profile = profiles?.find(p => p.id === role.user_id);
+        const user = users?.find(u => u.id === role.user_id);
         return {
           ...role,
           full_name: profile?.full_name,
-          email: undefined, // We'll get this from auth if needed
+          email: user?.email,
         };
       });
 

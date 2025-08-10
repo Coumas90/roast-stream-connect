@@ -39,8 +39,6 @@ export function InviteDialog({ open, onOpenChange }: InviteDialogProps) {
     return [] as const;
   }, [userRole]);
 
-  const isEmailValid = React.useMemo(() => /\S+@\S+\.\S+/.test(email), [email]);
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -119,7 +117,7 @@ export function InviteDialog({ open, onOpenChange }: InviteDialogProps) {
               <Button type="button" variant="outline" onClick={handleClose}>
                 Cancelar
               </Button>
-              <Button type="submit" disabled={createInvitation.isPending || !isEmailValid}>
+              <Button type="submit" disabled={createInvitation.isPending}>
                 {createInvitation.isPending ? 'Enviando...' : 'Enviar invitación'}
               </Button>
             </div>

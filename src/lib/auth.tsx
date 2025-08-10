@@ -11,7 +11,7 @@ export type AuthState = {
 };
 
 export type AuthContextType = AuthState & {
-  signInClient: (nextPath?: string) => Promise<void>;
+  signInClient: () => Promise<void>;
   signInAdmin: () => Promise<void>;
   signOut: () => void;
 };
@@ -107,9 +107,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const value = useMemo<AuthContextType>(() => ({
     ...state,
-    signInClient: async (nextPath?: string) => {
+    signInClient: async () => {
       // Guardamos a dónde ir tras Google OAuth
-      localStorage.setItem(REDIRECT_KEY, nextPath ?? "/app");
+      localStorage.setItem(REDIRECT_KEY, "/app");
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {

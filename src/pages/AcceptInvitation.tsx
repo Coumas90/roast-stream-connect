@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { useSearchParams, useNavigate, useParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,15 +14,10 @@ export default function AcceptInvitation() {
   const { isAuthenticated, signInClient } = useAuth();
   const [isAccepting, setIsAccepting] = useState(false);
   const navigate = useNavigate();
-  const triedRef = useRef(false);
 
   useEffect(() => {
-    // Auto-aceptar al volver autenticado con token
-    if (!triedRef.current && token && isAuthenticated && !isAccepting) {
-      triedRef.current = true;
-      onAccept();
-    }
-  }, [isAuthenticated, token, isAccepting]);
+    // no side effects on mount; user must click
+  }, []);
 
   const onAccept = async () => {
     if (!token) {
@@ -31,8 +26,7 @@ export default function AcceptInvitation() {
     }
     if (!isAuthenticated) {
       toast({ title: "Inicia sesión", description: "Debes iniciar sesión para aceptar la invitación" });
-      const next = window.location.pathname + window.location.search;
-      await signInClient(next);
+      await signInClient();
       return;
     }
     setIsAccepting(true);

@@ -12,6 +12,10 @@ const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const sb = createClient(SUPABASE_URL, SERVICE_KEY, {
   auth: { persistSession: false, autoRefreshToken: false },
 });
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
 
 function now() {
   return new Date();
@@ -200,6 +204,11 @@ async function finishError(payload: { runId: string; error: string; durationMs: 
 }
 
 serve(async (req) => {
+  // Handle CORS preflight requests
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders });
+  }
+
   try {
     const body = await req.json();
     const action = body?.action as "start" | "success" | "error";
@@ -211,10 +220,15 @@ serve(async (req) => {
         provider: AppPosProvider;
       };
       if (!locationId || !provider) {
-        return new Response(JSON.stringify({ error: "invalid params" }), { status: 400 });
+        return new Response(JSON.stringify({ error: "invalid params" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
       }
       const res = await startRun({ clientId, locationId, provider });
-      return new Response(JSON.stringify(res), { headers: { "Content-Type": "application/json" } });
+      return new Response(JSON.stringify(res), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     if (action === "success") {
@@ -225,10 +239,15 @@ serve(async (req) => {
         meta?: Record<string, unknown>;
       };
       if (!runId || typeof count !== "number" || typeof durationMs !== "number") {
-        return new Response(JSON.stringify({ error: "invalid params" }), { status: 400 });
+        return new Response(JSON.stringify({ error: "invalid params" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
       }
       const res = await finishSuccess({ runId, count, durationMs, meta });
-      return new Response(JSON.stringify(res), { headers: { "Content-Type": "application/json" } });
+      return new Response(JSON.stringify(res), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     if (action === "error") {
@@ -238,16 +257,27 @@ serve(async (req) => {
         durationMs: number;
       };
       if (!runId || !error || typeof durationMs !== "number") {
-        return new Response(JSON.stringify({ error: "invalid params" }), { status: 400 });
+        return new Response(JSON.stringify({ error: "invalid params" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
       }
       const res = await finishError({ runId, error, durationMs });
-      return new Response(JSON.stringify(res), { headers: { "Content-Type": "application/json" } });
+      return new Response(JSON.stringify(res), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
-    return new Response(JSON.stringify({ error: "unknown action" }), { status: 400 });
+    return new Response(JSON.stringify({ error: "unknown action" }), {
+      status: 400,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   } catch (e) {
     console.error("[pos-sync-logger] error:", e);
-    return new Response(JSON.stringify({ error: String(e?.message ?? e) }), { status: 500 });
+    return new Response(JSON.stringify({ error: String(e?.message ?? e) }), {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 });
 

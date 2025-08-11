@@ -85,6 +85,55 @@ async function runWithLimit<T, R>(items: T[], limit: number, worker: (item: T) =
   return results;
 }
 
+async function sendAlerts(summary: { total: number; ok: number; skipped: number; backoff: number; invalid: number; errors: number }, day: string) {
+  const MIN_ERRORS = Number(D?.env?.get("POS_ALERT_MIN_ERRORS") ?? "1");
+  const MIN_INVALID = Number(D?.env?.get("POS_ALERT_MIN_INVALID") ?? "1");
+  const MIN_BACKOFF = Number(D?.env?.get("POS_ALERT_MIN_BACKOFF") ?? "10");
+  const ON_ERRORS = (D?.env?.get("POS_ALERT_NOTIFY_ON_ERRORS") ?? "true").toLowerCase() === "true";
+  const ON_INVALID = (D?.env?.get("POS_ALERT_NOTIFY_ON_INVALID") ?? "true").toLowerCase() === "true";
+  const ON_BACKOFF = (D?.env?.get("POS_ALERT_NOTIFY_ON_BACKOFF") ?? "true").toLowerCase() === "true";
+  const FORCE = (D?.env?.get("POS_ALERT_FORCE") ?? "").toLowerCase() === "true";
+
+  const { errors, invalid, backoff, total, ok, skipped } = summary;
+  const trigger = FORCE || ((ON_ERRORS && errors >= MIN_ERRORS) || (ON_INVALID && invalid >= MIN_INVALID) || (ON_BACKOFF && backoff >= MIN_BACKOFF));
+  if (!trigger) return;
+
+  const RESEND_API_KEY = D?.env?.get("RESEND_API_KEY") ?? "";
+  const RESEND_FROM = D?.env?.get("RESEND_FROM") ?? "";
+  const ALERT_EMAILS = D?.env?.get("ALERT_EMAILS") ?? "";
+  const SLACK_WEBHOOK_URL = D?.env?.get("SLACK_WEBHOOK_URL") ?? "";
+
+  const subject = `[POS][ALERTA] errors=${errors} invalid=${invalid} backoff=${backoff} — ${day} UTC`;
+  const bodyText = [`POS Sync Diario — Resumen (UTC)`, `Fecha: ${day}`, `Total: ${total} · OK: ${ok} · Skipped: ${skipped}`, `Backoff: ${backoff} · Invalid: ${invalid} · Errors: ${errors}`, ``, `Nota: No se incluyen IDs ni credenciales.`].join("\n");
+
+  // Send email (optional)
+  try {
+    const toList = ALERT_EMAILS.split(",").map((s) => s.trim()).filter(Boolean);
+    if (RESEND_API_KEY && RESEND_FROM && toList.length > 0) {
+      await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${RESEND_API_KEY}` },
+        body: JSON.stringify({ from: RESEND_FROM, to: toList, subject, text: bodyText }),
+      });
+    }
+  } catch (e) {
+    console.warn("alert_failed", "email");
+  }
+
+  // Send Slack (optional)
+  try {
+    if (SLACK_WEBHOOK_URL) {
+      await fetch(SLACK_WEBHOOK_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: `POS Sync Diario — ${day} UTC\n${bodyText}` }),
+      });
+    }
+  } catch (e) {
+    console.warn("alert_failed", "slack");
+  }
+}
+
 export async function handlePosSyncDaily(req: Request) {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -151,7 +200,12 @@ export async function handlePosSyncDaily(req: Request) {
     // Limit concurrency to 5
     await runWithLimit(pairs, 5, worker);
 
-    return json({ summary: { total, ok, skipped, backoff, invalid, errors } }, 200);
+    const summary = { total, ok, skipped, backoff, invalid, errors };
+    try {
+      await sendAlerts(summary, day);
+    } catch {}
+
+    return json({ summary }, 200);
   } catch {
     return json({ error: "internal" }, 500);
   }

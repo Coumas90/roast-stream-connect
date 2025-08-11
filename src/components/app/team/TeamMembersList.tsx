@@ -135,11 +135,11 @@ export function TeamMembersList({ onInviteClick, canInvite = false, view = 'deta
         </p>
       </CardHeader>
       <CardContent className="animate-fade-in p-5 md:p-6" key={view}>
-        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 xl:grid-cols-3">
+        <div className="flex flex-wrap gap-4 justify-center">
           {members.map((member) => (
             <article
               key={member.id}
-              className="rounded-xl border bg-card p-6 shadow-elegant transition-all duration-200 hover:shadow-xl hover:-translate-y-0.5"
+              className="w-full sm:w-[48%] md:w-[45%] lg:w-[30%] mx-auto rounded-xl border bg-card p-6 shadow-elegant transition-all duration-200 hover:shadow-xl hover:-translate-y-0.5"
             >
               <header className="flex items-center gap-4">
                 <Avatar className="h-16 w-16 ring-2 ring-warning ring-offset-2 ring-offset-card">
@@ -260,13 +260,13 @@ export function TeamMembersList({ onInviteClick, canInvite = false, view = 'deta
 
               {/* Acciones */}
               <footer className="mt-4 flex flex-col sm:flex-row gap-2 sm:justify-end">
-                <Button size="sm" variant="ghost" className="hover-scale">
+                <Button size="sm" variant="ghost" className="hover-scale h-8 md:h-9 px-3 md:px-4 text-xs md:text-sm">
                   <Eye className="w-4 h-4 mr-2" /> Ver Perfil Completo
                 </Button>
-                <Button size="sm" variant="outline" className="hover-scale">
+                <Button size="sm" variant="outline" className="hover-scale h-8 md:h-9 px-3 md:px-4 text-xs md:text-sm">
                   <Pencil className="w-4 h-4 mr-2" /> Editar Información
                 </Button>
-                <Button size="sm" variant="pill" className="bg-warning text-warning-foreground shadow-elegant hover:bg-warning/90 rounded-full hover-scale">
+                <Button size="sm" variant="pill" className="bg-warning text-warning-foreground shadow-elegant hover:bg-warning/90 rounded-full hover-scale h-8 md:h-9 px-3 md:px-4 text-xs md:text-sm">
                   <CalendarIcon className="w-4 h-4 mr-2" /> Asignar Turno
                 </Button>
               </footer>

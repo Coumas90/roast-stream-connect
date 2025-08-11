@@ -6,7 +6,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useTeamMembers } from "@/hooks/useTeam";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Users, Plus, Mail, Phone, CalendarDays, TrendingUp, Coffee, Eye, Pencil, Calendar as CalendarIcon, ChevronDown } from "lucide-react";
+import { Users, Plus, Mail, Phone, CalendarDays, TrendingUp, Coffee, Eye, Pencil, Calendar as CalendarIcon, ChevronDown, Palette } from "lucide-react";
 const ROLE_LABELS = {
   owner: 'Propietario',
   manager: 'Encargado', 
@@ -135,10 +135,10 @@ export function TeamMembersList({ onInviteClick, canInvite = false, view = 'deta
           {members.map((member) => (
             <article
               key={member.id}
-              className="rounded-xl border bg-card p-4 shadow-elegant transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5"
+              className="rounded-xl border bg-card p-6 shadow-elegant transition-all duration-200 hover:shadow-xl hover:-translate-y-0.5"
             >
-              <header className="flex items-center gap-3">
-                <Avatar className="h-12 w-12">
+              <header className="flex items-center gap-4">
+                <Avatar className="h-16 w-16 ring-2 ring-warning ring-offset-2 ring-offset-card">
                   <AvatarFallback className="bg-warning text-background font-semibold">
                     {getInitials(member.full_name, member.email)}
                   </AvatarFallback>
@@ -160,22 +160,23 @@ export function TeamMembersList({ onInviteClick, canInvite = false, view = 'deta
               </header>
 
               {view === 'simple' ? (
-                <section className="mt-4 space-y-3">
-                  <div className="h-2.5 w-full rounded-full bg-secondary overflow-hidden">
-                    <div className="h-full w-[0%] bg-gradient-brand" />
+                <section className="mt-4 space-y-4">
+                  <div className="relative h-4 w-full rounded-full bg-secondary overflow-hidden">
+                    <div className="absolute inset-y-0 left-0 w-[0%] bg-gradient-brand" />
+                    <span className="absolute inset-0 grid place-items-center text-[11px] font-bold text-primary-foreground">0%</span>
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
                     {(member.role === 'coffee_master' || member.role === 'barista') ? (
-                      <Badge variant="warning" className="rounded-full">Barista</Badge>
+                      <Badge variant="warning" className="rounded-full px-3 py-1">Barista</Badge>
                     ) : (
-                      <Badge variant="secondary" className="rounded-full">{ROLE_LABELS[member.role as keyof typeof ROLE_LABELS] || member.role}</Badge>
+                      <Badge variant="secondary" className="rounded-full px-3 py-1">{ROLE_LABELS[member.role as keyof typeof ROLE_LABELS] || member.role}</Badge>
                     )}
                   </div>
                 </section>
               ) : (
-                <section className="mt-4 grid gap-4 md:grid-cols-3">
+                <section className="mt-4 grid gap-6 md:grid-cols-3">
                   {/* Columna izquierda: Información personal (plegable) */}
-                  <div className="rounded-lg bg-secondary/60 p-3">
+                  <div className="rounded-xl bg-secondary/60 p-5 md:p-6 border">
                     <Collapsible defaultOpen>
                       <div className="flex items-center justify-between mb-2">
                         <h4 className="text-xs uppercase tracking-wide text-muted-foreground">Información personal</h4>
@@ -207,24 +208,24 @@ export function TeamMembersList({ onInviteClick, canInvite = false, view = 'deta
                   </div>
 
                   {/* Centro: Especialidad & Progreso */}
-                  <div className="rounded-lg bg-secondary/60 p-3">
+                  <div className="rounded-xl bg-secondary/60 p-5 md:p-6 border">
                     <h4 className="text-xs uppercase tracking-wide text-muted-foreground mb-2">Especialidad & Progreso</h4>
-                    <div className="mb-1 font-semibold">
+                    <div className="mb-3 font-semibold">
                       {ROLE_LABELS[member.role as keyof typeof ROLE_LABELS] || member.role}
                     </div>
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-3xl font-extrabold text-warning leading-none">0%</span>
                       <span className="flex items-center gap-1 text-muted-foreground text-sm">
                         <TrendingUp className="w-4 h-4" /> Progreso
                       </span>
                     </div>
-                    <div className="h-3 w-full rounded-full bg-secondary overflow-hidden">
-                      <div className="h-full w-[0%] bg-gradient-brand" />
+                    <div className="relative h-4 w-full rounded-full bg-secondary overflow-hidden">
+                      <div className="absolute inset-y-0 left-0 w-[0%] bg-gradient-brand" />
+                      <span className="absolute inset-0 grid place-items-center text-[11px] font-bold text-primary-foreground">0%</span>
                     </div>
                   </div>
 
                   {/* Derecha: Certificaciones (plegable) */}
-                  <div className="rounded-lg bg-secondary/60 p-3">
+                  <div className="rounded-xl bg-secondary/60 p-5 md:p-6 border">
                     <Collapsible defaultOpen>
                       <div className="flex items-center justify-between mb-2">
                         <h4 className="text-xs uppercase tracking-wide text-muted-foreground">Certificaciones</h4>
@@ -236,11 +237,11 @@ export function TeamMembersList({ onInviteClick, canInvite = false, view = 'deta
                         <div className="flex flex-wrap gap-2 pt-2">
                           {(member.role === 'coffee_master' || member.role === 'barista') ? (
                             <>
-                              <Badge variant="warning" className="rounded-full">
+                              <Badge variant="warning" className="rounded-full px-3 py-1 transition-transform hover:scale-105">
                                 <Coffee className="w-3.5 h-3.5 mr-1" /> Barista Avanzado
                               </Badge>
-                              <Badge variant="outline" className="rounded-full border-primary text-primary">
-                                <Coffee className="w-3.5 h-3.5 mr-1" /> Latte Art
+                              <Badge variant="outline" className="rounded-full border-primary text-primary px-3 py-1 transition-transform hover:scale-105">
+                                <Palette className="w-3.5 h-3.5 mr-1" /> Latte Art
                               </Badge>
                             </>
                           ) : (
@@ -261,7 +262,7 @@ export function TeamMembersList({ onInviteClick, canInvite = false, view = 'deta
                 <Button size="sm" variant="outline">
                   <Pencil className="w-4 h-4 mr-2" /> Editar Información
                 </Button>
-                <Button size="sm" variant="hero">
+                <Button size="sm" variant="pill" className="bg-warning text-warning-foreground shadow-elegant hover:bg-warning/90">
                   <CalendarIcon className="w-4 h-4 mr-2" /> Asignar Turno
                 </Button>
               </footer>

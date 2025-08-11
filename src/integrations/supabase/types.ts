@@ -611,37 +611,58 @@ export type Database = {
       }
       pos_sync_runs: {
         Row: {
+          attempt: number | null
+          client_id: string | null
+          count: number | null
+          duration_ms: number | null
           error: string | null
           finished_at: string | null
           id: string
           items: number
           kind: string
           location_id: string
+          meta: Json | null
           ok: boolean
           provider: Database["public"]["Enums"]["app_pos_provider"]
           started_at: string
+          status: string | null
+          updated_at: string
         }
         Insert: {
+          attempt?: number | null
+          client_id?: string | null
+          count?: number | null
+          duration_ms?: number | null
           error?: string | null
           finished_at?: string | null
           id?: string
           items?: number
           kind: string
           location_id: string
+          meta?: Json | null
           ok?: boolean
           provider: Database["public"]["Enums"]["app_pos_provider"]
           started_at?: string
+          status?: string | null
+          updated_at?: string
         }
         Update: {
+          attempt?: number | null
+          client_id?: string | null
+          count?: number | null
+          duration_ms?: number | null
           error?: string | null
           finished_at?: string | null
           id?: string
           items?: number
           kind?: string
           location_id?: string
+          meta?: Json | null
           ok?: boolean
           provider?: Database["public"]["Enums"]["app_pos_provider"]
           started_at?: string
+          status?: string | null
+          updated_at?: string
         }
         Relationships: []
       }

@@ -17,6 +17,7 @@ import { useAuth } from "@/lib/auth";
 import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/sonner";
+import { useUserRole } from "@/hooks/useTeam";
 
 type Props = { variant?: "client" | "admin" };
 
@@ -31,6 +32,8 @@ export default function UserMenu({ variant = "client" }: Props) {
   const profilePath = variant === "admin" ? "/admin/profile" : "/app/profile";
   const prefsPath = variant === "admin" ? "/admin/integrations" : "/app/settings/integrations";
 
+  const { data: effectiveRole } = useUserRole();
+  const canManagePos = variant === "admin" || effectiveRole === 'owner' || effectiveRole === 'manager' || effectiveRole === 'tupa_admin';
   const currentTheme = (theme ?? resolvedTheme ?? "system") as "light" | "dark" | "system";
 
   const handleChangeBranch = () => {
@@ -57,9 +60,11 @@ export default function UserMenu({ variant = "client" }: Props) {
         <DropdownMenuItem asChild>
           <NavLink to={profilePath}>Mi perfil</NavLink>
         </DropdownMenuItem>
-        <DropdownMenuItem asChild>
-          <NavLink to={prefsPath}>Preferencias</NavLink>
-        </DropdownMenuItem>
+        {canManagePos && (
+          <DropdownMenuItem asChild>
+            <NavLink to={prefsPath}>Preferencias</NavLink>
+          </DropdownMenuItem>
+        )}
         <DropdownMenuItem disabled>Notificaciones</DropdownMenuItem>
 
         <DropdownMenuSeparator />

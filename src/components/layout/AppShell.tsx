@@ -27,6 +27,7 @@ import LocationSwitcher from "@/components/app/LocationSwitcher";
 import UserMenu from "@/components/layout/UserMenu";
 import GlobalSearch from "@/components/admin/GlobalSearch";
 import { useFeatureFlags } from "@/hooks/useFeatureFlags";
+import { useUserRole } from "@/hooks/useTeam";
 export type AppShellProps = {
   children: ReactNode;
   section?: string;
@@ -59,6 +60,7 @@ export function AppShell({ children, section = "Dashboard", variant = "client" }
   const { pathname } = useLocation();
   const { ordersQueue } = useDataStore();
   const { isLoading, flags, posEffective } = useFeatureFlags();
+  const { data: effectiveRole } = useUserRole();
 
   // Compute gated items for client variant
   const items = variant === "client" && flags
@@ -120,14 +122,16 @@ export function AppShell({ children, section = "Dashboard", variant = "client" }
             <SidebarGroupLabel>Configuración</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild>
-                    <NavLink to={variant === "admin" ? "/admin/integrations" : "/app/settings/integrations"}>
-                      <Settings />
-                      <span>Integraciones</span>
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
+                {(variant === "admin" || effectiveRole === 'owner' || effectiveRole === 'manager' || effectiveRole === 'tupa_admin') && (
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild>
+                      <NavLink to={variant === "admin" ? "/admin/integrations" : "/app/settings/integrations"}>
+                        <Settings />
+                        <span>Integraciones</span>
+                      </NavLink>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                )}
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>

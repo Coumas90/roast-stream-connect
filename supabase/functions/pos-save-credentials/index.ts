@@ -124,6 +124,22 @@ serve(async (req) => {
       });
     }
 
+    // Permission: must be owner/manager/admin for the location
+    const supabaseSvc = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+    const { data: canManage, error: permErr } = await (supabaseSvc.rpc as any)("user_can_manage_pos", { _location_id: locationId });
+    if (permErr) {
+      return new Response(JSON.stringify({ error: "permission_check_failed" }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json", "Cache-Control": "no-store" },
+      });
+    }
+    if (!canManage) {
+      return new Response(JSON.stringify({ error: "forbidden" }), {
+        status: 403,
+        headers: { ...corsHeaders, "Content-Type": "application/json", "Cache-Control": "no-store" },
+      });
+    }
+
     // Encrypt
     if (!KMS_HEX || KMS_HEX.length !== 64) {
       return new Response(JSON.stringify({ error: "KMS key not configured" }), {
@@ -137,10 +153,6 @@ serve(async (req) => {
     const masked_hints = buildMaskedHints(credentials as Record<string, any>);
 
     // Upsert via service role (bypass RLS)
-    const supabaseSvc = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
-      global: { headers: { Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}` } },
-    });
-
     const { error: upsertErr } = await supabaseSvc
       .from("pos_provider_credentials")
       .upsert(

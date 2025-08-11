@@ -1089,6 +1089,10 @@ export type Database = {
         }
         Returns: string
       }
+      user_can_manage_pos: {
+        Args: { _location_id: string }
+        Returns: boolean
+      }
       user_has_location: {
         Args: { _location_id: string }
         Returns: boolean

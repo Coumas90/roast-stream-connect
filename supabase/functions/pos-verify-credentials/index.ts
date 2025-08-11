@@ -109,6 +109,15 @@ serve(async (req) => {
       return jsonResponse(403, { error: "forbidden" });
     }
 
+    // Fine-grained permission: only owner/manager/admin can manage POS
+    const { data: canManage, error: permErr } = await (supabaseSvc.rpc as any)("user_can_manage_pos", { _location_id: locationId });
+    if (permErr) {
+      return jsonResponse(500, { error: "permission_check_failed" });
+    }
+    if (!canManage) {
+      return jsonResponse(403, { error: "forbidden" });
+    }
+
     // Fetch encrypted credentials (service client)
     const { data: row, error: selErr } = await supabaseSvc
       .from("pos_provider_credentials")

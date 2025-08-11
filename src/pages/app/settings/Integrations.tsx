@@ -6,8 +6,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Navigate } from "react-router-dom";
 import { useTenant } from "@/lib/tenant";
+import { useUserRole } from "@/hooks/useTeam";
 import type { AppPosProvider } from "@/integrations/supabase/pos-types";
 const providerLabels: Record<AppPosProvider, string> = {
   fudo: "Fudo",
@@ -33,6 +34,11 @@ export default function AppIntegrations() {
   const [error, setError] = useState<string | null>(null);
   const [locations, setLocations] = useState<Array<{ id: string; name: string }>>([]);
   const [byLoc, setByLoc] = useState<Record<string, CredRow[]>>({});
+
+  const { data: effectiveRole } = useUserRole();
+  if (effectiveRole && !['owner','manager','tupa_admin'].includes(effectiveRole)) {
+    return <Navigate to="/app" replace />;
+  }
 
   useEffect(() => {
     let cancelled = false;

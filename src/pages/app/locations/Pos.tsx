@@ -1,12 +1,17 @@
 import React from "react";
 import { Helmet } from "react-helmet-async";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, Navigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { useUserRole } from "@/hooks/useTeam";
 
 export default function LocationPosDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { data: effectiveRole } = useUserRole();
+  if (effectiveRole && !['owner','manager','tupa_admin'].includes(effectiveRole)) {
+    return <Navigate to="/app" replace />;
+  }
 
   return (
     <article>

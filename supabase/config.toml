@@ -17,3 +17,6 @@ verify_jwt = false
 
 [functions.send-invite]
 verify_jwt = true
+
+[functions.pos-save-credentials]
+verify_jwt = true

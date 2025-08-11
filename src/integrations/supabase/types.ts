@@ -609,6 +609,39 @@ export type Database = {
         }
         Relationships: []
       }
+      pos_provider_credentials: {
+        Row: {
+          ciphertext: string
+          created_at: string
+          last_verified_at: string | null
+          location_id: string
+          masked_hints: Json
+          provider: Database["public"]["Enums"]["app_pos_provider"]
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          ciphertext: string
+          created_at?: string
+          last_verified_at?: string | null
+          location_id: string
+          masked_hints?: Json
+          provider: Database["public"]["Enums"]["app_pos_provider"]
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          ciphertext?: string
+          created_at?: string
+          last_verified_at?: string | null
+          location_id?: string
+          masked_hints?: Json
+          provider?: Database["public"]["Enums"]["app_pos_provider"]
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       pos_sync_runs: {
         Row: {
           attempt: number | null
@@ -990,6 +1023,17 @@ export type Database = {
           _metadata?: Json
         }
         Returns: undefined
+      }
+      pos_provider_credentials_public: {
+        Args: { _location_id: string }
+        Returns: {
+          location_id: string
+          provider: Database["public"]["Enums"]["app_pos_provider"]
+          masked_hints: Json
+          status: string
+          last_verified_at: string
+          updated_at: string
+        }[]
       }
       revoke_invitation: {
         Args: { _invitation_id: string }

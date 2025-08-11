@@ -912,6 +912,18 @@ export type Database = {
           created_by: string
         }[]
       }
+      list_location_members: {
+        Args: { _location_id: string }
+        Returns: {
+          user_id: string
+          role: Database["public"]["Enums"]["app_role"]
+          tenant_id: string
+          location_id: string
+          created_at: string
+          full_name: string
+          email: string
+        }[]
+      }
       log_invitation_event: {
         Args: {
           _event: string

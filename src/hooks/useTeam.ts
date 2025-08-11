@@ -3,6 +3,7 @@ import { useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useTenant } from "@/lib/tenant";
+
 export type TeamMember = {
   id: string;
   user_id: string;
@@ -47,35 +48,31 @@ export function useTeamMembers() {
     queryFn: async (): Promise<TeamMember[]> => {
       if (!locationId) return [];
 
-      // Get user roles for this location
-      const { data: roles, error: rolesError } = await supabase
-        .from('user_roles')
-        .select('*')
-        .eq('location_id', locationId)
-        .order('created_at', { ascending: true });
-
-      if (rolesError) throw rolesError;
-      if (!roles?.length) return [];
-
-      // Get profile data for these users
-      const userIds = roles.map(r => r.user_id);
-      const { data: profiles, error: profilesError } = await supabase
-        .from('profiles')
-        .select('id, full_name')
-        .in('id', userIds);
-
-      if (profilesError) throw profilesError;
-
-      const members = roles.map(role => {
-        const profile = profiles?.find(p => p.id === role.user_id);
-        return {
-          ...role,
-          full_name: profile?.full_name,
-          email: undefined, // We'll get this from auth if needed
-        };
+      // Usamos el RPC con SECURITY DEFINER para listar miembros de la sucursal,
+      // evitando las limitaciones de RLS sobre user_roles y profiles.
+      console.log('[useTeamMembers] fetching via RPC list_location_members', { locationId });
+      const { data, error } = await supabase.rpc('list_location_members', {
+        _location_id: locationId,
       });
 
-      return members as TeamMember[];
+      if (error) {
+        console.error('[useTeamMembers] RPC error:', error);
+        throw error;
+      }
+
+      const members = (data ?? []).map((r: any) => ({
+        id: r.user_id as string,
+        user_id: r.user_id as string,
+        role: r.role as string,
+        tenant_id: r.tenant_id as string,
+        location_id: r.location_id as string | null,
+        created_at: r.created_at as string,
+        full_name: r.full_name ?? undefined,
+        email: r.email ?? undefined,
+      })) as TeamMember[];
+
+      console.log('[useTeamMembers] members:', members);
+      return members;
     },
     enabled: !!locationId,
   });

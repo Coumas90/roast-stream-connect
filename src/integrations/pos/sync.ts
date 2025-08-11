@@ -58,3 +58,70 @@ export class BaseSync {
     return { ok: false, attempts: attempt + 1, count: 0, error: String((lastErr as any)?.message ?? lastErr) };
   }
 }
+
+// --- POS Sync Orchestration (2.3) ---
+import type { AppPosProvider } from "@/integrations/supabase/pos-types";
+import { getPOSAdapter } from "./registry";
+import type { TupaSale } from "../../../sdk/pos";
+import { supabase } from "@/integrations/supabase/client";
+import { upsertConsumptionRpc } from "@/integrations/consumption/consumption.rpc";
+import { aggregateSalesToConsumption } from "@/integrations/consumption/consumption";
+import * as logger from "@/integrations/pos/sync-logger";
+
+export type SalesRange = { from?: string; to?: string; limit?: number };
+
+export type RunPOSSyncInput = {
+  clientId: string;
+  locationId: string;
+  provider: AppPosProvider;
+  range: SalesRange;
+  dryRun?: boolean;
+};
+
+export type RunPOSSyncResult =
+  | { skipped: true; reason: string; waitMs: number }
+  | { skipped?: false; runId: string; count: number };
+
+export async function runPOSSync({ clientId, locationId, provider, range, dryRun = false }: RunPOSSyncInput): Promise<RunPOSSyncResult> {
+  const can = await logger.canSync({ clientId, locationId, provider, now: Date });
+  if (!can.ok) {
+    const r = can as { ok: false; reason: string; waitMs: number };
+    return { skipped: true, reason: r.reason, waitMs: r.waitMs };
+  }
+
+  const t0 = Date.now();
+  const { runId } = await logger.startSync({ clientId, locationId, provider });
+
+  try {
+    // Instantiate adapter (config resolution TBD; pass minimal info)
+    const service: any = getPOSAdapter(provider as any, { provider, locationId });
+
+    // Expect adapter to return TupaSale[]; if it returns a number, we cannot aggregate yet.
+    const maybeSales: unknown = await service.fetchSalesWindow?.({ from: range.from, to: range.to, limit: range.limit });
+    if (!Array.isArray(maybeSales)) {
+      throw new Error("Adapter returned no sales list; expected TupaSale[] from fetchSalesWindow");
+    }
+    const sales = maybeSales as TupaSale[];
+
+    const consumption = aggregateSalesToConsumption({
+      clientId,
+      locationId,
+      provider,
+      date: range.to,
+      sales,
+    });
+
+    if (!dryRun) {
+      await upsertConsumptionRpc(supabase, consumption as any);
+    }
+
+    const durationMs = Date.now() - t0;
+    await logger.logSuccess(runId, { count: sales.length, durationMs });
+    return { runId, count: sales.length };
+  } catch (e) {
+    const durationMs = Date.now() - t0;
+    await logger.logError(runId, { error: String((e as any)?.message ?? e), durationMs });
+    throw e;
+  }
+}
+

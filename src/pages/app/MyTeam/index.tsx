@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { Helmet } from "react-helmet-async";
 import { Button } from "@/components/ui/button";
-import { Plus, Users } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Plus, Users, CheckCircle2, Trophy, TrendingUp, PlusCircle } from "lucide-react";
 import { useTenant } from "@/lib/tenant";
-import { useUserRole } from "@/hooks/useTeam";
+import { useUserRole, useTeamMembers } from "@/hooks/useTeam";
 import { TeamMembersList } from "@/components/app/team/TeamMembersList";
 import { PendingInvitations } from "@/components/app/team/PendingInvitations";
 import { InviteDialog } from "@/components/app/team/InviteDialog";
@@ -61,6 +62,13 @@ export default function MyTeam() {
   const canInvite = userRole === 'owner' || userRole === 'manager';
   const isPlatformAdmin = userRole === 'tupa_admin';
   const navigate = useNavigate();
+
+  // Datos para stats (UI-only)
+  const { data: members } = useTeamMembers();
+  const total = members?.length ?? 0;
+  const activos = total; // sin estado de actividad, usamos total como proxy
+  const certificados = members?.filter((m) => m.role === 'coffee_master' || m.role === 'barista').length ?? 0;
+  const progresoPromedio = 0; // placeholder sin lógica nueva
   return (
     <article>
       <Helmet>

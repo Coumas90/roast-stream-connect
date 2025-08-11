@@ -23,3 +23,6 @@ verify_jwt = true
 
 [functions.pos-verify-credentials]
 verify_jwt = true
+
+[functions.pos-sync-daily]
+verify_jwt = false

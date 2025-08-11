@@ -96,7 +96,7 @@ export function TeamMembersList({ onInviteClick, canInvite = false, view = 'deta
               disabled={!canInvite}
               title={!canInvite ? 'No tienes permisos para invitar' : undefined}
               variant="pill"
-              className="bg-warning text-warning-foreground hover:bg-warning/90"
+              className="bg-warning text-warning-foreground hover:bg-warning/90 hover-scale rounded-full"
             >
               <Plus className="w-4 h-4 mr-2" />
               Invitar miembro
@@ -162,7 +162,7 @@ export function TeamMembersList({ onInviteClick, canInvite = false, view = 'deta
               {view === 'simple' ? (
                 <section className="mt-4 space-y-4">
                   <div className="relative h-4 w-full rounded-full bg-secondary overflow-hidden">
-                    <div className="absolute inset-y-0 left-0 w-[0%] bg-gradient-brand" />
+                    <div className="absolute inset-y-0 left-0 w-[0%] bg-gradient-to-r from-primary to-primary/70" />
                     <span className="absolute inset-0 grid place-items-center text-[11px] font-bold text-primary-foreground">0%</span>
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
@@ -256,13 +256,13 @@ export function TeamMembersList({ onInviteClick, canInvite = false, view = 'deta
 
               {/* Acciones */}
               <footer className="mt-4 flex flex-col sm:flex-row gap-2 sm:justify-end">
-                <Button size="sm" variant="ghost">
+                <Button size="sm" variant="ghost" className="hover-scale">
                   <Eye className="w-4 h-4 mr-2" /> Ver Perfil Completo
                 </Button>
-                <Button size="sm" variant="outline">
+                <Button size="sm" variant="outline" className="hover-scale">
                   <Pencil className="w-4 h-4 mr-2" /> Editar Información
                 </Button>
-                <Button size="sm" variant="pill" className="bg-warning text-warning-foreground shadow-elegant hover:bg-warning/90">
+                <Button size="sm" variant="pill" className="bg-warning text-warning-foreground shadow-elegant hover:bg-warning/90 rounded-full hover-scale">
                   <CalendarIcon className="w-4 h-4 mr-2" /> Asignar Turno
                 </Button>
               </footer>
@@ -271,7 +271,7 @@ export function TeamMembersList({ onInviteClick, canInvite = false, view = 'deta
         </div>
 
         <div className="mt-4 text-center">
-          <Button onClick={onInviteClick} disabled={!canInvite} title={!canInvite ? 'No tienes permisos para invitar' : undefined} variant="soft">
+          <Button onClick={onInviteClick} disabled={!canInvite} title={!canInvite ? 'No tienes permisos para invitar' : undefined} variant="soft" className="hover-scale">
             <Plus className="w-4 h-4 mr-2" />
             Invitar miembro
           </Button>

@@ -92,7 +92,7 @@ export function PendingInvitations({ onInviteClick, canInvite = false }: Pending
               disabled={!canInvite}
               title={!canInvite ? 'No tienes permisos para invitar' : undefined}
               variant="pill"
-              className="bg-warning text-warning-foreground hover:bg-warning/90"
+              className="bg-warning text-warning-foreground hover:bg-warning/90 hover-scale rounded-full"
             >
               <Plus className="w-4 h-4 mr-2" />
               Invitar ahora
@@ -166,7 +166,7 @@ export function PendingInvitations({ onInviteClick, canInvite = false }: Pending
                   }}
                   disabled={resendInvitation.isPending}
                   title="Copiar link"
-                  className="hover:bg-accent"
+                  className="hover:bg-accent hover-scale"
                 >
                   <Copy className="w-4 h-4" />
                 </Button>
@@ -177,7 +177,7 @@ export function PendingInvitations({ onInviteClick, canInvite = false }: Pending
                   onClick={() => handleResend(invitation.id)}
                   disabled={resendInvitation.isPending}
                   title="Reenviar invitación"
-                  className="hover:bg-accent"
+                  className="hover:bg-accent hover-scale"
                 >
                   <RotateCcw className="w-4 h-4" />
                 </Button>
@@ -189,7 +189,7 @@ export function PendingInvitations({ onInviteClick, canInvite = false }: Pending
                       variant="ghost"
                       disabled={revokeInvitation.isPending}
                       title="Revocar invitación"
-                      className="hover:bg-accent"
+                      className="hover:bg-accent hover-scale"
                     >
                       <Trash2 className="w-4 h-4" />
                     </Button>
@@ -220,7 +220,7 @@ export function PendingInvitations({ onInviteClick, canInvite = false }: Pending
             disabled={!canInvite}
             title={!canInvite ? 'No tienes permisos para invitar' : undefined}
             variant="pill"
-            className="bg-warning text-warning-foreground hover:bg-warning/90"
+            className="bg-warning text-warning-foreground hover:bg-warning/90 hover-scale rounded-full"
           >
             <Plus className="w-4 h-4 mr-2" />
             Invitar miembro

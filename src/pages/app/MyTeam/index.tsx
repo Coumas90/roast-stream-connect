@@ -81,7 +81,7 @@ export default function MyTeam() {
       
       <header className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-3xl font-bold flex items-center gap-2">
+          <h1 className="text-3xl font-extrabold flex items-center gap-2">
             <Users className="w-8 h-8" />
             Mi Equipo
           </h1>
@@ -96,16 +96,17 @@ export default function MyTeam() {
         </div>
         <div className="flex items-center gap-2">
           <ToggleGroup type="single" value={viewMode} onValueChange={(v) => v && setViewMode(v as 'simple' | 'detailed')} className="mr-2" variant="outline">
-            <ToggleGroupItem value="simple" aria-label="Vista Simple">
+            <ToggleGroupItem value="simple" aria-label="Vista Simple" className="hover-scale">
               <LayoutGrid className="w-4 h-4 mr-2" /> Vista Simple
             </ToggleGroupItem>
-            <ToggleGroupItem value="detailed" aria-label="Vista Detallada">
+            <ToggleGroupItem value="detailed" aria-label="Vista Detallada" className="hover-scale">
               <PanelsTopLeft className="w-4 h-4 mr-2" /> Vista Detallada
             </ToggleGroupItem>
           </ToggleGroup>
           {isPlatformAdmin && (
             <Button
               variant="outline"
+              className="hover-scale"
               onClick={() => tenantId && navigate(`/admin/clients/${tenantId}`)}
               disabled={!tenantId}
               title={!tenantId ? 'Tenant no disponible' : 'Ver cliente en Admin'}
@@ -117,6 +118,7 @@ export default function MyTeam() {
             onClick={() => setInviteDialogOpen(true)}
             disabled={!canInvite}
             title={!canInvite ? 'No tienes permisos para invitar' : undefined as any}
+            className="hover-scale"
           >
             <Plus className="w-4 h-4 mr-2" />
             Invitar miembro
@@ -140,7 +142,7 @@ export default function MyTeam() {
 
       <section className="mt-8">
         <Card className="overflow-hidden shadow-elegant">
-          <CardContent className="bg-gradient-to-r from-accent to-secondary p-6 md:p-8">
+          <CardContent className="bg-gradient-to-r from-warning/10 via-background to-secondary/10 p-6 md:p-8">
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
               <div>
                 <h2 className="text-xl font-semibold mb-1">¿Necesitas incorporar personal?</h2>
@@ -151,7 +153,7 @@ export default function MyTeam() {
               <Button
                 onClick={() => setInviteDialogOpen(true)}
                 variant="pill"
-                className="bg-warning text-warning-foreground hover:bg-warning/90 transition-transform hover:scale-[1.03]"
+                className="bg-warning text-warning-foreground hover:bg-warning/90 rounded-full hover-scale"
               >
                 <PlusCircle className="w-4 h-4 mr-2" />
                 Solicitar Nuevo Integrante

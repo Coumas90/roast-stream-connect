@@ -124,16 +124,18 @@ export default function MyTeam() {
         </div>
       </header>
 
-      <section className="grid gap-6 lg:grid-cols-2">
-        <TeamMembersList 
-          onInviteClick={() => setInviteDialogOpen(true)} 
-          canInvite={canInvite}
-          view={viewMode}
-        />
-        <PendingInvitations 
-          onInviteClick={() => setInviteDialogOpen(true)} 
-          canInvite={canInvite}
-        />
+      <section className="animate-fade-in" key={viewMode}>
+        <div className="grid gap-6 lg:grid-cols-2">
+          <TeamMembersList 
+            onInviteClick={() => setInviteDialogOpen(true)} 
+            canInvite={canInvite}
+            view={viewMode}
+          />
+          <PendingInvitations 
+            onInviteClick={() => setInviteDialogOpen(true)} 
+            canInvite={canInvite}
+          />
+        </div>
       </section>
 
       <section className="mt-8">
@@ -149,7 +151,7 @@ export default function MyTeam() {
               <Button
                 onClick={() => setInviteDialogOpen(true)}
                 variant="pill"
-                className="bg-warning text-warning-foreground hover:bg-warning/90"
+                className="bg-warning text-warning-foreground hover:bg-warning/90 transition-transform hover:scale-[1.03]"
               >
                 <PlusCircle className="w-4 h-4 mr-2" />
                 Solicitar Nuevo Integrante

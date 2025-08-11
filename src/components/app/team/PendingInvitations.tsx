@@ -81,8 +81,8 @@ export function PendingInvitations({ onInviteClick, canInvite = false }: Pending
         </CardHeader>
         <CardContent className="py-10 text-center">
           <div className="flex flex-col items-center gap-4">
-            <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center">
-              <Clock className="w-8 h-8 text-muted-foreground" />
+            <div className="h-16 w-16 rounded-full bg-warning grid place-items-center">
+              <Clock className="w-8 h-8 text-warning-foreground" />
             </div>
             <p className="text-muted-foreground max-w-sm">
               No hay invitaciones enviadas. Envía una para que tu equipo se una.

@@ -85,8 +85,8 @@ export function TeamMembersList({ onInviteClick, canInvite = false, view = 'deta
         </CardHeader>
         <CardContent className="py-10 text-center">
           <div className="flex flex-col items-center gap-4">
-            <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center">
-              <Users className="w-8 h-8 text-muted-foreground" />
+            <div className="h-16 w-16 rounded-full bg-warning grid place-items-center">
+              <Users className="w-8 h-8 text-warning-foreground" />
             </div>
             <p className="text-muted-foreground max-w-sm">
               Aún no tienes miembros en esta sucursal. Invita a tu primer colaborador.
@@ -125,12 +125,12 @@ export function TeamMembersList({ onInviteClick, canInvite = false, view = 'deta
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
+        <CardTitle className="flex items-center gap-2 font-bold">
           <Users className="w-5 h-5" />
           Miembros del equipo ({members.length})
         </CardTitle>
       </CardHeader>
-      <CardContent>
+      <CardContent className="animate-fade-in" key={view}>
         <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 xl:grid-cols-3">
           {members.map((member) => (
             <article

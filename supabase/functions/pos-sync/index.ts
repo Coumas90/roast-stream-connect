@@ -146,7 +146,48 @@ serve(async (req) => {
     const authz = await authorize(req);
     if (!authz.ok) return json({ error: "forbidden" }, 403);
 
-    // Backoff/autopause gate
+    // Fetch credentials BEFORE any run; skip if missing/invalid
+    if (!KMS_HEX || !/^[0-9a-fA-F]{64}$/.test(KMS_HEX)) {
+      return json({ error: "kms_misconfigured" }, 500);
+    }
+
+    const { data: credRow, error: credErr } = await svc
+      .from("pos_provider_credentials")
+      .select("ciphertext,status")
+      .eq("location_id", locationId)
+      .eq("provider", provider)
+      .maybeSingle();
+
+    if (credErr) return json({ error: "db_error" }, 500);
+    if (!credRow) return json({ skipped: true, reason: "no_credentials" }, 200);
+    if (credRow.status === "invalid") return json({ skipped: true, reason: "invalid_credentials" }, 200);
+
+    // Decrypt ciphertext bundle
+    let credentials: Record<string, unknown>;
+    try {
+      const bundle = JSON.parse(credRow.ciphertext) as CipherBundle;
+      credentials = (await decryptJsonGCM(KMS_HEX, bundle)) as Record<string, unknown>;
+    } catch {
+      return json({ error: "ciphertext_invalid" }, 500);
+    }
+
+    // Pre-validate credentials (lightweight auth check or heuristic)
+    const apiKey = typeof credentials["apiKey"] === "string" ? String(credentials["apiKey"]).trim() : "";
+    let unauthorized = false;
+    if (provider === "bistrosoft") unauthorized = !(apiKey.startsWith("bs_") && apiKey.length >= 4);
+    else if (provider === "maxirest") unauthorized = !(/[A-Z0-9]{8,}/.test(apiKey));
+    else unauthorized = apiKey.length < 6; // fudo/other minimal check
+
+    if (unauthorized) {
+      await svc
+        .from("pos_provider_credentials")
+        .update({ status: "invalid", last_verified_at: new Date().toISOString(), updated_at: new Date().toISOString() })
+        .eq("location_id", locationId)
+        .eq("provider", provider);
+      return json({ skipped: true, reason: "invalid_credentials" }, 200);
+    }
+
+    // Backoff/autopause gate (only after valid credentials)
     const can = await canSync(svc, locationId, provider);
     if (!can.ok) {
       return json({ skipped: true, reason: can.reason, waitMs: can.waitMs }, 200);
@@ -157,53 +198,12 @@ serve(async (req) => {
     const t0 = Date.now();
 
     const startResp = await svc.functions.invoke("pos-sync-logger", {
-      body: { action: "start", clientId, locationId, provider, meta: { correlation_id } },
+      body: { action: "start", clientId: null, locationId, provider, meta: { correlation_id } },
     });
     if (startResp.error) return json({ error: startResp.error.message }, 500);
     const runId = (startResp.data as any)?.runId as string;
 
     try {
-      // Decrypt credentials for the adapter
-      if (!KMS_HEX || !/^[0-9a-fA-F]{64}$/.test(KMS_HEX)) {
-        throw new Error("kms_not_configured");
-      }
-      const { data: credRow, error: credErr } = await svc
-        .from("pos_provider_credentials")
-        .select("ciphertext")
-        .eq("location_id", locationId)
-        .eq("provider", provider)
-        .maybeSingle();
-      if (credErr) throw new Error("db_error");
-      if (!credRow) return json({ error: "credentials_not_found" }, 400);
-
-      let credentials: Record<string, unknown>;
-      try {
-        const bundle = JSON.parse(credRow.ciphertext) as CipherBundle;
-        credentials = (await decryptJsonGCM(KMS_HEX, bundle)) as Record<string, unknown>;
-      } catch {
-        throw new Error("decrypt_error");
-      }
-
-      // Heuristic check simulating adapter auth (never log secrets)
-      const apiKey = typeof credentials["apiKey"] === "string" ? String(credentials["apiKey"]).trim() : "";
-      let unauthorized = false;
-      if (provider === "bistrosoft") unauthorized = !(apiKey.startsWith("bs_") && apiKey.length >= 4);
-      else if (provider === "maxirest") unauthorized = !(/[A-Z0-9]{8,}/.test(apiKey));
-      else unauthorized = apiKey.length < 6; // fudo/other minimal check
-
-      if (unauthorized) {
-        await svc
-          .from("pos_provider_credentials")
-          .update({ status: "invalid", last_verified_at: new Date().toISOString(), updated_at: new Date().toISOString() })
-          .eq("location_id", locationId)
-          .eq("provider", provider);
-
-        const durationMs = Date.now() - t0;
-        await svc.functions.invoke("pos-sync-logger", {
-          body: { action: "success", runId, count: 0, durationMs, meta: { correlation_id, reason: "invalid_credentials" } },
-        });
-        return json({ runId, skipped: true, reason: "invalid_credentials" }, 200);
-      }
 
       // Execute sync. For v1 we simulate a provider fetch and aggregate minimal totals.
       // In a real adapter, pass { credentials } to the provider runner

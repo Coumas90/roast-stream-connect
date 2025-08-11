@@ -125,6 +125,29 @@ export default function MyTeam() {
         />
       </section>
 
+      <section className="mt-8">
+        <Card className="overflow-hidden shadow-elegant">
+          <CardContent className="bg-gradient-to-r from-accent to-secondary p-6 md:p-8">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+              <div>
+                <h2 className="text-xl font-semibold mb-1">¿Necesitas incorporar personal?</h2>
+                <p className="text-muted-foreground max-w-2xl">
+                  Solicitá el alta de nuevos baristas para tu equipo. TUPÁ te ayudará con el proceso de selección y capacitación.
+                </p>
+              </div>
+              <Button
+                onClick={() => setInviteDialogOpen(true)}
+                variant="pill"
+                className="bg-warning text-warning-foreground hover:bg-warning/90"
+              >
+                <PlusCircle className="w-4 h-4 mr-2" />
+                Solicitar Nuevo Integrante
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </section>
+
       <InviteDialog 
         open={inviteDialogOpen} 
         onOpenChange={setInviteDialogOpen} 

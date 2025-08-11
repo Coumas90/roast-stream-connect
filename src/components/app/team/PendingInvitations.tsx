@@ -72,20 +72,28 @@ export function PendingInvitations({ onInviteClick, canInvite = false }: Pending
 
   if (!invitations?.length) {
     return (
-      <Card>
+      <Card className="shadow-elegant transition-all hover:shadow-lg">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Clock className="w-5 h-5" />
             Invitaciones pendientes
           </CardTitle>
         </CardHeader>
-        <CardContent className="py-8 text-center">
-          <div className="flex flex-col items-center gap-3">
-            <Clock className="w-10 h-10 text-muted-foreground" />
-            <p className="text-muted-foreground">
+        <CardContent className="py-10 text-center">
+          <div className="flex flex-col items-center gap-4">
+            <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center">
+              <Clock className="w-8 h-8 text-muted-foreground" />
+            </div>
+            <p className="text-muted-foreground max-w-sm">
               No hay invitaciones enviadas. Envía una para que tu equipo se una.
             </p>
-            <Button onClick={onInviteClick} disabled={!canInvite} title={!canInvite ? 'No tienes permisos para invitar' : undefined}>
+            <Button
+              onClick={onInviteClick}
+              disabled={!canInvite}
+              title={!canInvite ? 'No tienes permisos para invitar' : undefined}
+              variant="pill"
+              className="bg-warning text-warning-foreground hover:bg-warning/90"
+            >
               <Plus className="w-4 h-4 mr-2" />
               Invitar ahora
             </Button>

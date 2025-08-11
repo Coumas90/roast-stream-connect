@@ -72,8 +72,8 @@ async function upsertStatus(fields: {
   if (error) throw error;
 }
 
-async function startRun(params: { clientId?: string | null; locationId: string; provider: AppPosProvider }) {
-  const { clientId, locationId, provider } = params;
+async function startRun(params: { clientId?: string | null; locationId: string; provider: AppPosProvider; meta?: Record<string, unknown> }) {
+  const { clientId, locationId, provider, meta } = params;
 
   // Aseguramos fila de status
   const status = await getStatus(locationId, provider);
@@ -93,6 +93,7 @@ async function startRun(params: { clientId?: string | null; locationId: string; 
       status: "running",
       attempt,
       started_at: now().toISOString(),
+      meta: meta ?? {},
     })
     .select("id")
     .single();
@@ -150,8 +151,8 @@ async function finishSuccess(payload: {
   return { failures: 0, lastRunAt };
 }
 
-async function finishError(payload: { runId: string; error: string; durationMs: number }) {
-  const { runId, error: errMsg, durationMs } = payload;
+async function finishError(payload: { runId: string; error: string; durationMs: number; meta?: Record<string, unknown> }) {
+  const { runId, error: errMsg, durationMs, meta } = payload;
 
   // Traemos run
   const { data: run, error: getRunErr } = await sb
@@ -178,14 +179,17 @@ async function finishError(payload: { runId: string; error: string; durationMs: 
     newFailures >= 5 ? new Date(now().getTime() + 2 * 60 * 60 * 1000).toISOString() : null;
 
   // Cerramos run en error
+  const updatePayload: any = {
+    status: "error",
+    finished_at: now().toISOString(),
+    duration_ms: durationMs,
+    error: errMsg,
+  };
+  if (meta) updatePayload.meta = meta;
+
   const { error: updRunErr } = await sb
     .from("pos_sync_runs")
-    .update({
-      status: "error",
-      finished_at: now().toISOString(),
-      duration_ms: durationMs,
-      error: errMsg,
-    })
+    .update(updatePayload)
     .eq("id", runId);
   if (updRunErr) throw updRunErr;
 
@@ -214,10 +218,11 @@ serve(async (req) => {
     const action = body?.action as "start" | "success" | "error";
 
     if (action === "start") {
-      const { clientId, locationId, provider } = body as {
+      const { clientId, locationId, provider, meta } = body as {
         clientId?: string | null;
         locationId: string;
         provider: AppPosProvider;
+        meta?: Record<string, unknown>;
       };
       if (!locationId || !provider) {
         return new Response(JSON.stringify({ error: "invalid params" }), {
@@ -225,7 +230,7 @@ serve(async (req) => {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      const res = await startRun({ clientId, locationId, provider });
+      const res = await startRun({ clientId, locationId, provider, meta });
       return new Response(JSON.stringify(res), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -251,10 +256,11 @@ serve(async (req) => {
     }
 
     if (action === "error") {
-      const { runId, error, durationMs } = body as {
+      const { runId, error, durationMs, meta } = body as {
         runId: string;
         error: string;
         durationMs: number;
+        meta?: Record<string, unknown>;
       };
       if (!runId || !error || typeof durationMs !== "number") {
         return new Response(JSON.stringify({ error: "invalid params" }), {
@@ -262,7 +268,7 @@ serve(async (req) => {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      const res = await finishError({ runId, error, durationMs });
+      const res = await finishError({ runId, error, durationMs, meta });
       return new Response(JSON.stringify(res), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });

@@ -138,7 +138,7 @@ serve(async (req) => {
     const t0 = Date.now();
 
     const startResp = await svc.functions.invoke("pos-sync-logger", {
-      body: { action: "start", clientId, locationId, provider },
+      body: { action: "start", clientId, locationId, provider, meta: { correlation_id } },
     });
     if (startResp.error) return json({ error: startResp.error.message }, 500);
     const runId = (startResp.data as any)?.runId as string;
@@ -185,7 +185,7 @@ serve(async (req) => {
     } catch (err) {
       const durationMs = Date.now() - t0;
       await svc.functions.invoke("pos-sync-logger", {
-        body: { action: "error", runId, error: String((err as any)?.message ?? err), durationMs },
+        body: { action: "error", runId, error: String((err as any)?.message ?? err), durationMs, meta: { correlation_id } },
       });
       return json({ error: "internal error" }, 500);
     }

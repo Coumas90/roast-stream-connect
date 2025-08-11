@@ -122,85 +122,110 @@ export function PendingInvitations({ onInviteClick, canInvite = false }: Pending
         <CardTitle className="flex items-center gap-2">
           <Clock className="w-5 h-5" />
           Invitaciones pendientes
-          <Badge variant="secondary" className="ml-2">{invitations.length}</Badge>
+          <Badge variant="secondary" className="ml-2 rounded-full">{invitations.length}</Badge>
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-3">
-        {invitations.map((invitation) => (
-          <div key={invitation.id} className="flex items-center gap-3 p-3 border rounded-lg">
-            <Mail className="w-4 h-4 text-muted-foreground" />
-            <div className="flex-1 min-w-0">
-              <p className="font-medium truncate">{invitation.email}</p>
-              <p className="text-sm text-muted-foreground">
-                Expira {formatDistanceToNow(new Date(invitation.expires_at), { 
-                  addSuffix: true, 
-                  locale: es 
-                })}
-              </p>
-            </div>
-            <Badge variant="outline">
-              {ROLE_LABELS[invitation.role as keyof typeof ROLE_LABELS] || invitation.role}
-            </Badge>
-            <div className="flex gap-1">
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={async () => {
-                  try {
-                    const { data } = await resendInvitation.mutateAsync(invitation.id);
-                    const newToken = data?.[0]?.token || (invitation as any).token;
-                    const link = newToken ? `${window.location.origin}/invite/${newToken}` : '';
-                    if (link) {
-                      await navigator.clipboard.writeText(link);
-                      toast.success('Link de invitación copiado');
+      <CardContent>
+        <div className={`grid gap-3 ${invitations.length > 4 ? 'max-h-96 overflow-auto pr-1' : ''}`}>
+          {invitations.map((invitation) => (
+            <article
+              key={invitation.id}
+              className="flex items-center gap-4 rounded-xl border bg-card p-4 shadow-elegant transition-all hover:shadow-xl hover:-translate-y-0.5"
+            >
+              <div className="h-12 w-12 rounded-full bg-muted grid place-items-center">
+                <Mail className="w-6 h-6 text-muted-foreground" />
+              </div>
+
+              <div className="min-w-0 flex-1">
+                <p className="font-medium truncate">
+                  {invitation.email} — {ROLE_LABELS[invitation.role as keyof typeof ROLE_LABELS] || invitation.role}
+                </p>
+                <div className="mt-1">
+                  <Badge variant="secondary" className="rounded-full">
+                    Expira {formatDistanceToNow(new Date(invitation.expires_at), { addSuffix: true, locale: es })}
+                  </Badge>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-1">
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={async () => {
+                    try {
+                      const { data } = await resendInvitation.mutateAsync(invitation.id);
+                      const newToken = data?.[0]?.token || (invitation as any).token;
+                      const link = newToken ? `${window.location.origin}/invite/${newToken}` : '';
+                      if (link) {
+                        await navigator.clipboard.writeText(link);
+                        toast.success('Link de invitación copiado');
+                      }
+                    } catch (e) {
+                      // handled by hook toast
                     }
-                  } catch (e) {
-                    // handled by hook toast
-                  }
-                }}
-                disabled={resendInvitation.isPending}
-                title="Copiar link"
-              >
-                <Copy className="w-4 h-4" />
-              </Button>
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={() => handleResend(invitation.id)}
-                disabled={resendInvitation.isPending}
-                title="Reenviar invitación"
-              >
-                <RotateCcw className="w-4 h-4" />
-              </Button>
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    disabled={revokeInvitation.isPending}
-                    title="Revocar invitación"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>¿Revocar invitación?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      Esta acción no se puede deshacer. La invitación para {invitation.email} será revocada permanentemente.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                    <AlertDialogAction onClick={() => handleRevoke(invitation.id)}>
-                      Revocar
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-            </div>
-          </div>
-        ))}
+                  }}
+                  disabled={resendInvitation.isPending}
+                  title="Copiar link"
+                  className="hover:bg-accent"
+                >
+                  <Copy className="w-4 h-4" />
+                </Button>
+
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => handleResend(invitation.id)}
+                  disabled={resendInvitation.isPending}
+                  title="Reenviar invitación"
+                  className="hover:bg-accent"
+                >
+                  <RotateCcw className="w-4 h-4" />
+                </Button>
+
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      disabled={revokeInvitation.isPending}
+                      title="Revocar invitación"
+                      className="hover:bg-accent"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>¿Revocar invitación?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Esta acción no se puede deshacer. La invitación para {invitation.email} será revocada permanentemente.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                      <AlertDialogAction onClick={() => handleRevoke(invitation.id)}>
+                        Revocar
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </div>
+            </article>
+          ))}
+        </div>
+
+        <div className="mt-4 text-center">
+          <Button
+            onClick={onInviteClick}
+            disabled={!canInvite}
+            title={!canInvite ? 'No tienes permisos para invitar' : undefined}
+            variant="pill"
+            className="bg-warning text-warning-foreground hover:bg-warning/90"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Invitar miembro
+          </Button>
+        </div>
       </CardContent>
     </Card>
   );

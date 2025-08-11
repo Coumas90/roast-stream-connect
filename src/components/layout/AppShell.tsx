@@ -163,8 +163,10 @@ export function AppShell({ children, section = "Dashboard", variant = "client" }
             </div>
           </div>
         </header>
-        <main className="w-full p-4 md:p-6 animate-fade-in">
-          {children}
+        <main className="w-full animate-fade-in">
+          <div className="container mx-auto max-w-screen-xl px-4 sm:px-6 lg:px-8 py-4 md:py-6">
+            {children}
+          </div>
         </main>
       </SidebarInset>
     </SidebarProvider>

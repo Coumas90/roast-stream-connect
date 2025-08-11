@@ -33,6 +33,7 @@ async function decryptJsonGCM(keyHex: string, bundle: CipherBundle): Promise<unk
 
 async function verifyWithProvider(provider: Provider, creds: Record<string, unknown>): Promise<boolean> {
   // Stub verifier: never log or expose secrets. Replace with real API pings per provider when available.
+  // Example: throw Object.assign(new Error("unauthorized"), { status: 401 }) to simulate 401/403 mapping.
   const apiKey = typeof creds.apiKey === "string" ? (creds.apiKey as string) : "";
   const token = typeof creds.token === "string" ? (creds.token as string) : "";
   const anySecret = apiKey || token;
@@ -133,10 +134,27 @@ serve(async (req) => {
 
     // Verify against provider (no secrets in logs)
     let ok = false;
+    let verifyErrStatus: number | undefined;
     try {
       ok = await verifyWithProvider(provider as Provider, creds);
-    } catch {
-      ok = false;
+    } catch (e: any) {
+      // Support various error shapes
+      verifyErrStatus = e?.status ?? e?.code ?? e?.response?.status;
+    }
+
+    if (verifyErrStatus === 401 || verifyErrStatus === 403) {
+      const { error: updErr } = await supabaseSvc
+        .from("pos_provider_credentials")
+        .update({ status: "invalid", last_verified_at: new Date().toISOString(), updated_at: new Date().toISOString() })
+        .eq("location_id", locationId)
+        .eq("provider", provider);
+      if (updErr) return jsonResponse(500, { error: "db_update_error" });
+      return jsonResponse(200, { status: "invalid" });
+    }
+
+    if (verifyErrStatus && verifyErrStatus !== 401 && verifyErrStatus !== 403) {
+      // Do not update DB on unexpected provider errors
+      return jsonResponse(500, { error: "provider_error" });
     }
 
     const newStatus = ok ? "connected" : "invalid";

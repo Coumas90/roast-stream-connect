@@ -9,7 +9,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { useTenant } from "@/lib/tenant";
 import type { AppPosProvider } from "@/integrations/supabase/pos-types";
-
+const providerLabels: Record<AppPosProvider, string> = {
+  fudo: "Fudo",
+  maxirest: "Maxirest",
+  bistrosoft: "Bistrosoft",
+  other: "ERP/Otro",
+};
 
 type CredRow = {
   location_id: string;
@@ -88,9 +93,14 @@ export default function AppIntegrations() {
     return out;
   }, [locations, byLoc]);
 
+  const statusToVariant = (status?: string) => {
+    const s = (status ?? "").toLowerCase();
+    return s === "connected" ? "success" : s === "pending" ? "warning" : s === "invalid" ? "destructive" : "outline";
+  };
+
   const statusBadge = (status?: string) => {
     const s = (status ?? "").toLowerCase();
-    const variant = s === "connected" ? "default" : s === "invalid" ? "destructive" : s === "pending" ? "secondary" : "outline";
+    const variant = statusToVariant(s);
     const label = s ? s : "sin datos";
     return <Badge variant={variant as any} className="capitalize">{label}</Badge>;
   };
@@ -133,7 +143,7 @@ export default function AppIntegrations() {
                 <CardTitle>POS</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-sm text-muted-foreground">No tienes sucursales disponibles.</p>
+                <p className="text-sm text-muted-foreground">No tenés acceso o no hay sucursales disponibles.</p>
               </CardContent>
             </Card>
           ) : (
@@ -148,8 +158,17 @@ export default function AppIntegrations() {
                       {statusBadge(latest?.status)}
                     </CardHeader>
                     <CardContent className="space-y-2 text-sm text-muted-foreground">
+                      {(byLoc[loc.id]?.length ?? 0) > 1 && (
+                        <div className="flex flex-wrap gap-2">
+                          {byLoc[loc.id].map((r) => (
+                            <Badge key={`${loc.id}-${r.provider}-${r.updated_at}`} variant={statusToVariant(r.status) as any} className="capitalize">
+                              {providerLabels[r.provider]} • {r.status}
+                            </Badge>
+                          ))}
+                        </div>
+                      )}
                       {!latest ? (
-                        <p>Aún no hay credenciales guardadas.</p>
+                        <p>Sin credenciales aún.</p>
                       ) : (
                         <>
                           {hints && Object.keys(hints).length > 0 ? (

@@ -6,7 +6,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
 import { useTeamMembers } from "@/hooks/useTeam";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Users, Plus, Mail, Phone, Calendar, Award, TrendingUp } from "lucide-react";
+import { Users, Plus, Mail, Phone, CalendarDays, Award, TrendingUp, Coffee, Eye, Pencil, Calendar as CalendarIcon } from "lucide-react";
 const ROLE_LABELS = {
   owner: 'Propietario',
   manager: 'Encargado', 
@@ -150,53 +150,79 @@ export function TeamMembersList({ onInviteClick, canInvite = false }: TeamMember
                 </Badge>
               </header>
 
-              <section className="mt-4 grid grid-cols-1 gap-3">
+              <section className="mt-4 grid gap-4 md:grid-cols-3">
+                {/* Columna izquierda: Información personal */}
                 <div className="rounded-lg bg-secondary/60 p-3">
                   <h4 className="text-xs uppercase tracking-wide text-muted-foreground mb-2">Información personal</h4>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
-                    <p className="flex items-center gap-2 truncate">
+                  <ul className="space-y-2 text-sm">
+                    <li className="flex items-center gap-2 truncate">
+                      <Mail className="w-4 h-4 text-muted-foreground" />
+                      <span className="truncate">{member.email || '—'}</span>
+                    </li>
+                    <li className="flex items-center gap-2 truncate">
                       <Phone className="w-4 h-4 text-muted-foreground" />
                       <span className="truncate">—</span>
-                    </p>
-                    <p className="flex items-center gap-2 truncate">
-                      <Calendar className="w-4 h-4 text-muted-foreground" />
+                    </li>
+                    <li className="flex items-center gap-2 truncate">
+                      <CalendarDays className="w-4 h-4 text-muted-foreground" />
                       <span className="truncate">Fecha ingreso: —</span>
-                    </p>
-                    <p className="flex items-center gap-2 truncate">
+                    </li>
+                    <li className="flex items-center gap-2 truncate">
                       <Users className="w-4 h-4 text-muted-foreground" />
                       <span className="truncate">Experiencia: — años</span>
-                    </p>
-                  </div>
+                    </li>
+                  </ul>
                 </div>
 
+                {/* Centro: Especialidad & Progreso */}
                 <div className="rounded-lg bg-secondary/60 p-3">
                   <h4 className="text-xs uppercase tracking-wide text-muted-foreground mb-2">Especialidad & Progreso</h4>
-                  <div className="flex items-center justify-between text-sm mb-2">
-                    <span className="flex items-center gap-2">
-                      <Award className="w-4 h-4 text-primary" />
-                      {ROLE_LABELS[member.role as keyof typeof ROLE_LABELS] || member.role}
-                    </span>
-                    <span className="flex items-center gap-1 text-warning">
-                      <TrendingUp className="w-4 h-4" /> 0%
+                  <div className="mb-1 font-semibold">
+                    {ROLE_LABELS[member.role as keyof typeof ROLE_LABELS] || member.role}
+                  </div>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-3xl font-extrabold text-warning leading-none">0%</span>
+                    <span className="flex items-center gap-1 text-muted-foreground text-sm">
+                      <TrendingUp className="w-4 h-4" /> Progreso
                     </span>
                   </div>
-                  <Progress value={0} />
+                  <div className="h-3 w-full rounded-full bg-secondary overflow-hidden">
+                    <div className="h-full w-[0%] bg-gradient-brand" />
+                  </div>
                 </div>
 
+                {/* Derecha: Certificaciones */}
                 <div className="rounded-lg bg-secondary/60 p-3">
                   <h4 className="text-xs uppercase tracking-wide text-muted-foreground mb-2">Certificaciones</h4>
                   <div className="flex flex-wrap gap-2">
-                    {member.role === 'coffee_master' || member.role === 'barista' ? (
-                      <Badge variant="outline" className="rounded-full">
-                        <Award className="w-3.5 h-3.5 mr-1" />
-                        {member.role === 'coffee_master' ? 'Coffee Master' : 'Barista'}
-                      </Badge>
+                    {(member.role === 'coffee_master' || member.role === 'barista') ? (
+                      <>
+                        <Badge variant="warning" className="rounded-full">
+                          <Coffee className="w-3.5 h-3.5 mr-1" /> Barista Avanzado
+                        </Badge>
+                        <Badge variant="outline" className="rounded-full border-primary text-primary">
+                          <Coffee className="w-3.5 h-3.5 mr-1" /> Latte Art
+                        </Badge>
+                      </>
                     ) : (
                       <span className="text-sm text-muted-foreground">Sin certificaciones</span>
                     )}
                   </div>
                 </div>
               </section>
+
+              {/* Acciones */}
+              <footer className="mt-4 flex flex-col sm:flex-row gap-2 sm:justify-end">
+                <Button size="sm" variant="ghost">
+                  <Eye className="w-4 h-4 mr-2" /> Ver Perfil Completo
+                </Button>
+                <Button size="sm" variant="outline">
+                  <Pencil className="w-4 h-4 mr-2" /> Editar Información
+                </Button>
+                <Button size="sm" variant="hero">
+                  <CalendarIcon className="w-4 h-4 mr-2" /> Asignar Turno
+                </Button>
+              </footer>
             </article>
           ))}
         </div>

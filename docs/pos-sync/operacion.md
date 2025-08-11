@@ -20,10 +20,16 @@ Para editar el horario o headers:
 ## 2) Rotación de token (POS_SYNC_JOB_TOKEN)
 - Ubicación: Supabase → Settings → Edge Functions → Secrets.
 - Pasos:
-  1. Generar un token nuevo (64 hex). Ej.: `openssl rand -hex 32`.
-  2. Actualizar el Secret `POS_SYNC_JOB_TOKEN`.
+  1. Generar un token nuevo y seguro (32 bytes en hex = 64 caracteres). Ej.: `openssl rand -hex 32`.
+  2. Guardarlo en Secrets como `POS_SYNC_JOB_TOKEN` (sobrescribe el anterior).
   3. Actualizar el Schedule de `pos-sync-daily` para referenciar el Secret actual (no pegar el valor en claro).
-  4. Ejecutar un smoke test (ver abajo).
+  4. Ejecutar un smoke test (POST al daily) con headers y body de la sección 3.
+
+- Checklist (OK):
+  - [ ] Secret `POS_SYNC_JOB_TOKEN` actualizado.
+  - [ ] Schedule usa el Secret (no valor en claro).
+  - [ ] Smoke devuelve 200 con `summary` (sin PII).
+  - [ ] Logs muestran sólo hora y `summary`.
 
 ## 3) Smoke test manual
 - Desde el Tester/Run de `pos-sync-daily`:

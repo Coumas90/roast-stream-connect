@@ -645,6 +645,42 @@ export type Database = {
         }
         Relationships: []
       }
+      pos_sync_status: {
+        Row: {
+          consecutive_failures: number
+          created_at: string
+          last_error: string | null
+          last_run_at: string | null
+          location_id: string
+          next_attempt_at: string | null
+          paused_until: string | null
+          provider: Database["public"]["Enums"]["app_pos_provider"]
+          updated_at: string
+        }
+        Insert: {
+          consecutive_failures?: number
+          created_at?: string
+          last_error?: string | null
+          last_run_at?: string | null
+          location_id: string
+          next_attempt_at?: string | null
+          paused_until?: string | null
+          provider: Database["public"]["Enums"]["app_pos_provider"]
+          updated_at?: string
+        }
+        Update: {
+          consecutive_failures?: number
+          created_at?: string
+          last_error?: string | null
+          last_run_at?: string | null
+          location_id?: string
+          next_attempt_at?: string | null
+          paused_until?: string | null
+          provider?: Database["public"]["Enums"]["app_pos_provider"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string

@@ -130,7 +130,7 @@ export function TeamMembersList({ onInviteClick, canInvite = false, view = 'deta
           Miembros del equipo ({members.length})
         </CardTitle>
       </CardHeader>
-      <CardContent className="animate-fade-in" key={view}>
+      <CardContent className="animate-fade-in p-5 md:p-6" key={view}>
         <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 xl:grid-cols-3">
           {members.map((member) => (
             <article

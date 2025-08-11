@@ -7,6 +7,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { useTeamMembers } from "@/hooks/useTeam";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Users, Plus, Mail, Phone, CalendarDays, TrendingUp, Coffee, Eye, Pencil, Calendar as CalendarIcon, ChevronDown, Palette } from "lucide-react";
+import { Text } from "@chakra-ui/react";
 const ROLE_LABELS = {
   owner: 'Propietario',
   manager: 'Encargado', 
@@ -129,6 +130,9 @@ export function TeamMembersList({ onInviteClick, canInvite = false, view = 'deta
           <Users className="w-5 h-5" />
           Miembros del equipo ({members.length})
         </CardTitle>
+        <Text fontSize="sm" color="hsl(var(--muted-foreground))" mt={1}>
+          Personas con acceso a esta sucursal
+        </Text>
       </CardHeader>
       <CardContent className="animate-fade-in p-5 md:p-6" key={view}>
         <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 xl:grid-cols-3">
@@ -219,7 +223,7 @@ export function TeamMembersList({ onInviteClick, canInvite = false, view = 'deta
                       </span>
                     </div>
                     <div className="relative h-4 w-full rounded-full bg-secondary overflow-hidden">
-                      <div className="absolute inset-y-0 left-0 w-[0%] bg-gradient-brand" />
+                      <div className="absolute inset-y-0 left-0 w-[0%] bg-gradient-to-r from-primary to-primary/70" />
                       <span className="absolute inset-0 grid place-items-center text-[11px] font-bold text-primary-foreground">0%</span>
                     </div>
                   </div>

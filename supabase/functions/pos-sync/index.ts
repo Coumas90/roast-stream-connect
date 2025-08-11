@@ -1,237 +1,195 @@
-import "https://deno.land/x/xhr@0.1.0/mod.ts";
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+/* eslint-disable @typescript-eslint/no-explicit-any */
+// deno-lint-ignore-file no-explicit-any
+import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-// CORS for web/manual invocation; cron doesn't need it but it's harmless
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+// Types mirrored from app
+type AppPosProvider = "fudo" | "maxirest" | "bistrosoft" | "other";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
+const JOB_TOKEN = Deno.env.get("POS_SYNC_JOB_TOKEN") ?? "";
 
-// Simple jittered backoff in ms
-const backoff = (attempt: number) => 500 * Math.pow(2, attempt) + Math.floor(Math.random() * 100);
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-job-token",
+};
 
-async function writeLog(client: ReturnType<typeof createClient>, entry: {
-  tenant_id?: string | null;
-  location_id?: string | null;
-  provider?: string | null;
-  scope: string;
-  level: "debug" | "info" | "warn" | "error";
-  message: string;
-  meta?: Record<string, unknown>;
-}) {
-  try {
-    await client.from("pos_logs").insert({
-      ts: new Date().toISOString(),
-      tenant_id: entry.tenant_id ?? null,
-      location_id: entry.location_id ?? null,
-      provider: (entry.provider as any) ?? null,
-      scope: entry.scope,
-      level: entry.level,
-      message: entry.message,
-      meta: entry.meta ?? {},
-    });
-  } catch (e) {
-    console.warn("pos-sync: failed to write log", e);
-  }
+function json(res: unknown, init: number | ResponseInit = 200) {
+  const status = typeof init === "number" ? init : init.status ?? 200;
+  const headers = { ...corsHeaders, "Content-Type": "application/json" };
+  return new Response(JSON.stringify(res), { status, headers });
 }
 
-type Kind = "products" | "orders";
+function safeEqual(a: string, b: string) {
+  if (a.length !== b.length) return false;
+  let r = 0;
+  for (let i = 0; i < a.length; i++) r |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return r === 0;
+}
 
-type RunInput = {
-  location_id?: string;
-  provider?: "fudo" | "maxirest" | "bistrosoft" | "other";
-  kinds?: Kind[]; // default: both
-};
+function isUUID(v: string): boolean {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(v);
+}
+
+function isYYYYMMDD(v: string): boolean {
+  return /^\d{4}-\d{2}-\d{2}$/.test(v);
+}
+
+function toDateUTC(day: string): Date {
+  const [y, m, d] = day.split("-").map((n) => parseInt(n, 10));
+  return new Date(Date.UTC(y, m - 1, d));
+}
+
+function yyyymmddUTC(d = new Date()): string {
+  const u = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
+  return u.toISOString().slice(0, 10);
+}
+
+function yesterdayUTC(): string {
+  const u = new Date();
+  u.setUTCDate(u.getUTCDate() - 1);
+  return yyyymmddUTC(u);
+}
+
+function diffDaysInclusive(a: string, b: string): number {
+  const da = toDateUTC(a).getTime();
+  const db = toDateUTC(b).getTime();
+  const diff = Math.round((db - da) / (24 * 60 * 60 * 1000));
+  return diff + 1; // inclusive
+}
+
+async function authorize(req: Request): Promise<{ ok: true; mode: "job" | "admin" } | { ok: false }> {
+  // X-Job-Token (constant-time compare)
+  const tok = req.headers.get("X-Job-Token") ?? req.headers.get("x-job-token") ?? "";
+  if (JOB_TOKEN && tok && safeEqual(JOB_TOKEN, tok)) return { ok: true, mode: "job" };
+
+  // Admin JWT path
+  const auth = req.headers.get("Authorization");
+  if (auth?.startsWith("Bearer ")) {
+    const userClient = createClient(SUPABASE_URL, ANON_KEY || "anon", {
+      auth: { persistSession: false, autoRefreshToken: false },
+      global: { headers: { Authorization: auth } },
+    });
+    // is_tupa_admin() relies on auth.uid()
+    const { data, error } = await userClient.rpc("is_tupa_admin" as any);
+    if (!error && data === true) return { ok: true, mode: "admin" };
+  }
+  return { ok: false };
+}
+
+async function canSync(svc: any, locationId: string, provider: AppPosProvider): Promise<{ ok: true } | { ok: false; reason: string; waitMs: number }> {
+  const { data, error } = await svc
+    .from("pos_sync_status")
+    .select("paused_until,next_attempt_at")
+    .match({ location_id: locationId, provider })
+    .maybeSingle();
+
+  if (error) return { ok: true };
+  const now = Date.now();
+  const paused = data?.paused_until ? new Date(data.paused_until).getTime() : null;
+  if (paused && paused > now) return { ok: false, reason: "paused_until", waitMs: paused - now };
+  const next = data?.next_attempt_at ? new Date(data.next_attempt_at).getTime() : null;
+  if (next && next > now) return { ok: false, reason: "backoff", waitMs: next - now };
+  return { ok: true };
+}
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
-  const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
-    global: { headers: { Authorization: `Bearer ${SERVICE_ROLE_KEY}` } },
+  // Service client (DB writes allowed)
+  const svc = createClient(SUPABASE_URL, SERVICE_KEY, {
+    auth: { persistSession: false, autoRefreshToken: false },
   });
 
   try {
-    const payload = (await req.json().catch(() => ({}))) as RunInput | undefined;
-    const kinds: Kind[] = payload?.kinds && payload.kinds.length ? payload.kinds : ["products", "orders"];
+    const payload = await req.json().catch(() => ({}));
+    const { clientId, locationId, provider, range, dryRun } = payload ?? {};
 
-    // 1) Build target list: either explicit or all connected location/provider pairs
-    let targets: { location_id: string; provider: string }[] = [];
+    // Strict validation
+    if (!isUUID(clientId ?? "") || !isUUID(locationId ?? "")) return json({ error: "invalid uuid" }, 400);
+    if (!(["fudo", "bistrosoft", "maxirest", "other"] as const).includes(provider)) return json({ error: "invalid provider" }, 400);
 
-    if (payload?.location_id && payload?.provider) {
-      targets = [{ location_id: payload.location_id, provider: payload.provider }];
+    let from: string;
+    let to: string;
+    if (!range) {
+      from = to = yesterdayUTC();
     } else {
-      // Connected at location level
-      const { data: conns, error: errConns } = await supabase
-        .from("pos_integrations_location")
-        .select("location_id, provider, connected")
-        .eq("connected", true);
-      if (errConns) throw errConns;
-      targets = (conns ?? []).map((c) => ({ location_id: c.location_id as string, provider: c.provider as string }));
+      from = range.from ?? yesterdayUTC();
+      to = range.to ?? from;
+    }
+    if (!isYYYYMMDD(from) || !isYYYYMMDD(to)) return json({ error: "invalid range format" }, 400);
+    if (toDateUTC(from).getTime() > toDateUTC(to).getTime()) return json({ error: "from>to" }, 400);
+    if (diffDaysInclusive(from, to) > 31) return json({ error: "range too large (max 31 days)" }, 400);
+
+    // Dual authorization
+    const authz = await authorize(req);
+    if (!authz.ok) return json({ error: "forbidden" }, 403);
+
+    // Backoff/autopause gate
+    const can = await canSync(svc, locationId, provider);
+    if (!can.ok) {
+      return json({ skipped: true, reason: can.reason, waitMs: can.waitMs }, 200);
     }
 
-    const results: any[] = [];
+    // Start run via logger
+    const correlation_id = crypto.randomUUID();
+    const t0 = Date.now();
 
-    for (const t of targets) {
-      for (const kind of kinds) {
-        // Wrap with retries
-        let attempt = 0;
-        let ok = false;
-        let errorMsg: string | null = null;
-        let items = 0;
-        let runId: string | null = null;
-        const started_at = new Date().toISOString();
-
-        // Determine last success
-        const { data: lastRunData, error: lastRunErr } = await supabase
-          .from("pos_sync_runs")
-          .select("finished_at")
-          .eq("location_id", t.location_id)
-          .eq("provider", t.provider)
-          .eq("ok", true)
-          .eq("kind", kind)
-          .order("finished_at", { ascending: false })
-          .limit(1)
-          .maybeSingle();
-        if (lastRunErr) throw lastRunErr;
-const since = lastRunData?.finished_at ? new Date(lastRunData.finished_at) : null;
-
-// Log start
-await writeLog(supabase, {
-  location_id: t.location_id,
-  provider: t.provider,
-  scope: "pos-sync",
-  level: "info",
-  message: `sync ${kind} start`,
-  meta: { since: since?.toISOString() ?? null }
-});
-
-// Create run row
-        {
-          const { data: ins, error: insErr } = await supabase
-            .from("pos_sync_runs")
-            .insert({
-              location_id: t.location_id,
-              provider: t.provider,
-              kind,
-              started_at,
-              ok: false,
-              items: 0,
-            })
-            .select("id")
-            .single();
-          if (insErr) throw insErr;
-          runId = ins?.id ?? null;
-        }
-
-        while (attempt < 3 && !ok) {
-          try {
-            // MOCK FETCH: generate a small deterministic sample based on time window
-            if (kind === "products") {
-              const baseSku = t.provider.slice(0, 2).toUpperCase();
-              const sample = [1, 2, 3].map((i) => {
-                const ext = `${baseSku}-${i}`;
-                const name = `Producto ${i} (${t.provider})`;
-                const price = 1000 + i * 100;
-                const updated_at = new Date().toISOString();
-                return { external_id: ext, name, sku: `${baseSku}${i}`, price, updated_at };
-              });
-
-              // Idempotent upsert
-              const rows = sample.map((p) => ({
-                tenant_id: null, // can be filled later if needed; keeping null-safe by not using FK
-                location_id: t.location_id,
-                provider: t.provider,
-                external_id: p.external_id,
-                name: p.name,
-                sku: p.sku,
-                price: p.price,
-                updated_at: p.updated_at,
-              }));
-
-              const { error: upErr } = await supabase
-                .from("pos_products")
-                .upsert(rows as any, { onConflict: "location_id,provider,external_id" });
-              if (upErr) throw upErr;
-              items = rows.length;
-            } else {
-              // orders
-              const now = Date.now();
-              const orders = [1, 2].map((i) => {
-                const ext = `${t.provider}-ORD-${Math.floor(now / (1000 * 60))}-${i}`; // bucket/minute
-                return {
-                  external_id: ext,
-                  total: 2500 + i * 300,
-                  status: "paid",
-                  occurred_at: new Date(now - i * 5 * 60 * 1000).toISOString(),
-                };
-              });
-
-              const rows = orders.map((o) => ({
-                tenant_id: null,
-                location_id: t.location_id,
-                provider: t.provider,
-                external_id: o.external_id,
-                total: o.total,
-                status: o.status,
-                occurred_at: o.occurred_at,
-                updated_at: new Date().toISOString(),
-              }));
-
-              const { error: upErr } = await supabase
-                .from("pos_orders")
-                .upsert(rows as any, { onConflict: "location_id,provider,external_id" });
-              if (upErr) throw upErr;
-              items = rows.length;
-            }
-
-            ok = true;
-          } catch (e) {
-            errorMsg = (e as Error)?.message ?? String(e);
-            await new Promise((r) => setTimeout(r, backoff(attempt)));
-            attempt += 1;
-          }
-        }
-
-// Finish run
-if (runId) {
-  const { error: finErr } = await supabase
-    .from("pos_sync_runs")
-    .update({
-      finished_at: new Date().toISOString(),
-      ok,
-      error: ok ? null : errorMsg,
-      items,
-    })
-    .eq("id", runId);
-  if (finErr) throw finErr;
-}
-
-await writeLog(supabase, {
-  location_id: t.location_id,
-  provider: t.provider,
-  scope: "pos-sync",
-  level: ok ? "info" : "error",
-  message: `sync ${kind} ${ok ? "ok" : "failed"}`,
-  meta: { items, attempts: attempt, error: errorMsg }
-});
-
-        results.push({ ...t, kind, ok, items, attempts: attempt, error: errorMsg });
-      }
-    }
-
-    return new Response(JSON.stringify({ ok: true, results }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    const startResp = await svc.functions.invoke("pos-sync-logger", {
+      body: { action: "start", clientId, locationId, provider },
     });
-  } catch (error) {
-console.error("pos-sync error", error);
-await writeLog(supabase, { scope: "pos-sync", level: "error", message: "exception", meta: { error: String(error) } });
-return new Response(JSON.stringify({ ok: false, error: (error as Error)?.message ?? String(error) }), {
-  status: 500,
-  headers: { ...corsHeaders, "Content-Type": "application/json" },
-});
+    if (startResp.error) return json({ error: startResp.error.message }, 500);
+    const runId = (startResp.data as any)?.runId as string;
+
+    try {
+      // Execute sync. For v1 we simulate a provider fetch and aggregate minimal totals.
+      // In a real adapter, fetch sales and compute totals.
+      let count = 0;
+      const total = 0;
+      const orders = 0;
+      const items = 0;
+      const discounts = 0;
+      const taxes = 0;
+
+      if (!dryRun) {
+        const { error: rpcErr } = await svc.rpc("upsert_consumption" as any, {
+          _client_id: clientId,
+          _location_id: locationId,
+          _provider: provider,
+          _date: to,
+          _total: total,
+          _orders: orders,
+          _items: items,
+          _discounts: discounts,
+          _taxes: taxes,
+          _meta: { correlation_id, from, to },
+        });
+        if (rpcErr) throw new Error(rpcErr.message);
+      }
+
+      const durationMs = Date.now() - t0;
+      const fin = await svc.functions.invoke("pos-sync-logger", {
+        body: {
+          action: "success",
+          runId,
+          count,
+          durationMs,
+          meta: { correlation_id },
+        },
+      });
+      if (fin.error) return json({ error: fin.error.message }, 500);
+
+      return json({ runId, count }, 200);
+    } catch (err) {
+      const durationMs = Date.now() - t0;
+      await svc.functions.invoke("pos-sync-logger", {
+        body: { action: "error", runId, error: String((err as any)?.message ?? err), durationMs },
+      });
+      return json({ error: "internal error" }, 500);
+    }
+  } catch (e) {
+    return json({ error: String((e as any)?.message ?? e) }, 500);
   }
 });

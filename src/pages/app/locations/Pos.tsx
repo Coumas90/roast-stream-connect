@@ -66,7 +66,7 @@ export default function LocationPosDetail() {
   const [otherJson, setOtherJson] = useState<string>("{\n  \"apiKey\": \"\"\n}");
   const [saving, setSaving] = useState(false);
   const [verifying, setVerifying] = useState(false);
-
+  const [testing, setTesting] = useState(false);
   const selectedRow = useMemo(() => rows.find((r) => r.provider === provider) || null, [rows, provider]);
 
   useEffect(() => {
@@ -189,12 +189,51 @@ export default function LocationPosDetail() {
     }
   }
 
+  async function onTestSync() {
+    if (!locationId) return;
+    setTesting(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("pos-sync-ui", {
+        body: { locationId, provider },
+      });
+      if (error) {
+        if ((error as any).status === 403) {
+          toast.error("No tenés permiso para ejecutar el sync de esta sucursal (403)");
+        } else {
+          toast.error("No se pudo ejecutar el sync");
+        }
+        return;
+      }
+      const res = data as any;
+      if (res?.runId && typeof res?.count === "number") {
+        toast.success(`OK: ${res.count} ventas agregadas (dry-run).`);
+      } else if (res?.skipped) {
+        const reason = res.reason;
+        if (reason === "backoff" && typeof res.waitMs === "number") {
+          const mins = Math.ceil(res.waitMs / 60000);
+          toast("Saltado por backoff. Volvé a intentar en ~" + mins + " min.");
+        } else if (reason === "invalid_credentials") {
+          toast.error("Credenciales inválidas. Actualizá y reintentá.");
+        } else if (reason === "no_credentials") {
+          toast("No hay credenciales guardadas para este POS.");
+        } else {
+          toast("Sync omitido: " + String(reason));
+        }
+      } else {
+        toast("Respuesta recibida del sync.");
+      }
+    } catch {
+      toast.error("Error inesperado ejecutando el sync");
+    } finally {
+      setTesting(false);
+    }
+  }
+
   async function refresh() {
     if (!locationId) return;
     const { data, error } = await (supabase.rpc as any)("pos_provider_credentials_public", { _location_id: locationId });
     if (!error) setRows((data as CredRow[]) ?? []);
   }
-
   const selectedHints = (selectedRow?.masked_hints ?? {}) as Record<string, unknown>;
 
   return (
@@ -323,8 +362,9 @@ export default function LocationPosDetail() {
             )}
 
             <div className="flex gap-2 pt-2">
-              <Button onClick={onSave} disabled={saving || verifying} className="hover-scale">{saving ? "Guardando…" : "Guardar"}</Button>
-              <Button onClick={onVerify} variant="secondary" disabled={verifying || saving} className="hover-scale">{verifying ? "Verificando…" : "Probar"}</Button>
+              <Button onClick={onSave} disabled={saving || verifying || testing} className="hover-scale">{saving ? "Guardando…" : "Guardar"}</Button>
+              <Button onClick={onVerify} variant="secondary" disabled={verifying || saving || testing} className="hover-scale">{verifying ? "Verificando…" : "Probar"}</Button>
+              <Button onClick={onTestSync} variant="secondary" disabled={testing || saving || verifying} className="hover-scale">{testing ? "Ejecutando…" : "Probar sync (ayer)"}</Button>
               <div className="ml-auto">
                 <Button variant="outline" onClick={() => navigate(-1)}>Volver</Button>
               </div>

@@ -7,7 +7,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { useTeamMembers } from "@/hooks/useTeam";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Users, Plus, Mail, Phone, CalendarDays, TrendingUp, Coffee, Eye, Pencil, Calendar as CalendarIcon, ChevronDown, Palette } from "lucide-react";
-import { Text } from "@chakra-ui/react";
+
 const ROLE_LABELS = {
   owner: 'Propietario',
   manager: 'Encargado', 
@@ -130,9 +130,9 @@ export function TeamMembersList({ onInviteClick, canInvite = false, view = 'deta
           <Users className="w-5 h-5" />
           Miembros del equipo ({members.length})
         </CardTitle>
-        <Text fontSize="sm" color="hsl(var(--muted-foreground))" mt={1}>
+        <p className="text-sm text-muted-foreground mt-1">
           Personas con acceso a esta sucursal
-        </Text>
+        </p>
       </CardHeader>
       <CardContent className="animate-fade-in p-5 md:p-6" key={view}>
         <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 xl:grid-cols-3">

@@ -9,7 +9,7 @@ import { Mail, RotateCcw, Trash2, Clock, Copy, Plus } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
 import { toast } from "sonner";
-import { Text } from "@chakra-ui/react";
+
 const ROLE_LABELS = {
   manager: 'Encargado',
   coffee_master: 'Coffee Master', 
@@ -125,9 +125,9 @@ export function PendingInvitations({ onInviteClick, canInvite = false }: Pending
           Invitaciones pendientes
           <Badge variant="secondary" className="ml-2 rounded-full">{invitations.length}</Badge>
         </CardTitle>
-        <Text fontSize="sm" color="hsl(var(--muted-foreground))" mt={1}>
+        <p className="text-sm text-muted-foreground mt-1">
           Invitaciones enviadas aún no aceptadas
-        </Text>
+        </p>
       </CardHeader>
       <CardContent>
         <div className={`grid gap-3 ${invitations.length > 4 ? 'max-h-96 overflow-auto pr-1' : ''}`}>

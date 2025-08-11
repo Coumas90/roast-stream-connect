@@ -11,7 +11,6 @@ import { PendingInvitations } from "@/components/app/team/PendingInvitations";
 import { InviteDialog } from "@/components/app/team/InviteDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
-import { Box, Flex, Heading, Text, HStack, Stack } from "@chakra-ui/react";
 export default function MyTeam() {
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
   const [viewMode, setViewMode] = useState<'simple' | 'detailed'>('detailed');
@@ -80,24 +79,22 @@ export default function MyTeam() {
         <link rel="canonical" href="/app/my-team" />
       </Helmet>
       
-      <Flex as="header" align="center" justify="space-between" mb={6}>
-        <Stack gap={1}>
-          <HStack gap={2}>
+      <header className="flex items-center justify-between mb-6">
+        <div>
+          <h1 className="text-3xl font-extrabold flex items-center gap-2">
             <Users className="w-8 h-8" />
-            <Heading as="h1" size="lg" fontWeight="extrabold">
-              Mi Equipo
-            </Heading>
-          </HStack>
-          <Text color="hsl(var(--muted-foreground))" mt={1}>
+            Mi Equipo
+          </h1>
+          <p className="text-muted-foreground mt-1">
             Gestiona el equipo de <strong>{location}</strong>
-          </Text>
+          </p>
           {!canInvite && (
-            <Text fontSize="sm" color="hsl(var(--muted-foreground))" mt={2}>
+            <p className="text-sm text-muted-foreground mt-2">
               No tienes permisos para invitar miembros. Contacta a un administrador.
-            </Text>
+            </p>
           )}
-        </Stack>
-        <HStack gap={2}>
+        </div>
+        <div className="flex items-center gap-2">
           <ToggleGroup type="single" value={viewMode} onValueChange={(v) => v && setViewMode(v as 'simple' | 'detailed')} className="mr-2" variant="outline">
             <ToggleGroupItem value="simple" aria-label="Vista Simple" className="hover-scale">
               <LayoutGrid className="w-4 h-4 mr-2" /> Vista Simple
@@ -126,8 +123,8 @@ export default function MyTeam() {
             <Plus className="w-4 h-4 mr-2" />
             Invitar miembro
           </Button>
-        </HStack>
-      </Flex>
+        </div>
+      </header>
 
       <section className="animate-fade-in" key={viewMode}>
         <div className="grid gap-6 lg:grid-cols-2">
@@ -145,27 +142,23 @@ export default function MyTeam() {
 
       <section className="mt-8">
         <Card className="overflow-hidden shadow-elegant">
-          <CardContent>
-            <Box bg="transparent" p={{ base: 5, md: 8 }} borderRadius="xl" style={{
-              background: "linear-gradient(90deg, hsl(var(--warning)/0.08), hsl(var(--background)), hsl(var(--secondary)/0.08))",
-            }}>
-              <Flex direction={{ base: 'column', md: 'row' }} align={{ md: 'center' }} justify="space-between" gap={4}>
-                <Box>
-                  <Heading as="h2" size="md" mb={1}>¿Necesitas incorporar personal?</Heading>
-                  <Text color="hsl(var(--muted-foreground))" maxW="2xl">
-                    Solicitá el alta de nuevos baristas para tu equipo. TUPÁ te ayudará con el proceso de selección y capacitación.
-                  </Text>
-                </Box>
-                <Button
-                  onClick={() => setInviteDialogOpen(true)}
-                  variant="pill"
-                  className="bg-warning text-warning-foreground hover:bg-warning/90 rounded-full hover-scale"
-                >
-                  <PlusCircle className="w-4 h-4 mr-2" />
-                  Solicitar Nuevo Integrante
-                </Button>
-              </Flex>
-            </Box>
+          <CardContent className="bg-gradient-to-r from-warning/10 via-background to-secondary/10 p-6 md:p-8">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+              <div>
+                <h2 className="text-xl font-semibold mb-1">¿Necesitas incorporar personal?</h2>
+                <p className="text-muted-foreground max-w-2xl">
+                  Solicitá el alta de nuevos baristas para tu equipo. TUPÁ te ayudará con el proceso de selección y capacitación.
+                </p>
+              </div>
+              <Button
+                onClick={() => setInviteDialogOpen(true)}
+                variant="pill"
+                className="bg-warning text-warning-foreground hover:bg-warning/90 rounded-full hover-scale"
+              >
+                <PlusCircle className="w-4 h-4 mr-2" />
+                Solicitar Nuevo Integrante
+              </Button>
+            </div>
           </CardContent>
         </Card>
       </section>

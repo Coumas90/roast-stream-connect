@@ -45,6 +45,7 @@ import AcceptInvitation from "./pages/AcceptInvitation";
 import ProfilePage from "./pages/app/Profile";
 import ForgotPassword from "./pages/auth/ForgotPassword";
 import ResetPassword from "./pages/auth/ResetPassword";
+import LocationPosDetail from "./pages/app/locations/Pos";
 
 const queryClient = new QueryClient();
 
@@ -85,6 +86,7 @@ const App = () => (
                     <Route path="loyalty" element={<Loyalty />} />
                     <Route path="raffles" element={<Raffles />} />
                     <Route path="settings/integrations" element={<AppIntegrations />} />
+                    <Route path="locations/:id/pos" element={<LocationPosDetail />} />
                     <Route path="profile" element={<ProfilePage />} />
                   </Route>
 

@@ -3,10 +3,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Progress } from "@/components/ui/progress";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useTeamMembers } from "@/hooks/useTeam";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Users, Plus, Mail, Phone, CalendarDays, TrendingUp, Coffee, Eye, Pencil, Calendar as CalendarIcon } from "lucide-react";
+import { Users, Plus, Mail, Phone, CalendarDays, TrendingUp, Coffee, Eye, Pencil, Calendar as CalendarIcon, ChevronDown } from "lucide-react";
 const ROLE_LABELS = {
   owner: 'Propietario',
   manager: 'Encargado', 
@@ -26,8 +26,9 @@ const ROLE_VARIANTS = {
 interface TeamMembersListProps {
   onInviteClick?: () => void;
   canInvite?: boolean;
+  view?: 'simple' | 'detailed';
 }
-export function TeamMembersList({ onInviteClick, canInvite = false }: TeamMembersListProps) {
+export function TeamMembersList({ onInviteClick, canInvite = false, view = 'detailed' }: TeamMembersListProps) {
   const { data: members, isLoading, error } = useTeamMembers();
 
   if (isLoading) {
@@ -134,7 +135,7 @@ export function TeamMembersList({ onInviteClick, canInvite = false }: TeamMember
           {members.map((member) => (
             <article
               key={member.id}
-              className="rounded-xl border bg-card p-4 shadow-elegant transition-transform duration-200 hover:scale-[1.01]"
+              className="rounded-xl border bg-card p-4 shadow-elegant transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5"
             >
               <header className="flex items-center gap-3">
                 <Avatar className="h-12 w-12">
@@ -158,66 +159,99 @@ export function TeamMembersList({ onInviteClick, canInvite = false }: TeamMember
                 </Badge>
               </header>
 
-              <section className="mt-4 grid gap-4 md:grid-cols-3">
-                {/* Columna izquierda: Información personal */}
-                <div className="rounded-lg bg-secondary/60 p-3">
-                  <h4 className="text-xs uppercase tracking-wide text-muted-foreground mb-2">Información personal</h4>
-                  <ul className="space-y-2 text-sm">
-                    <li className="flex items-center gap-2 truncate">
-                      <Mail className="w-4 h-4 text-muted-foreground" />
-                      <span className="truncate">{member.email || '—'}</span>
-                    </li>
-                    <li className="flex items-center gap-2 truncate">
-                      <Phone className="w-4 h-4 text-muted-foreground" />
-                      <span className="truncate">—</span>
-                    </li>
-                    <li className="flex items-center gap-2 truncate">
-                      <CalendarDays className="w-4 h-4 text-muted-foreground" />
-                      <span className="truncate">Fecha ingreso: —</span>
-                    </li>
-                    <li className="flex items-center gap-2 truncate">
-                      <Users className="w-4 h-4 text-muted-foreground" />
-                      <span className="truncate">Experiencia: — años</span>
-                    </li>
-                  </ul>
-                </div>
-
-                {/* Centro: Especialidad & Progreso */}
-                <div className="rounded-lg bg-secondary/60 p-3">
-                  <h4 className="text-xs uppercase tracking-wide text-muted-foreground mb-2">Especialidad & Progreso</h4>
-                  <div className="mb-1 font-semibold">
-                    {ROLE_LABELS[member.role as keyof typeof ROLE_LABELS] || member.role}
-                  </div>
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-3xl font-extrabold text-warning leading-none">0%</span>
-                    <span className="flex items-center gap-1 text-muted-foreground text-sm">
-                      <TrendingUp className="w-4 h-4" /> Progreso
-                    </span>
-                  </div>
-                  <div className="h-3 w-full rounded-full bg-secondary overflow-hidden">
+              {view === 'simple' ? (
+                <section className="mt-4 space-y-3">
+                  <div className="h-2.5 w-full rounded-full bg-secondary overflow-hidden">
                     <div className="h-full w-[0%] bg-gradient-brand" />
                   </div>
-                </div>
-
-                {/* Derecha: Certificaciones */}
-                <div className="rounded-lg bg-secondary/60 p-3">
-                  <h4 className="text-xs uppercase tracking-wide text-muted-foreground mb-2">Certificaciones</h4>
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     {(member.role === 'coffee_master' || member.role === 'barista') ? (
-                      <>
-                        <Badge variant="warning" className="rounded-full">
-                          <Coffee className="w-3.5 h-3.5 mr-1" /> Barista Avanzado
-                        </Badge>
-                        <Badge variant="outline" className="rounded-full border-primary text-primary">
-                          <Coffee className="w-3.5 h-3.5 mr-1" /> Latte Art
-                        </Badge>
-                      </>
+                      <Badge variant="warning" className="rounded-full">Barista</Badge>
                     ) : (
-                      <span className="text-sm text-muted-foreground">Sin certificaciones</span>
+                      <Badge variant="secondary" className="rounded-full">{ROLE_LABELS[member.role as keyof typeof ROLE_LABELS] || member.role}</Badge>
                     )}
                   </div>
-                </div>
-              </section>
+                </section>
+              ) : (
+                <section className="mt-4 grid gap-4 md:grid-cols-3">
+                  {/* Columna izquierda: Información personal (plegable) */}
+                  <div className="rounded-lg bg-secondary/60 p-3">
+                    <Collapsible defaultOpen>
+                      <div className="flex items-center justify-between mb-2">
+                        <h4 className="text-xs uppercase tracking-wide text-muted-foreground">Información personal</h4>
+                        <CollapsibleTrigger className="text-muted-foreground">
+                          <ChevronDown className="w-4 h-4 transition-transform data-[state=open]:rotate-180" />
+                        </CollapsibleTrigger>
+                      </div>
+                      <CollapsibleContent className="data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down">
+                        <ul className="space-y-2 text-sm pt-2">
+                          <li className="flex items-center gap-2 truncate">
+                            <Mail className="w-4 h-4 text-muted-foreground" />
+                            <span className="truncate">{member.email || '—'}</span>
+                          </li>
+                          <li className="flex items-center gap-2 truncate">
+                            <Phone className="w-4 h-4 text-muted-foreground" />
+                            <span className="truncate">—</span>
+                          </li>
+                          <li className="flex items-center gap-2 truncate">
+                            <CalendarDays className="w-4 h-4 text-muted-foreground" />
+                            <span className="truncate">Fecha ingreso: —</span>
+                          </li>
+                          <li className="flex items-center gap-2 truncate">
+                            <Users className="w-4 h-4 text-muted-foreground" />
+                            <span className="truncate">Experiencia: — años</span>
+                          </li>
+                        </ul>
+                      </CollapsibleContent>
+                    </Collapsible>
+                  </div>
+
+                  {/* Centro: Especialidad & Progreso */}
+                  <div className="rounded-lg bg-secondary/60 p-3">
+                    <h4 className="text-xs uppercase tracking-wide text-muted-foreground mb-2">Especialidad & Progreso</h4>
+                    <div className="mb-1 font-semibold">
+                      {ROLE_LABELS[member.role as keyof typeof ROLE_LABELS] || member.role}
+                    </div>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-3xl font-extrabold text-warning leading-none">0%</span>
+                      <span className="flex items-center gap-1 text-muted-foreground text-sm">
+                        <TrendingUp className="w-4 h-4" /> Progreso
+                      </span>
+                    </div>
+                    <div className="h-3 w-full rounded-full bg-secondary overflow-hidden">
+                      <div className="h-full w-[0%] bg-gradient-brand" />
+                    </div>
+                  </div>
+
+                  {/* Derecha: Certificaciones (plegable) */}
+                  <div className="rounded-lg bg-secondary/60 p-3">
+                    <Collapsible defaultOpen>
+                      <div className="flex items-center justify-between mb-2">
+                        <h4 className="text-xs uppercase tracking-wide text-muted-foreground">Certificaciones</h4>
+                        <CollapsibleTrigger className="text-muted-foreground">
+                          <ChevronDown className="w-4 h-4 transition-transform data-[state=open]:rotate-180" />
+                        </CollapsibleTrigger>
+                      </div>
+                      <CollapsibleContent className="data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down">
+                        <div className="flex flex-wrap gap-2 pt-2">
+                          {(member.role === 'coffee_master' || member.role === 'barista') ? (
+                            <>
+                              <Badge variant="warning" className="rounded-full">
+                                <Coffee className="w-3.5 h-3.5 mr-1" /> Barista Avanzado
+                              </Badge>
+                              <Badge variant="outline" className="rounded-full border-primary text-primary">
+                                <Coffee className="w-3.5 h-3.5 mr-1" /> Latte Art
+                              </Badge>
+                            </>
+                          ) : (
+                            <span className="text-sm text-muted-foreground">Sin certificaciones</span>
+                          )}
+                        </div>
+                      </CollapsibleContent>
+                    </Collapsible>
+                  </div>
+                </section>
+              )}
 
               {/* Acciones */}
               <footer className="mt-4 flex flex-col sm:flex-row gap-2 sm:justify-end">

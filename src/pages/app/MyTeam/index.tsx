@@ -2,7 +2,8 @@ import React, { useState, useEffect } from "react";
 import { Helmet } from "react-helmet-async";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Plus, Users, CheckCircle2, Trophy, TrendingUp, PlusCircle } from "lucide-react";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { Plus, Users, CheckCircle2, Trophy, TrendingUp, PlusCircle, LayoutGrid, PanelsTopLeft } from "lucide-react";
 import { useTenant } from "@/lib/tenant";
 import { useUserRole, useTeamMembers } from "@/hooks/useTeam";
 import { TeamMembersList } from "@/components/app/team/TeamMembersList";
@@ -12,6 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 export default function MyTeam() {
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
+  const [viewMode, setViewMode] = useState<'simple' | 'detailed'>('detailed');
   const { location, locationId, tenantId } = useTenant();
   const { data: userRole } = useUserRole();
 
@@ -93,6 +95,14 @@ export default function MyTeam() {
           )}
         </div>
         <div className="flex items-center gap-2">
+          <ToggleGroup type="single" value={viewMode} onValueChange={(v) => v && setViewMode(v as 'simple' | 'detailed')} className="mr-2" variant="outline">
+            <ToggleGroupItem value="simple" aria-label="Vista Simple">
+              <LayoutGrid className="w-4 h-4 mr-2" /> Vista Simple
+            </ToggleGroupItem>
+            <ToggleGroupItem value="detailed" aria-label="Vista Detallada">
+              <PanelsTopLeft className="w-4 h-4 mr-2" /> Vista Detallada
+            </ToggleGroupItem>
+          </ToggleGroup>
           {isPlatformAdmin && (
             <Button
               variant="outline"
@@ -118,6 +128,7 @@ export default function MyTeam() {
         <TeamMembersList 
           onInviteClick={() => setInviteDialogOpen(true)} 
           canInvite={canInvite}
+          view={viewMode}
         />
         <PendingInvitations 
           onInviteClick={() => setInviteDialogOpen(true)} 

@@ -35,7 +35,7 @@ function yesterdayUTC(): string {
   return yyyymmddUTC(u);
 }
 
-export async function handlePosSyncUiRequest(req: Request) {
+export async function handlePosSyncUiRequest(req: Request, deps?: { userClient?: any; svc?: any }) {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   // Require JWT - Supabase will enforce verify_jwt=true, but ensure Authorization header is present
@@ -51,7 +51,7 @@ export async function handlePosSyncUiRequest(req: Request) {
   const day: string = typeof date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(date) ? date : yesterdayUTC();
 
   // User-scoped client to check permissions
-  const userClient = createClient(SUPABASE_URL, ANON_KEY, {
+  const userClient = deps?.userClient ?? createClient(SUPABASE_URL, ANON_KEY, {
     auth: { persistSession: false, autoRefreshToken: false },
     global: { headers: { Authorization: auth } },
   });
@@ -60,7 +60,7 @@ export async function handlePosSyncUiRequest(req: Request) {
   if (permErr || canManage !== true) return json({ error: "forbidden" }, 403);
 
   // Service client to fetch tenant_id and call pos-sync
-  const svc = createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false, autoRefreshToken: false } });
+  const svc = deps?.svc ?? createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false, autoRefreshToken: false } });
 
   const { data: locRow, error: locErr } = await svc
     .from("locations")

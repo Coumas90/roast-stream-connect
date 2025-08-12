@@ -378,9 +378,9 @@ export default function LocationPosDetail() {
             )}
 
             <div className="flex gap-2 pt-2">
-              <Button onClick={onSave} disabled={saving || verifying || testing || canManage === false || permLoading} className="hover-scale">{saving ? "Guardando…" : "Guardar"}</Button>
-              <Button onClick={onVerify} variant="secondary" disabled={verifying || saving || testing || canManage === false || permLoading} className="hover-scale">{verifying ? "Verificando…" : "Probar"}</Button>
-              <Button onClick={onTestSync} variant="secondary" disabled={testing || saving || verifying || canManage === false || permLoading} className="hover-scale">{testing ? "Ejecutando…" : "Probar sync (ayer)"}</Button>
+              <Button onClick={onSave} disabled={saving || verifying || testing || canManage === false} className="hover-scale">{saving ? "Guardando…" : "Guardar"}</Button>
+              <Button onClick={onVerify} variant="secondary" disabled={verifying || saving || testing || canManage === false} className="hover-scale">{verifying ? "Verificando…" : "Probar"}</Button>
+              <Button onClick={onTestSync} variant="secondary" disabled={testing || saving || verifying || canManage === false} className="hover-scale">{testing ? "Ejecutando…" : "Probar sync (ayer)"}</Button>
               <div className="ml-auto">
                 <Button variant="outline" onClick={() => navigate(-1)}>Volver</Button>
               </div>

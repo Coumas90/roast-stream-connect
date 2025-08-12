@@ -137,11 +137,11 @@ export function TeamMembersList({ onInviteClick, canInvite = false, view = 'deta
         </p>
       </CardHeader>
       <CardContent className="animate-fade-in p-4 lg:p-8 pt-4 lg:pt-8" key={view}>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 lg:gap-6">
+        <div className="flex flex-col gap-4 lg:gap-6">
           {members.map((member) => (
             <article
               key={member.id}
-              className="w-full lg:min-w-[300px] min-w-0 h-auto overflow-hidden rounded-xl border bg-card p-4 lg:p-8 shadow-elegant transition-all duration-200 md:hover:shadow-xl md:hover:-translate-y-0.5 text-sm lg:text-base"
+              className="w-full h-auto overflow-hidden rounded-xl border bg-card p-4 lg:p-8 shadow-elegant transition-all duration-200 md:hover:shadow-xl md:hover:-translate-y-0.5 text-sm lg:text-base flex flex-col"
             >
               <header className="flex flex-wrap items-center gap-3 lg:gap-4">
                 <Avatar className="h-10 w-10 lg:h-[60px] lg:w-[60px] ring-2 ring-warning ring-offset-2 ring-offset-card">

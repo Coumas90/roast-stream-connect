@@ -141,7 +141,7 @@ export function PendingInvitations({ onInviteClick, canInvite = false }: Pending
               </div>
 
               <div className="min-w-0 flex-1">
-                <p className="font-medium truncate lg:whitespace-normal lg:overflow-visible">
+                <p className="font-medium truncate lg:whitespace-normal lg:overflow-visible lg:break-words">
                   {invitation.email} — {ROLE_LABELS[invitation.role as keyof typeof ROLE_LABELS] || invitation.role}
                 </p>
                 <div className="mt-1">

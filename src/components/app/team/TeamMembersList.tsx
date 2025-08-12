@@ -148,7 +148,7 @@ export function TeamMembersList({ onInviteClick, canInvite = false, view = 'deta
                   </AvatarFallback>
                 </Avatar>
                 <div className="min-w-0 flex-1">
-                  <h3 className="font-semibold truncate lg:whitespace-normal lg:overflow-visible">
+                  <h3 className="font-semibold truncate lg:whitespace-normal lg:overflow-visible lg:break-words">
                     {member.full_name || member.email || "Usuario sin nombre"}
                   </h3>
                   {member.email && (
@@ -183,7 +183,7 @@ export function TeamMembersList({ onInviteClick, canInvite = false, view = 'deta
                   <div className="rounded-xl bg-secondary/60 p-4 lg:p-8 border">
                     <Collapsible defaultOpen>
                       <div className="flex items-center justify-between mb-2">
-                        <h4 className="text-xs lg:text-sm uppercase tracking-wide text-muted-foreground">Información personal</h4>
+                        <h4 className="text-xs lg:text-sm uppercase tracking-wide text-muted-foreground lg:whitespace-normal lg:overflow-visible lg:break-words">Información personal</h4>
                         <CollapsibleTrigger className="text-muted-foreground">
                           <ChevronDown className="w-4 h-4 transition-transform data-[state=open]:rotate-180" />
                         </CollapsibleTrigger>
@@ -192,7 +192,7 @@ export function TeamMembersList({ onInviteClick, canInvite = false, view = 'deta
                         <ul className="space-y-2 text-sm lg:text-base pt-2">
                           <li className="flex items-center gap-2 truncate lg:whitespace-normal lg:overflow-visible">
                             <Mail className="w-4 h-4 text-muted-foreground" />
-                            <span className="truncate lg:whitespace-normal lg:overflow-visible">{member.email || '—'}</span>
+                            <span className="truncate lg:whitespace-normal lg:overflow-visible lg:break-words">{member.email || '—'}</span>
                           </li>
                           <li className="flex items-center gap-2 truncate lg:whitespace-normal lg:overflow-visible">
                             <Phone className="w-4 h-4 text-muted-foreground" />
@@ -213,7 +213,7 @@ export function TeamMembersList({ onInviteClick, canInvite = false, view = 'deta
 
                   {/* Centro: Especialidad & Progreso */}
                   <div className="rounded-xl bg-secondary/60 p-4 lg:p-8 border">
-                    <h4 className="text-xs lg:text-sm uppercase tracking-wide text-muted-foreground mb-2">Especialidad & Progreso</h4>
+                    <h4 className="text-xs lg:text-sm uppercase tracking-wide text-muted-foreground mb-2 lg:whitespace-normal lg:overflow-visible lg:break-words">Especialidad & Progreso</h4>
                     <div className="mb-3 font-semibold">
                       {ROLE_LABELS[member.role as keyof typeof ROLE_LABELS] || member.role}
                     </div>
@@ -232,7 +232,7 @@ export function TeamMembersList({ onInviteClick, canInvite = false, view = 'deta
                   <div className="rounded-xl bg-secondary/60 p-4 lg:p-8 border">
                     <Collapsible defaultOpen>
                       <div className="flex items-center justify-between mb-2">
-                        <h4 className="text-xs lg:text-sm uppercase tracking-wide text-muted-foreground">Certificaciones</h4>
+                        <h4 className="text-xs lg:text-sm uppercase tracking-wide text-muted-foreground lg:whitespace-normal lg:overflow-visible lg:break-words">Certificaciones</h4>
                         <CollapsibleTrigger className="text-muted-foreground">
                           <ChevronDown className="w-4 h-4 transition-transform data-[state=open]:rotate-180" />
                         </CollapsibleTrigger>

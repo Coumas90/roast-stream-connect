@@ -131,11 +131,11 @@ export function PendingInvitations({ onInviteClick, canInvite = false, onOpenInv
         </p>
       </CardHeader>
       <CardContent className="p-4 lg:p-8 pt-4 lg:pt-8">
-        <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 lg:gap-6 ${invitations.length > 6 ? 'max-h-[28rem] overflow-auto pr-1' : ''}`}>
+        <div className={`flex gap-4 lg:gap-6 overflow-x-auto pr-1 pb-2 snap-x snap-mandatory`}>
           {invitations.map((invitation) => (
             <article
               key={invitation.id}
-              className="flex items-center gap-4 rounded-xl border bg-card p-4 h-auto lg:min-w-[300px] shadow-elegant transition-all md:hover:shadow-xl md:hover:-translate-y-0.5"
+              className="flex items-center gap-4 rounded-xl border bg-card p-4 h-auto min-w-[280px] lg:min-w-[300px] snap-start flex-shrink-0 shadow-elegant transition-all md:hover:shadow-xl md:hover:-translate-y-0.5"
             >
               <div className="h-12 w-12 rounded-full bg-muted grid place-items-center">
                 <Mail className="w-6 h-6 text-muted-foreground" />

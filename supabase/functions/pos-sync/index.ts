@@ -98,6 +98,79 @@ async function canSync(svc: any, locationId: string, provider: AppPosProvider): 
   return { ok: true };
 }
 
+// Network helper with timeout
+async function fetchWithTimeout(input: RequestInfo | URL, init: RequestInit & { timeoutMs?: number } = {}) {
+  const { timeoutMs = 10000, ...rest } = init as any;
+  const ac = new AbortController();
+  const id = setTimeout(() => ac.abort(), timeoutMs);
+  try {
+    return await fetch(input, { ...rest, signal: ac.signal } as any);
+  } finally {
+    clearTimeout(id);
+  }
+}
+
+function fudoBaseAuth(env?: string) {
+  return (env ?? "production").toLowerCase() === "staging" ? "https://auth.staging.fu.do/api" : "https://auth.fu.do/api";
+}
+function fudoBaseApi(env?: string) {
+  const override = (globalThis as any)?.Deno?.env?.get?.("FUDO_API_BASE");
+  if (override) return override;
+  return (env ?? "production").toLowerCase() === "staging" ? "https://api.staging.fu.do/v1alpha1" : "https://api.fu.do/v1alpha1";
+}
+
+async function fudoGetToken(params: { apiKey: string; apiSecret: string; env?: string }) {
+  const { apiKey, apiSecret, env } = params;
+  const url = fudoBaseAuth(env);
+  const body = JSON.stringify({ apiKey, apiSecret });
+  const call = () => fetchWithTimeout(url, { method: "POST", headers: { Accept: "application/json", "Content-Type": "application/json" }, body, timeoutMs: 10000 });
+  let resp: Response | null = null;
+  try { resp = await call(); } catch { resp = await call(); }
+  if (!resp) throw Object.assign(new Error("provider_unreachable"), { status: 502 });
+  if (resp.status === 200) {
+    try { return await resp.json(); } catch { return { token: "", exp: 0 }; }
+  }
+  if (resp.status === 401 || resp.status === 403) throw Object.assign(new Error("unauthorized"), { status: resp.status });
+  throw Object.assign(new Error("provider_error"), { status: 502 });
+}
+
+async function fudoFetchSalesWindow(params: { from: string; to: string; token: string; env?: string }) {
+  const { from, to, token, env } = params;
+  const base = fudoBaseApi(env);
+  const pageSize = 500;
+  const maxPages = 50;
+  let page = 1;
+  let total = 0;
+  let sales: Array<{ total?: number; items?: Array<{ quantity?: number }>; occurred_at?: string } > = [];
+  while (page <= maxPages) {
+    const url = new URL(`${base}/sales`);
+    url.searchParams.set("page[size]", String(pageSize));
+    url.searchParams.set("page[number]", String(page));
+    url.searchParams.set("from", from);
+    url.searchParams.set("to", to);
+    const call = () => fetchWithTimeout(url.toString(), { headers: { Accept: "application/json", Authorization: `Bearer ${token}` }, timeoutMs: 12000 });
+    let resp: Response | null = null;
+    try { resp = await call(); } catch { resp = await call(); }
+    if (!resp) throw Object.assign(new Error("provider_unreachable"), { status: 502 });
+    if (resp.status === 401 || resp.status === 403) throw Object.assign(new Error("AUTH_401"), { status: resp.status, code: "AUTH_401" });
+    if (resp.status >= 500 || resp.status === 429) {
+      // one soft retry already done in call(); if still failing, break
+      break;
+    }
+    if (resp.status !== 200) break;
+    let data: any = null;
+    try { data = await resp.json(); } catch { data = null; }
+    const arr = Array.isArray(data?.data) ? data.data : Array.isArray(data) ? data : [];
+    total = arr.length;
+    sales = sales.concat(
+      arr.map((s: any) => ({ total: Number(s?.total ?? 0), items: Array.isArray(s?.items) ? s.items : [], occurred_at: s?.created_at ?? s?.occurred_at }))
+    );
+    if (arr.length < pageSize) break;
+    page += 1;
+  }
+  return sales;
+}
+
 export async function handlePosSyncRequest(
   req: Request,
   deps?: { svc?: any; kmsHex?: string }
@@ -147,20 +220,43 @@ export async function handlePosSyncRequest(
     return json({ error: "ciphertext_invalid" }, 500);
   }
 
-  // Pre-validate credentials (lightweight auth)
-  const apiKey = typeof credentials["apiKey"] === "string" ? String(credentials["apiKey"]).trim() : "";
-  let unauthorized = false;
-  if (provider === "bistrosoft") unauthorized = !(apiKey.startsWith("bs_") && apiKey.length >= 4);
-  else if (provider === "maxirest") unauthorized = !(/[A-Z0-9]{8,}/.test(apiKey));
-  else unauthorized = apiKey.length < 6; // fudo/other minimal check
-
-  if (unauthorized) {
-    await svc
-      .from("pos_provider_credentials")
-      .update({ status: "invalid", last_verified_at: new Date().toISOString(), updated_at: new Date().toISOString() })
-      .eq("location_id", locationId)
-      .eq("provider", provider);
-    return json({ skipped: true, reason: "invalid_credentials" }, 200);
+  // Provider-specific precheck
+  let fudoToken: string | null = null;
+  let env: string | undefined = typeof credentials["env"] === "string" ? String(credentials["env"]) : undefined;
+  if (provider === "fudo") {
+    const apiSecret = typeof credentials["apiSecret"] === "string" ? String(credentials["apiSecret"]).trim() : "";
+    const ak = typeof credentials["apiKey"] === "string" ? String(credentials["apiKey"]).trim() : "";
+    try {
+      const tok = await fudoGetToken({ apiKey: ak, apiSecret, env });
+      fudoToken = String((tok as any)?.token ?? "");
+      if (!fudoToken) throw new Error("invalid token");
+    } catch (e: any) {
+      const status = e?.status ?? e?.code;
+      if (status === 401 || status === 403) {
+        await svc
+          .from("pos_provider_credentials")
+          .update({ status: "invalid", last_verified_at: new Date().toISOString(), updated_at: new Date().toISOString() })
+          .eq("location_id", locationId)
+          .eq("provider", provider);
+        return json({ skipped: true, reason: "invalid_credentials" }, 200);
+      }
+      return json({ skipped: true, reason: "provider_unreachable" }, 200);
+    }
+  } else {
+    // Pre-validate credentials (lightweight) for non-Fudo providers
+    const ak = typeof credentials["apiKey"] === "string" ? String(credentials["apiKey"]).trim() : "";
+    let unauthorized = false;
+    if (provider === "bistrosoft") unauthorized = !(ak.startsWith("bs_") && ak.length >= 4);
+    else if (provider === "maxirest") unauthorized = !(/[A-Z0-9]{8,}/.test(ak));
+    else unauthorized = ak.length < 6;
+    if (unauthorized) {
+      await svc
+        .from("pos_provider_credentials")
+        .update({ status: "invalid", last_verified_at: new Date().toISOString(), updated_at: new Date().toISOString() })
+        .eq("location_id", locationId)
+        .eq("provider", provider);
+      return json({ skipped: true, reason: "invalid_credentials" }, 200);
+    }
   }
 
   // Backoff/autopause gate (only after valid credentials)

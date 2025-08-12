@@ -31,14 +31,58 @@ async function decryptJsonGCM(keyHex: string, bundle: CipherBundle): Promise<unk
   return JSON.parse(json);
 }
 
+async function fetchWithTimeout(input: RequestInfo | URL, init: RequestInit & { timeoutMs?: number } = {}) {
+  const { timeoutMs = 10000, ...rest } = init;
+  const ac = new AbortController();
+  const id = setTimeout(() => ac.abort(), timeoutMs);
+  try {
+    return await fetch(input, { ...rest, signal: ac.signal });
+  } finally {
+    clearTimeout(id);
+  }
+}
+
 async function verifyWithProvider(provider: Provider, creds: Record<string, unknown>): Promise<boolean> {
-  // Stub verifier: never log or expose secrets. Replace with real API pings per provider when available.
-  // Example: throw Object.assign(new Error("unauthorized"), { status: 401 }) to simulate 401/403 mapping.
-  const apiKey = typeof creds.apiKey === "string" ? (creds.apiKey as string) : "";
-  const token = typeof creds.token === "string" ? (creds.token as string) : "";
-  const anySecret = apiKey || token;
-  // Basic heuristic: consider valid if a non-trivial secret exists
-  return anySecret.length >= 8;
+  if (provider === "fudo") {
+    const apiKey = typeof creds.apiKey === "string" ? creds.apiKey : "";
+    const apiSecret = typeof creds.apiSecret === "string" ? creds.apiSecret : "";
+    const env = (typeof creds.env === "string" ? creds.env : "production").toLowerCase();
+    const baseAuth = env === "staging" ? "https://auth.staging.fu.do/api" : "https://auth.fu.do/api";
+
+    const doCall = async () =>
+      fetchWithTimeout(baseAuth, {
+        method: "POST",
+        headers: { Accept: "application/json", "Content-Type": "application/json" },
+        body: JSON.stringify({ apiKey, apiSecret }),
+        timeoutMs: 10000,
+      });
+
+    // one retry on 5xx/network
+    let resp: Response | null = null;
+    try {
+      resp = await doCall();
+    } catch {
+      // retry once
+      resp = await doCall();
+    }
+
+    if (!resp) throw Object.assign(new Error("provider_unreachable"), { status: 502 });
+
+    if (resp.status === 200) {
+      // parse but ignore token
+      try { await resp.json(); } catch {}
+      return true;
+    }
+    if (resp.status === 401 || resp.status === 403) {
+      throw Object.assign(new Error("unauthorized"), { status: resp.status });
+    }
+    throw Object.assign(new Error("provider_error"), { status: 502 });
+  }
+
+  // Default stub for other providers: minimal heuristic
+  const apiKey = typeof (creds as any).apiKey === "string" ? ((creds as any).apiKey as string) : "";
+  const token = typeof (creds as any).token === "string" ? ((creds as any).token as string) : "";
+  return (apiKey || token).length >= 8;
 }
 
 function jsonResponse(status: number, body: unknown) {
@@ -163,7 +207,7 @@ serve(async (req) => {
 
     if (verifyErrStatus && verifyErrStatus !== 401 && verifyErrStatus !== 403) {
       // Do not update DB on unexpected provider errors
-      return jsonResponse(500, { error: "provider_error" });
+      return jsonResponse(502, { error: "provider_unreachable" });
     }
 
     const newStatus = ok ? "connected" : "invalid";

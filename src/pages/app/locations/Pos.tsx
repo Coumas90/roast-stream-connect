@@ -37,7 +37,7 @@ type CredRow = {
   updated_at: string;
 };
 
-type FudoCreds = { apiKey: string; storeId?: string };
+type FudoCreds = { apiKey: string; apiSecret: string; env?: "production" | "staging" };
 type BistrosoftCreds = { apiKey: string };
 type MaxirestCreds = { apiKey: string; token?: string };
 type OtherCreds = Record<string, unknown>;
@@ -60,7 +60,7 @@ export default function LocationPosDetail() {
 
   // Form state
   const [provider, setProvider] = useState<AppPosProvider>("fudo");
-  const [fudo, setFudo] = useState<FudoCreds>({ apiKey: "", storeId: "" });
+  const [fudo, setFudo] = useState<FudoCreds>({ apiKey: "", apiSecret: "", env: "production" });
   const [bistrosoft, setBistrosoft] = useState<BistrosoftCreds>({ apiKey: "" });
   const [maxirest, setMaxirest] = useState<MaxirestCreds>({ apiKey: "", token: "" });
   const [otherJson, setOtherJson] = useState<string>("{\n  \"apiKey\": \"\"\n}");
@@ -85,10 +85,10 @@ export default function LocationPosDetail() {
         if (rows.length > 0) {
           const latest = [...rows].sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())[0];
           setProvider(latest.provider);
-          // Pre-fill storeId from hints if present (no secrets are prefilled)
+          // Pre-fill env from hints if present (no secrets are prefilled)
           if (latest.provider === "fudo") {
             const hints = latest.masked_hints as any;
-            setFudo((prev) => ({ ...prev, storeId: hints?.storeId || "" }));
+            setFudo((prev) => ({ ...prev, env: (hints?.env as any) === "staging" ? "staging" : "production" }));
           }
         }
       } catch (e: any) {
@@ -118,8 +118,8 @@ export default function LocationPosDetail() {
     try {
       let credentials: AnyCreds;
       if (provider === "fudo") {
-        if (!fudo.apiKey?.trim()) throw new Error("Ingresá tu API key de Fudo");
-        credentials = { apiKey: fudo.apiKey.trim(), ...(fudo.storeId?.trim() ? { storeId: fudo.storeId.trim() } : {}) };
+        if (!fudo.apiKey?.trim() || !fudo.apiSecret?.trim()) throw new Error("Ingresá apiKey y apiSecret de Fudo");
+        credentials = { apiKey: fudo.apiKey.trim(), apiSecret: fudo.apiSecret.trim(), ...(fudo.env ? { env: fudo.env } : {}) };
       } else if (provider === "bistrosoft") {
         if (!bistrosoft.apiKey?.trim()) throw new Error("Ingresá tu API key de Bistrosoft");
         credentials = { apiKey: bistrosoft.apiKey.trim() };
@@ -323,8 +323,20 @@ export default function LocationPosDetail() {
                   <Input id="fudo-api" value={fudo.apiKey} onChange={(e) => setFudo({ ...fudo, apiKey: e.target.value })} placeholder="fk_live_…" />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="fudo-store">Store ID (opcional)</Label>
-                  <Input id="fudo-store" value={fudo.storeId} onChange={(e) => setFudo({ ...fudo, storeId: e.target.value })} placeholder="mi-sucursal-123" />
+                  <Label htmlFor="fudo-secret">API secret (requerido)</Label>
+                  <Input id="fudo-secret" type="password" value={fudo.apiSecret} onChange={(e) => setFudo({ ...fudo, apiSecret: e.target.value })} placeholder="••••••••" />
+                </div>
+                <div className="space-y-2 md:col-span-2 max-w-xs">
+                  <Label htmlFor="fudo-env">Entorno</Label>
+                  <Select value={fudo.env ?? "production"} onValueChange={(v) => setFudo({ ...fudo, env: v as any })}>
+                    <SelectTrigger id="fudo-env">
+                      <SelectValue placeholder="production" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="production">production</SelectItem>
+                      <SelectItem value="staging">staging</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
             )}

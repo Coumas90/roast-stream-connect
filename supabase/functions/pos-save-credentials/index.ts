@@ -52,6 +52,10 @@ function buildMaskedHints(creds: Record<string, any>) {
   const tk = pick(creds.token);
   if (tk) hints.tokenEnd = tk;
   if (typeof creds.storeId === "string") hints.storeId = creds.storeId;
+  if (typeof creds.env === "string") {
+    const env = creds.env.toLowerCase();
+    if (env === "production" || env === "staging") hints.env = env;
+  }
   return hints;
 }
 

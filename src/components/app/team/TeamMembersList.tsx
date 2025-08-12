@@ -139,7 +139,7 @@ export function TeamMembersList({ onInviteClick, canInvite = false, view = 'deta
           {members.map((member) => (
             <article
               key={member.id}
-              className="w-full lg:min-w-[300px] h-auto mx-auto rounded-xl border bg-card p-4 lg:p-8 shadow-elegant transition-all duration-200 md:hover:shadow-xl md:hover:-translate-y-0.5"
+              className="w-full lg:min-w-[300px] min-w-0 h-auto overflow-hidden rounded-xl border bg-card p-4 lg:p-8 shadow-elegant transition-all duration-200 md:hover:shadow-xl md:hover:-translate-y-0.5 text-sm lg:text-base"
             >
               <header className="flex flex-wrap items-center gap-3 lg:gap-4">
                 <Avatar className="h-10 w-10 lg:h-[60px] lg:w-[60px] ring-2 ring-warning ring-offset-2 ring-offset-card">

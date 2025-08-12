@@ -2,10 +2,10 @@ import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { useInvitations, useResendInvitation, useRevokeInvitation } from "@/hooks/useTeam";
+import { useInvitations, useResendInvitation, useRevokeInvitation, Invitation } from "@/hooks/useTeam";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { Mail, RotateCcw, Trash2, Clock, Copy, Plus } from "lucide-react";
+import { Mail, RotateCcw, Trash2, Clock, Copy, Plus, Eye } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
 import { toast } from "sonner";
@@ -19,8 +19,9 @@ const ROLE_LABELS = {
 interface PendingInvitationsProps {
   onInviteClick?: () => void;
   canInvite?: boolean;
+  onOpenInvitation?: (invitation: Invitation) => void;
 }
-export function PendingInvitations({ onInviteClick, canInvite = false }: PendingInvitationsProps) {
+export function PendingInvitations({ onInviteClick, canInvite = false, onOpenInvitation }: PendingInvitationsProps) {
   const { data: invitations, isLoading, error } = useInvitations();
   const resendInvitation = useResendInvitation();
   const revokeInvitation = useRevokeInvitation();
@@ -152,6 +153,16 @@ export function PendingInvitations({ onInviteClick, canInvite = false }: Pending
               </div>
 
               <div className="flex items-center flex-wrap gap-2 lg:gap-3">
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => onOpenInvitation?.(invitation)}
+                  title="Detalles"
+                  className="hover:bg-accent hover-scale"
+                >
+                  <Eye className="w-4 h-4" />
+                </Button>
+
                 <Button
                   size="sm"
                   variant="ghost"

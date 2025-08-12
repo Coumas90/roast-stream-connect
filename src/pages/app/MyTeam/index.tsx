@@ -5,17 +5,25 @@ import { Card, CardContent } from "@/components/ui/card";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Plus, Users, CheckCircle2, Trophy, TrendingUp, PlusCircle, LayoutGrid, PanelsTopLeft } from "lucide-react";
 import { useTenant } from "@/lib/tenant";
-import { useUserRole, useTeamMembers } from "@/hooks/useTeam";
+import { useUserRole, useTeamMembers, useInvitations, TeamMember, Invitation } from "@/hooks/useTeam";
 import { TeamMembersList } from "@/components/app/team/TeamMembersList";
 import { PendingInvitations } from "@/components/app/team/PendingInvitations";
 import { InviteDialog } from "@/components/app/team/InviteDialog";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
+import MemberDialog from "@/components/app/team/MemberDialog";
+import InvitationDialog from "@/components/app/team/InvitationDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 export default function MyTeam() {
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
   const [viewMode, setViewMode] = useState<'simple' | 'detailed'>('detailed');
+  const [tab, setTab] = useState<'members' | 'invitations'>('members');
+  const [memberDialog, setMemberDialog] = useState<{ open: boolean; member: TeamMember | null }>({ open: false, member: null });
+  const [invitationDialog, setInvitationDialog] = useState<{ open: boolean; invitation: Invitation | null }>({ open: false, invitation: null });
   const { location, locationId, tenantId } = useTenant();
   const { data: userRole } = useUserRole();
+  const { data: invitations } = useInvitations();
 
   // Real-time updates for team data
   useEffect(() => {
@@ -127,21 +135,37 @@ export default function MyTeam() {
       </header>
 
       <section className="animate-fade-in" key={viewMode}>
-        <div className="flex flex-col md:flex-row gap-6">
-          <div className="w-full md:basis-3/5 lg:basis-3/5 min-w-0">
+        <Tabs value={tab} onValueChange={(v) => setTab(v as 'members' | 'invitations')} className="w-full">
+          <TabsList className="w-full flex flex-col md:flex-row gap-2 md:gap-3">
+            <TabsTrigger value="members" className="w-full md:w-auto justify-center md:justify-start">
+              Miembros del Equipo
+            </TabsTrigger>
+            <TabsTrigger value="invitations" className="w-full md:w-auto justify-center md:justify-start">
+              Invitaciones Pendientes
+              {invitations?.length ? (
+                <Badge variant="secondary" className="ml-2 rounded-full">{invitations.length}</Badge>
+              ) : null}
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="members" className="mt-4">
             <TeamMembersList 
               onInviteClick={() => setInviteDialogOpen(true)} 
               canInvite={canInvite}
               view={viewMode}
+              onViewMember={(m) => setMemberDialog({ open: true, member: m })}
+              onEditMember={(m) => setMemberDialog({ open: true, member: m })}
             />
-          </div>
-          <div className="w-full md:basis-2/5 lg:basis-2/5 min-w-0">
+          </TabsContent>
+
+          <TabsContent value="invitations" className="mt-4">
             <PendingInvitations 
               onInviteClick={() => setInviteDialogOpen(true)} 
               canInvite={canInvite}
+              onOpenInvitation={(inv) => setInvitationDialog({ open: true, invitation: inv })}
             />
-          </div>
-        </div>
+          </TabsContent>
+        </Tabs>
       </section>
 
       <section className="mt-8">
@@ -170,6 +194,17 @@ export default function MyTeam() {
       <InviteDialog 
         open={inviteDialogOpen} 
         onOpenChange={setInviteDialogOpen} 
+      />
+
+      <MemberDialog 
+        open={memberDialog.open}
+        member={memberDialog.member}
+        onOpenChange={(open) => setMemberDialog((s) => ({ ...s, open }))}
+      />
+      <InvitationDialog 
+        open={invitationDialog.open}
+        invitation={invitationDialog.invitation}
+        onOpenChange={(open) => setInvitationDialog((s) => ({ ...s, open }))}
       />
     </article>
   );

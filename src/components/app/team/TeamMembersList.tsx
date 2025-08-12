@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { useTeamMembers } from "@/hooks/useTeam";
+import { useTeamMembers, TeamMember } from "@/hooks/useTeam";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Users, Plus, Mail, Phone, CalendarDays, TrendingUp, Coffee, Eye, Pencil, Calendar as CalendarIcon, ChevronDown, Palette } from "lucide-react";
 
@@ -28,8 +28,10 @@ interface TeamMembersListProps {
   onInviteClick?: () => void;
   canInvite?: boolean;
   view?: 'simple' | 'detailed';
+  onViewMember?: (member: TeamMember) => void;
+  onEditMember?: (member: TeamMember) => void;
 }
-export function TeamMembersList({ onInviteClick, canInvite = false, view = 'detailed' }: TeamMembersListProps) {
+export function TeamMembersList({ onInviteClick, canInvite = false, view = 'detailed', onViewMember, onEditMember }: TeamMembersListProps) {
   const { data: members, isLoading, error } = useTeamMembers();
 
   if (isLoading) {
@@ -285,10 +287,10 @@ export function TeamMembersList({ onInviteClick, canInvite = false, view = 'deta
 
               {/* Acciones */}
               <footer className="mt-4 flex flex-col sm:flex-row flex-wrap gap-2 lg:gap-4 sm:justify-end">
-                <Button size="sm" variant="ghost" className="hover-scale h-8 md:h-9 px-3 md:px-4 text-xs md:text-sm">
+                <Button size="sm" variant="ghost" className="hover-scale h-8 md:h-9 px-3 md:px-4 text-xs md:text-sm" onClick={() => onViewMember?.(member)}>
                   <Eye className="w-4 h-4 mr-2" /> Ver Perfil Completo
                 </Button>
-                <Button size="sm" variant="outline" className="hover-scale h-8 md:h-9 px-3 md:px-4 text-xs md:text-sm">
+                <Button size="sm" variant="outline" className="hover-scale h-8 md:h-9 px-3 md:px-4 text-xs md:text-sm" onClick={() => onEditMember?.(member)}>
                   <Pencil className="w-4 h-4 mr-2" /> Editar Información
                 </Button>
                 <Button size="sm" variant="pill" className="bg-warning text-warning-foreground shadow-elegant hover:bg-warning/90 rounded-full hover-scale h-8 md:h-9 px-3 md:px-4 text-xs md:text-sm">

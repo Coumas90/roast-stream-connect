@@ -34,7 +34,7 @@ export function PendingInvitations({ onInviteClick, canInvite = false }: Pending
             Invitaciones pendientes
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-3">
+        <CardContent className="grid gap-3 md:grid-cols-2">
           {[...Array(2)].map((_, i) => (
             <div key={i} className="flex items-center gap-3 p-3 border rounded-lg">
               <div className="flex-1 space-y-1">
@@ -82,8 +82,8 @@ export function PendingInvitations({ onInviteClick, canInvite = false }: Pending
         </CardHeader>
         <CardContent className="py-10 text-center">
           <div className="flex flex-col items-center gap-4">
-            <div className="h-16 w-16 rounded-full bg-warning grid place-items-center">
-              <Clock className="w-8 h-8 text-warning-foreground" />
+            <div className="h-12 w-12 lg:h-16 lg:w-16 rounded-full bg-warning grid place-items-center">
+              <Clock className="w-6 h-6 lg:w-8 lg:h-8 text-warning-foreground" />
             </div>
             <p className="text-muted-foreground max-w-sm">
               No hay invitaciones enviadas. Envía una para que tu equipo se una.
@@ -93,7 +93,7 @@ export function PendingInvitations({ onInviteClick, canInvite = false }: Pending
               disabled={!canInvite}
               title={!canInvite ? 'No tienes permisos para invitar' : undefined}
               variant="pill"
-              className="bg-warning text-warning-foreground hover:bg-warning/90 hover-scale rounded-full"
+              className="bg-warning text-warning-foreground hover:bg-warning/90 hover-scale rounded-full w-full md:w-auto"
             >
               <Plus className="w-4 h-4 mr-2" />
               Invitar ahora
@@ -130,18 +130,18 @@ export function PendingInvitations({ onInviteClick, canInvite = false }: Pending
         </p>
       </CardHeader>
       <CardContent>
-        <div className={`grid gap-3 ${invitations.length > 4 ? 'max-h-96 overflow-auto pr-1' : ''}`}>
+        <div className={`grid gap-3 md:grid-cols-2 ${invitations.length > 6 ? 'max-h-[28rem] overflow-auto pr-1' : ''}`}>
           {invitations.map((invitation) => (
             <article
               key={invitation.id}
-              className="flex items-center gap-4 rounded-xl border bg-card p-4 shadow-elegant transition-all hover:shadow-xl hover:-translate-y-0.5"
+              className="flex items-center gap-4 rounded-xl border bg-card p-4 shadow-elegant transition-all md:hover:shadow-xl md:hover:-translate-y-0.5"
             >
               <div className="h-12 w-12 rounded-full bg-muted grid place-items-center">
                 <Mail className="w-6 h-6 text-muted-foreground" />
               </div>
 
               <div className="min-w-0 flex-1">
-                <p className="font-medium truncate">
+                <p className="font-medium truncate lg:whitespace-normal lg:overflow-visible">
                   {invitation.email} — {ROLE_LABELS[invitation.role as keyof typeof ROLE_LABELS] || invitation.role}
                 </p>
                 <div className="mt-1">

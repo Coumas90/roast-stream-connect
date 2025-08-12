@@ -157,7 +157,7 @@ export default function MyTeam() {
             <Button
               onClick={() => setInviteDialogOpen(true)}
               variant="pill"
-              className="bg-warning text-warning-foreground hover:bg-warning/90 rounded-full hover-scale h-9 md:h-10 px-4 md:px-5 text-sm md:text-base"
+              className="bg-warning text-warning-foreground hover:bg-warning/90 rounded-full hover-scale h-9 md:h-10 px-4 md:px-5 text-sm md:text-base w-full md:w-auto"
             >
               <PlusCircle className="w-4 h-4 mr-2" />
               Solicitar Nuevo Integrante

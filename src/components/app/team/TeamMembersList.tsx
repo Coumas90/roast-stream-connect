@@ -164,7 +164,7 @@ export function TeamMembersList({ onInviteClick, canInvite = false, view = 'deta
               </header>
 
               {view === 'simple' ? (
-                <section className="mt-4 space-y-4">
+                <section className="mt-4 space-y-4 lg:grid lg:grid-cols-2 lg:gap-4 lg:space-y-0">
                   <div className="relative h-2 lg:h-3 w-full rounded-full bg-secondary overflow-hidden">
                     <div className="absolute inset-y-0 left-0 w-[0%] bg-gradient-to-r from-primary to-primary/70" />
                     <span className="absolute inset-0 grid place-items-center text-[10px] lg:text-[11px] font-bold text-primary-foreground">0%</span>

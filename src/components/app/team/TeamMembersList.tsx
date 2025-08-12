@@ -135,11 +135,11 @@ export function TeamMembersList({ onInviteClick, canInvite = false, view = 'deta
         </p>
       </CardHeader>
       <CardContent className="animate-fade-in p-4 lg:p-8 pt-4 lg:pt-8" key={view}>
-        <div className="flex flex-wrap gap-4 justify-center">
+        <div className="flex flex-wrap gap-4 lg:gap-6 justify-center">
           {members.map((member) => (
             <article
               key={member.id}
-              className="w-full sm:w-[48%] md:w-[45%] lg:w-[30%] mx-auto rounded-xl border bg-card p-4 lg:p-6 shadow-elegant transition-all duration-200 md:hover:shadow-xl md:hover:-translate-y-0.5"
+              className="w-full sm:w-[48%] md:w-[45%] lg:w-[30%] mx-auto rounded-xl border bg-card p-4 lg:p-8 shadow-elegant transition-all duration-200 md:hover:shadow-xl md:hover:-translate-y-0.5"
             >
               <header className="flex flex-wrap items-center gap-3 lg:gap-4">
                 <Avatar className="h-10 w-10 lg:h-[60px] lg:w-[60px] ring-2 ring-warning ring-offset-2 ring-offset-card">
@@ -169,16 +169,16 @@ export function TeamMembersList({ onInviteClick, canInvite = false, view = 'deta
                     <div className="absolute inset-y-0 left-0 w-[0%] bg-gradient-to-r from-primary to-primary/70" />
                     <span className="absolute inset-0 grid place-items-center text-[10px] lg:text-[11px] font-bold text-primary-foreground">0%</span>
                   </div>
-                  <div className="flex flex-wrap items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2 lg:gap-4">
                     {(member.role === 'coffee_master' || member.role === 'barista') ? (
-                      <Badge variant="warning" className="rounded-full px-3 py-1">Barista</Badge>
+                      <Badge variant="warning" className="rounded-full text-xs lg:text-sm px-2.5 lg:px-3 py-0.5 lg:py-1">Barista</Badge>
                     ) : (
-                      <Badge variant="secondary" className="rounded-full px-3 py-1">{ROLE_LABELS[member.role as keyof typeof ROLE_LABELS] || member.role}</Badge>
+                      <Badge variant="secondary" className="rounded-full text-xs lg:text-sm px-2.5 lg:px-3 py-0.5 lg:py-1">{ROLE_LABELS[member.role as keyof typeof ROLE_LABELS] || member.role}</Badge>
                     )}
                   </div>
                 </section>
               ) : (
-                <section className="mt-4 grid gap-6 lg:grid-cols-3">
+                <section className="mt-4 grid gap-4 lg:gap-6 lg:grid-cols-3">
                   {/* Columna izquierda: Información personal (plegable) */}
                   <div className="rounded-xl bg-secondary/60 p-4 lg:p-8 border">
                     <Collapsible defaultOpen>
@@ -238,13 +238,13 @@ export function TeamMembersList({ onInviteClick, canInvite = false, view = 'deta
                         </CollapsibleTrigger>
                       </div>
                       <CollapsibleContent className="data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down">
-                        <div className="flex flex-wrap gap-2 pt-2">
+                        <div className="flex flex-wrap gap-2 lg:gap-4 pt-2">
                           {(member.role === 'coffee_master' || member.role === 'barista') ? (
                             <>
-                              <Badge variant="warning" className="rounded-full px-3 py-1 transition-transform hover:scale-105">
+                              <Badge variant="warning" className="rounded-full text-xs lg:text-sm px-2.5 lg:px-3 py-0.5 lg:py-1 transition-transform hover:scale-105">
                                 <Coffee className="w-3.5 h-3.5 mr-1" /> Barista Avanzado
                               </Badge>
-                              <Badge variant="outline" className="rounded-full border-primary text-primary px-3 py-1 transition-transform hover:scale-105">
+                              <Badge variant="outline" className="rounded-full border-primary text-primary text-xs lg:text-sm px-2.5 lg:px-3 py-0.5 lg:py-1 transition-transform hover:scale-105">
                                 <Palette className="w-3.5 h-3.5 mr-1" /> Latte Art
                               </Badge>
                             </>
@@ -259,7 +259,7 @@ export function TeamMembersList({ onInviteClick, canInvite = false, view = 'deta
               )}
 
               {/* Acciones */}
-              <footer className="mt-4 flex flex-col sm:flex-row gap-2 sm:justify-end">
+              <footer className="mt-4 flex flex-col sm:flex-row flex-wrap gap-2 lg:gap-4 sm:justify-end">
                 <Button size="sm" variant="ghost" className="hover-scale h-8 md:h-9 px-3 md:px-4 text-xs md:text-sm">
                   <Eye className="w-4 h-4 mr-2" /> Ver Perfil Completo
                 </Button>

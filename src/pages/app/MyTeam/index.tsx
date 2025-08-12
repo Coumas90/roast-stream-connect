@@ -79,7 +79,7 @@ export default function MyTeam() {
         <link rel="canonical" href="/app/my-team" />
       </Helmet>
       
-      <header className="flex items-center justify-between mb-6">
+      <header className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 lg:gap-6 mb-6">
         <div>
           <h1 className="text-3xl md:text-4xl font-extrabold flex items-center gap-2">
             <Users className="w-8 h-8" />
@@ -94,7 +94,7 @@ export default function MyTeam() {
             </p>
           )}
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center flex-wrap gap-2 lg:gap-4">
           <ToggleGroup type="single" value={viewMode} onValueChange={(v) => v && setViewMode(v as 'simple' | 'detailed')} className="mr-2" variant="outline">
             <ToggleGroupItem value="simple" aria-label="Vista Simple" className="hover-scale text-sm md:text-base">
               <LayoutGrid className="w-4 h-4 mr-2" /> Vista Simple
@@ -127,7 +127,7 @@ export default function MyTeam() {
       </header>
 
       <section className="animate-fade-in" key={viewMode}>
-        <div className="flex flex-col md:flex-row gap-6">
+        <div className="flex flex-col md:flex-row gap-4 lg:gap-6">
           <div className="w-full md:basis-3/5 lg:basis-3/5">
             <TeamMembersList 
               onInviteClick={() => setInviteDialogOpen(true)} 

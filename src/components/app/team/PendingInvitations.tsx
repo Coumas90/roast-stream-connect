@@ -34,7 +34,7 @@ export function PendingInvitations({ onInviteClick, canInvite = false }: Pending
             Invitaciones pendientes
           </CardTitle>
         </CardHeader>
-        <CardContent className="grid gap-3 md:grid-cols-2 p-4 lg:p-8 pt-4 lg:pt-8">
+        <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6 p-4 lg:p-8 pt-4 lg:pt-8">
           {[...Array(2)].map((_, i) => (
             <div key={i} className="flex items-center gap-3 p-3 border rounded-lg">
               <div className="flex-1 space-y-1">
@@ -42,7 +42,7 @@ export function PendingInvitations({ onInviteClick, canInvite = false }: Pending
                 <Skeleton className="h-3 w-24" />
               </div>
               <Skeleton className="h-6 w-16" />
-              <div className="flex gap-1">
+              <div className="flex gap-2 lg:gap-3">
                 <Skeleton className="h-8 w-8" />
                 <Skeleton className="h-8 w-8" />
               </div>
@@ -130,7 +130,7 @@ export function PendingInvitations({ onInviteClick, canInvite = false }: Pending
         </p>
       </CardHeader>
       <CardContent className="p-4 lg:p-8 pt-4 lg:pt-8">
-        <div className={`grid gap-3 md:grid-cols-2 ${invitations.length > 6 ? 'max-h-[28rem] overflow-auto pr-1' : ''}`}>
+        <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6 ${invitations.length > 6 ? 'max-h-[28rem] overflow-auto pr-1' : ''}`}>
           {invitations.map((invitation) => (
             <article
               key={invitation.id}
@@ -145,13 +145,13 @@ export function PendingInvitations({ onInviteClick, canInvite = false }: Pending
                   {invitation.email} — {ROLE_LABELS[invitation.role as keyof typeof ROLE_LABELS] || invitation.role}
                 </p>
                 <div className="mt-1">
-                  <Badge variant="secondary" className="rounded-full">
+                  <Badge variant="secondary" className="rounded-full text-xs lg:text-sm">
                     Expira {formatDistanceToNow(new Date(invitation.expires_at), { addSuffix: true, locale: es })}
                   </Badge>
                 </div>
               </div>
 
-              <div className="flex items-center gap-1">
+              <div className="flex items-center flex-wrap gap-2 lg:gap-3">
                 <Button
                   size="sm"
                   variant="ghost"

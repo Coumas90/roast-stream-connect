@@ -139,35 +139,35 @@ export function TeamMembersList({ onInviteClick, canInvite = false, view = 'deta
           {members.map((member) => (
             <article
               key={member.id}
-              className="w-full sm:w-[48%] md:w-[45%] lg:w-[30%] mx-auto rounded-xl border bg-card p-6 shadow-elegant transition-all duration-200 hover:shadow-xl hover:-translate-y-0.5"
+              className="w-full sm:w-[48%] md:w-[45%] lg:w-[30%] mx-auto rounded-xl border bg-card p-4 lg:p-6 shadow-elegant transition-all duration-200 md:hover:shadow-xl md:hover:-translate-y-0.5"
             >
-              <header className="flex items-center gap-4">
-                <Avatar className="h-16 w-16 ring-2 ring-warning ring-offset-2 ring-offset-card">
+              <header className="flex flex-wrap items-center gap-3 lg:gap-4">
+                <Avatar className="h-10 w-10 lg:h-[60px] lg:w-[60px] ring-2 ring-warning ring-offset-2 ring-offset-card">
                   <AvatarFallback className="bg-warning text-background font-semibold">
                     {getInitials(member.full_name, member.email)}
                   </AvatarFallback>
                 </Avatar>
                 <div className="min-w-0 flex-1">
-                  <h3 className="font-semibold truncate">
+                  <h3 className="font-semibold truncate lg:whitespace-normal lg:overflow-visible">
                     {member.full_name || member.email || "Usuario sin nombre"}
                   </h3>
                   {member.email && (
-                    <p className="text-sm text-muted-foreground truncate flex items-center gap-1">
+                    <p className="text-sm lg:text-base text-muted-foreground flex items-center gap-1 break-words truncate lg:whitespace-normal lg:overflow-visible">
                       <Mail className="w-3.5 h-3.5" />
                       {member.email}
                     </p>
                   )}
                 </div>
-                <Badge variant={ROLE_VARIANTS[member.role as keyof typeof ROLE_VARIANTS] || 'outline'} className="rounded-full">
+                <Badge variant={ROLE_VARIANTS[member.role as keyof typeof ROLE_VARIANTS] || 'outline'} className="rounded-full shrink-0 mt-2 sm:mt-0 text-[10px] lg:text-xs px-2 py-0.5 lg:px-3 lg:py-1">
                   {ROLE_LABELS[member.role as keyof typeof ROLE_LABELS] || member.role}
                 </Badge>
               </header>
 
               {view === 'simple' ? (
                 <section className="mt-4 space-y-4">
-                  <div className="relative h-4 w-full rounded-full bg-secondary overflow-hidden">
+                  <div className="relative h-2 lg:h-3 w-full rounded-full bg-secondary overflow-hidden">
                     <div className="absolute inset-y-0 left-0 w-[0%] bg-gradient-to-r from-primary to-primary/70" />
-                    <span className="absolute inset-0 grid place-items-center text-[11px] font-bold text-primary-foreground">0%</span>
+                    <span className="absolute inset-0 grid place-items-center text-[10px] lg:text-[11px] font-bold text-primary-foreground">0%</span>
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
                     {(member.role === 'coffee_master' || member.role === 'barista') ? (
@@ -178,18 +178,18 @@ export function TeamMembersList({ onInviteClick, canInvite = false, view = 'deta
                   </div>
                 </section>
               ) : (
-                <section className="mt-4 grid gap-6 md:grid-cols-3">
+                <section className="mt-4 grid gap-6 lg:grid-cols-3">
                   {/* Columna izquierda: Información personal (plegable) */}
                   <div className="rounded-xl bg-secondary/60 p-5 md:p-6 border">
                     <Collapsible defaultOpen>
                       <div className="flex items-center justify-between mb-2">
-                        <h4 className="text-xs uppercase tracking-wide text-muted-foreground">Información personal</h4>
+                        <h4 className="text-xs lg:text-sm uppercase tracking-wide text-muted-foreground">Información personal</h4>
                         <CollapsibleTrigger className="text-muted-foreground">
                           <ChevronDown className="w-4 h-4 transition-transform data-[state=open]:rotate-180" />
                         </CollapsibleTrigger>
                       </div>
                       <CollapsibleContent className="data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down">
-                        <ul className="space-y-2 text-sm pt-2">
+                        <ul className="space-y-2 text-sm lg:text-base pt-2">
                           <li className="flex items-center gap-2 truncate">
                             <Mail className="w-4 h-4 text-muted-foreground" />
                             <span className="truncate">{member.email || '—'}</span>
@@ -213,7 +213,7 @@ export function TeamMembersList({ onInviteClick, canInvite = false, view = 'deta
 
                   {/* Centro: Especialidad & Progreso */}
                   <div className="rounded-xl bg-secondary/60 p-5 md:p-6 border">
-                    <h4 className="text-xs uppercase tracking-wide text-muted-foreground mb-2">Especialidad & Progreso</h4>
+                    <h4 className="text-xs lg:text-sm uppercase tracking-wide text-muted-foreground mb-2">Especialidad & Progreso</h4>
                     <div className="mb-3 font-semibold">
                       {ROLE_LABELS[member.role as keyof typeof ROLE_LABELS] || member.role}
                     </div>
@@ -222,9 +222,9 @@ export function TeamMembersList({ onInviteClick, canInvite = false, view = 'deta
                         <TrendingUp className="w-4 h-4" /> Progreso
                       </span>
                     </div>
-                    <div className="relative h-4 w-full rounded-full bg-secondary overflow-hidden">
+                    <div className="relative h-2 lg:h-3 w-full rounded-full bg-secondary overflow-hidden">
                       <div className="absolute inset-y-0 left-0 w-[0%] bg-gradient-to-r from-primary to-primary/70" />
-                      <span className="absolute inset-0 grid place-items-center text-[11px] font-bold text-primary-foreground">0%</span>
+                      <span className="absolute inset-0 grid place-items-center text-[10px] lg:text-[11px] font-bold text-primary-foreground">0%</span>
                     </div>
                   </div>
 
@@ -232,7 +232,7 @@ export function TeamMembersList({ onInviteClick, canInvite = false, view = 'deta
                   <div className="rounded-xl bg-secondary/60 p-5 md:p-6 border">
                     <Collapsible defaultOpen>
                       <div className="flex items-center justify-between mb-2">
-                        <h4 className="text-xs uppercase tracking-wide text-muted-foreground">Certificaciones</h4>
+                        <h4 className="text-xs lg:text-sm uppercase tracking-wide text-muted-foreground">Certificaciones</h4>
                         <CollapsibleTrigger className="text-muted-foreground">
                           <ChevronDown className="w-4 h-4 transition-transform data-[state=open]:rotate-180" />
                         </CollapsibleTrigger>

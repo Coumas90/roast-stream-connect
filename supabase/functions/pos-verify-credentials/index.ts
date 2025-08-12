@@ -140,27 +140,15 @@ serve(async (req) => {
       return jsonResponse(400, { error: "invalid_provider" });
     }
 
-    // AuthZ: user must have access to location
-    const { data: hasAccess, error: accessErr } = await (supabaseAuth.rpc as any)("user_has_location", {
-      _location_id: locationId,
-    });
-
-    if (accessErr) {
-      // Do not expose details
-      return jsonResponse(403, { error: "forbidden" });
-    }
-    if (!hasAccess) {
-      return jsonResponse(403, { error: "forbidden" });
-    }
-
-    // Fine-grained permission: only owner/manager/admin can manage POS
-    const { data: canManage, error: permErr } = await (supabaseSvc.rpc as any)("user_can_manage_pos", { _location_id: locationId });
+    // Permission: only owner/manager/admin can manage POS (user-scoped JWT)
+    const { data: canManage, error: permErr } = await (supabaseAuth.rpc as any)("user_can_manage_pos", { _location_id: locationId });
     if (permErr) {
       return jsonResponse(500, { error: "permission_check_failed" });
     }
     if (!canManage) {
       return jsonResponse(403, { error: "forbidden" });
     }
+    console.info("pos-verify-credentials perm_check=ok");
 
     // Fetch encrypted credentials (service client)
     const { data: row, error: selErr } = await supabaseSvc

@@ -109,28 +109,11 @@ serve(async (req) => {
       });
     }
 
-    // Authorization: user must have access to location
+    // Authorization & permission using user-scoped client (JWT)
     const supabaseAuth = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       global: { headers: { Authorization: authHeader } },
     });
-    const { data: allowed, error: authErr } = await supabaseAuth.rpc("user_has_location", { _location_id: locationId });
-    if (authErr) {
-      // Don't leak details
-      return new Response(JSON.stringify({ error: "Auth check failed" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json", "Cache-Control": "no-store" },
-      });
-    }
-    if (!allowed) {
-      return new Response(JSON.stringify({ error: "forbidden" }), {
-        status: 403,
-        headers: { ...corsHeaders, "Content-Type": "application/json", "Cache-Control": "no-store" },
-      });
-    }
-
-    // Permission: must be owner/manager/admin for the location
-    const supabaseSvc = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-    const { data: canManage, error: permErr } = await (supabaseSvc.rpc as any)("user_can_manage_pos", { _location_id: locationId });
+    const { data: canManage, error: permErr } = await (supabaseAuth.rpc as any)("user_can_manage_pos", { _location_id: locationId });
     if (permErr) {
       return new Response(JSON.stringify({ error: "permission_check_failed" }), {
         status: 500,
@@ -143,6 +126,10 @@ serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json", "Cache-Control": "no-store" },
       });
     }
+    console.info("pos-save-credentials perm_check=ok");
+
+    // Service role client for privileged writes (bypass RLS on upsert)
+    const supabaseSvc = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
     // Encrypt
     if (!KMS_HEX || KMS_HEX.length !== 64) {

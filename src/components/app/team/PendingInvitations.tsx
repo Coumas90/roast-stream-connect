@@ -131,11 +131,11 @@ export function PendingInvitations({ onInviteClick, canInvite = false, onOpenInv
         </p>
       </CardHeader>
       <CardContent className="p-4 lg:p-8 pt-4 lg:pt-8">
-        <div className={`flex gap-4 lg:gap-6 overflow-x-auto pr-1 pb-2 snap-x snap-mandatory`}>
+        <div className="flex flex-col gap-4 lg:gap-6">
           {invitations.map((invitation) => (
             <article
               key={invitation.id}
-              className="flex items-center gap-4 rounded-xl border bg-card p-4 h-auto min-w-[280px] lg:min-w-[300px] snap-start flex-shrink-0 shadow-elegant transition-all md:hover:shadow-xl md:hover:-translate-y-0.5"
+              className="w-full flex flex-col items-start gap-3 rounded-xl border bg-card p-4 h-auto shadow-elegant transition-all md:hover:shadow-xl md:hover:-translate-y-0.5"
             >
               <div className="h-12 w-12 rounded-full bg-muted grid place-items-center">
                 <Mail className="w-6 h-6 text-muted-foreground" />
@@ -152,7 +152,7 @@ export function PendingInvitations({ onInviteClick, canInvite = false, onOpenInv
                 </div>
               </div>
 
-              <div className="flex items-center flex-wrap gap-2 lg:gap-3">
+              <div className="mt-3 w-full flex flex-wrap gap-2 lg:gap-3">
                 <Button
                   size="sm"
                   variant="ghost"

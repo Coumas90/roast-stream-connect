@@ -34,7 +34,7 @@ export function PendingInvitations({ onInviteClick, canInvite = false }: Pending
             Invitaciones pendientes
           </CardTitle>
         </CardHeader>
-        <CardContent className="grid gap-3 md:grid-cols-2">
+        <CardContent className="grid gap-3 md:grid-cols-2 p-4 lg:p-8 pt-4 lg:pt-8">
           {[...Array(2)].map((_, i) => (
             <div key={i} className="flex items-center gap-3 p-3 border rounded-lg">
               <div className="flex-1 space-y-1">
@@ -80,7 +80,7 @@ export function PendingInvitations({ onInviteClick, canInvite = false }: Pending
             Invitaciones pendientes
           </CardTitle>
         </CardHeader>
-        <CardContent className="py-10 text-center">
+        <CardContent className="px-4 lg:px-8 py-10 text-center pt-10">
           <div className="flex flex-col items-center gap-4">
             <div className="h-12 w-12 lg:h-16 lg:w-16 rounded-full bg-warning grid place-items-center">
               <Clock className="w-6 h-6 lg:w-8 lg:h-8 text-warning-foreground" />
@@ -129,7 +129,7 @@ export function PendingInvitations({ onInviteClick, canInvite = false }: Pending
           Invitaciones enviadas aún no aceptadas
         </p>
       </CardHeader>
-      <CardContent>
+      <CardContent className="p-4 lg:p-8 pt-4 lg:pt-8">
         <div className={`grid gap-3 md:grid-cols-2 ${invitations.length > 6 ? 'max-h-[28rem] overflow-auto pr-1' : ''}`}>
           {invitations.map((invitation) => (
             <article

@@ -72,7 +72,7 @@ export default function MyTeam() {
   const certificados = members?.filter((m) => m.role === 'coffee_master' || m.role === 'barista').length ?? 0;
   const progresoPromedio = 0; // placeholder sin lógica nueva
   return (
-    <article>
+    <article className="mx-auto max-w-[1200px] px-4 lg:px-8">
       <Helmet>
         <title>Mi Equipo - {location} | TUPÁ Hub</title>
         <meta name="description" content="Gestión del equipo y roles por sucursal" />
@@ -146,7 +146,7 @@ export default function MyTeam() {
 
       <section className="mt-8">
         <Card className="overflow-hidden shadow-elegant">
-          <CardContent className="bg-gradient-to-r from-warning/10 via-background to-secondary/10 p-6 md:p-8">
+          <CardContent className="bg-gradient-to-r from-warning/10 via-background to-secondary/10 p-4 lg:p-8 pt-4 lg:pt-8">
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
               <div>
                 <h2 className="text-xl font-semibold mb-1">¿Necesitas incorporar personal?</h2>

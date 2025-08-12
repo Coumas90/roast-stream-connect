@@ -134,7 +134,7 @@ export function TeamMembersList({ onInviteClick, canInvite = false, view = 'deta
           Personas con acceso a esta sucursal
         </p>
       </CardHeader>
-      <CardContent className="animate-fade-in p-5 md:p-6" key={view}>
+      <CardContent className="animate-fade-in p-4 lg:p-8 pt-4 lg:pt-8" key={view}>
         <div className="flex flex-wrap gap-4 justify-center">
           {members.map((member) => (
             <article
@@ -180,7 +180,7 @@ export function TeamMembersList({ onInviteClick, canInvite = false, view = 'deta
               ) : (
                 <section className="mt-4 grid gap-6 lg:grid-cols-3">
                   {/* Columna izquierda: Información personal (plegable) */}
-                  <div className="rounded-xl bg-secondary/60 p-5 md:p-6 border">
+                  <div className="rounded-xl bg-secondary/60 p-4 lg:p-8 border">
                     <Collapsible defaultOpen>
                       <div className="flex items-center justify-between mb-2">
                         <h4 className="text-xs lg:text-sm uppercase tracking-wide text-muted-foreground">Información personal</h4>
@@ -190,21 +190,21 @@ export function TeamMembersList({ onInviteClick, canInvite = false, view = 'deta
                       </div>
                       <CollapsibleContent className="data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down">
                         <ul className="space-y-2 text-sm lg:text-base pt-2">
-                          <li className="flex items-center gap-2 truncate">
+                          <li className="flex items-center gap-2 truncate lg:whitespace-normal lg:overflow-visible">
                             <Mail className="w-4 h-4 text-muted-foreground" />
-                            <span className="truncate">{member.email || '—'}</span>
+                            <span className="truncate lg:whitespace-normal lg:overflow-visible">{member.email || '—'}</span>
                           </li>
-                          <li className="flex items-center gap-2 truncate">
+                          <li className="flex items-center gap-2 truncate lg:whitespace-normal lg:overflow-visible">
                             <Phone className="w-4 h-4 text-muted-foreground" />
-                            <span className="truncate">—</span>
+                            <span className="truncate lg:whitespace-normal lg:overflow-visible">—</span>
                           </li>
-                          <li className="flex items-center gap-2 truncate">
+                          <li className="flex items-center gap-2 truncate lg:whitespace-normal lg:overflow-visible">
                             <CalendarDays className="w-4 h-4 text-muted-foreground" />
-                            <span className="truncate">Fecha ingreso: —</span>
+                            <span className="truncate lg:whitespace-normal lg:overflow-visible">Fecha ingreso: —</span>
                           </li>
-                          <li className="flex items-center gap-2 truncate">
+                          <li className="flex items-center gap-2 truncate lg:whitespace-normal lg:overflow-visible">
                             <Users className="w-4 h-4 text-muted-foreground" />
-                            <span className="truncate">Experiencia: — años</span>
+                            <span className="truncate lg:whitespace-normal lg:overflow-visible">Experiencia: — años</span>
                           </li>
                         </ul>
                       </CollapsibleContent>
@@ -212,7 +212,7 @@ export function TeamMembersList({ onInviteClick, canInvite = false, view = 'deta
                   </div>
 
                   {/* Centro: Especialidad & Progreso */}
-                  <div className="rounded-xl bg-secondary/60 p-5 md:p-6 border">
+                  <div className="rounded-xl bg-secondary/60 p-4 lg:p-8 border">
                     <h4 className="text-xs lg:text-sm uppercase tracking-wide text-muted-foreground mb-2">Especialidad & Progreso</h4>
                     <div className="mb-3 font-semibold">
                       {ROLE_LABELS[member.role as keyof typeof ROLE_LABELS] || member.role}
@@ -229,7 +229,7 @@ export function TeamMembersList({ onInviteClick, canInvite = false, view = 'deta
                   </div>
 
                   {/* Derecha: Certificaciones (plegable) */}
-                  <div className="rounded-xl bg-secondary/60 p-5 md:p-6 border">
+                  <div className="rounded-xl bg-secondary/60 p-4 lg:p-8 border">
                     <Collapsible defaultOpen>
                       <div className="flex items-center justify-between mb-2">
                         <h4 className="text-xs lg:text-sm uppercase tracking-wide text-muted-foreground">Certificaciones</h4>

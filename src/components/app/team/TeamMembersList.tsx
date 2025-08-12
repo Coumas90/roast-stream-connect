@@ -67,7 +67,7 @@ export function TeamMembersList({ onInviteClick, canInvite = false, view = 'deta
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-muted-foreground text-center py-4">
+          <p className="text-muted-foreground text-center py-4 text-sm lg:text-base">
             Error al cargar los miembros del equipo
           </p>
         </CardContent>
@@ -77,7 +77,7 @@ export function TeamMembersList({ onInviteClick, canInvite = false, view = 'deta
 
   if (!members?.length) {
     return (
-      <Card className="shadow-elegant transition-all hover:shadow-lg">
+      <Card className="shadow-elegant transition-all md:hover:shadow-lg">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Users className="w-5 h-5" />
@@ -89,7 +89,7 @@ export function TeamMembersList({ onInviteClick, canInvite = false, view = 'deta
             <div className="h-16 w-16 rounded-full bg-warning grid place-items-center">
               <Users className="w-8 h-8 text-warning-foreground" />
             </div>
-            <p className="text-muted-foreground max-w-sm">
+            <p className="text-muted-foreground max-w-sm text-sm lg:text-base">
               Aún no tienes miembros en esta sucursal. Invita a tu primer colaborador.
             </p>
             <Button
@@ -130,7 +130,7 @@ export function TeamMembersList({ onInviteClick, canInvite = false, view = 'deta
           <Users className="w-5 h-5" />
           Miembros del equipo ({members.length})
         </CardTitle>
-        <p className="text-sm text-muted-foreground mt-1">
+        <p className="text-sm lg:text-base text-muted-foreground mt-1">
           Personas con acceso a esta sucursal
         </p>
       </CardHeader>

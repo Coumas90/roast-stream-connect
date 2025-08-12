@@ -63,7 +63,7 @@ export function PendingInvitations({ onInviteClick, canInvite = false }: Pending
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-muted-foreground text-center py-4">
+          <p className="text-muted-foreground text-center py-4 text-sm lg:text-base">
             Error al cargar las invitaciones
           </p>
         </CardContent>
@@ -73,7 +73,7 @@ export function PendingInvitations({ onInviteClick, canInvite = false }: Pending
 
   if (!invitations?.length) {
     return (
-      <Card className="shadow-elegant transition-all hover:shadow-lg">
+      <Card className="shadow-elegant transition-all md:hover:shadow-lg">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Clock className="w-5 h-5" />
@@ -85,7 +85,7 @@ export function PendingInvitations({ onInviteClick, canInvite = false }: Pending
             <div className="h-12 w-12 lg:h-16 lg:w-16 rounded-full bg-warning grid place-items-center">
               <Clock className="w-6 h-6 lg:w-8 lg:h-8 text-warning-foreground" />
             </div>
-            <p className="text-muted-foreground max-w-sm">
+            <p className="text-muted-foreground max-w-sm text-sm lg:text-base">
               No hay invitaciones enviadas. Envía una para que tu equipo se una.
             </p>
             <Button
@@ -125,7 +125,7 @@ export function PendingInvitations({ onInviteClick, canInvite = false }: Pending
           Invitaciones pendientes
           <Badge variant="secondary" className="ml-2 rounded-full">{invitations.length}</Badge>
         </CardTitle>
-        <p className="text-sm text-muted-foreground mt-1">
+        <p className="text-sm lg:text-base text-muted-foreground mt-1">
           Invitaciones enviadas aún no aceptadas
         </p>
       </CardHeader>

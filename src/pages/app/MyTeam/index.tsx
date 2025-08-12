@@ -85,28 +85,28 @@ export default function MyTeam() {
             <Users className="w-8 h-8" />
             Mi Equipo
           </h1>
-          <p className="text-muted-foreground mt-1 text-sm md:text-base">
+          <p className="text-muted-foreground mt-1 text-sm lg:text-base">
             Gestiona el equipo de <strong>{location}</strong>
           </p>
           {!canInvite && (
-            <p className="text-sm md:text-base text-muted-foreground mt-2">
+            <p className="text-sm lg:text-base text-muted-foreground mt-2">
               No tienes permisos para invitar miembros. Contacta a un administrador.
             </p>
           )}
         </div>
         <div className="flex items-center flex-wrap gap-2 lg:gap-4">
           <ToggleGroup type="single" value={viewMode} onValueChange={(v) => v && setViewMode(v as 'simple' | 'detailed')} className="mr-2" variant="outline">
-            <ToggleGroupItem value="simple" aria-label="Vista Simple" className="hover-scale text-sm md:text-base">
+            <ToggleGroupItem value="simple" aria-label="Vista Simple" className="hover-scale text-sm lg:text-base">
               <LayoutGrid className="w-4 h-4 mr-2" /> Vista Simple
             </ToggleGroupItem>
-            <ToggleGroupItem value="detailed" aria-label="Vista Detallada" className="hover-scale text-sm md:text-base">
+            <ToggleGroupItem value="detailed" aria-label="Vista Detallada" className="hover-scale text-sm lg:text-base">
               <PanelsTopLeft className="w-4 h-4 mr-2" /> Vista Detallada
             </ToggleGroupItem>
           </ToggleGroup>
           {isPlatformAdmin && (
             <Button
               variant="outline"
-              className="hover-scale h-9 md:h-10 px-3 md:px-4 text-sm md:text-base"
+              className="hover-scale h-9 md:h-10 px-3 md:px-4 text-sm lg:text-base"
               onClick={() => tenantId && navigate(`/admin/clients/${tenantId}`)}
               disabled={!tenantId}
               title={!tenantId ? 'Tenant no disponible' : 'Ver cliente en Admin'}
@@ -118,7 +118,7 @@ export default function MyTeam() {
             onClick={() => setInviteDialogOpen(true)}
             disabled={!canInvite}
             title={!canInvite ? 'No tienes permisos para invitar' : undefined as any}
-            className="hover-scale h-9 md:h-10 px-3 md:px-4 text-sm md:text-base"
+            className="hover-scale h-9 md:h-10 px-3 md:px-4 text-sm lg:text-base"
           >
             <Plus className="w-4 h-4 mr-2" />
             Invitar miembro
@@ -157,7 +157,7 @@ export default function MyTeam() {
             <Button
               onClick={() => setInviteDialogOpen(true)}
               variant="pill"
-              className="bg-warning text-warning-foreground hover:bg-warning/90 rounded-full hover-scale h-9 md:h-10 px-4 md:px-5 text-sm md:text-base w-auto lg:w-fit"
+              className="bg-warning text-warning-foreground hover:bg-warning/90 rounded-full hover-scale h-9 md:h-10 px-4 md:px-5 text-sm lg:text-base w-auto lg:w-fit"
             >
               <PlusCircle className="w-4 h-4 mr-2" />
               Solicitar Nuevo Integrante

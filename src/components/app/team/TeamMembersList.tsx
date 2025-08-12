@@ -163,21 +163,46 @@ export function TeamMembersList({ onInviteClick, canInvite = false, view = 'deta
                 </Badge>
               </header>
 
-              {view === 'simple' ? (
-                <section className="mt-4 space-y-4 lg:grid lg:grid-cols-2 lg:gap-4 lg:space-y-0">
-                  <div className="relative h-2 lg:h-3 w-full rounded-full bg-secondary overflow-hidden">
-                    <div className="absolute inset-y-0 left-0 w-[0%] bg-gradient-to-r from-primary to-primary/70" />
-                    <span className="absolute inset-0 grid place-items-center text-[10px] lg:text-[11px] font-bold text-primary-foreground">0%</span>
-                  </div>
-                  <div className="flex flex-wrap items-center gap-2 lg:gap-4">
-                    {(member.role === 'coffee_master' || member.role === 'barista') ? (
-                      <Badge variant="warning" className="rounded-full text-xs lg:text-sm px-2.5 lg:px-3 py-0.5 lg:py-1">Barista</Badge>
-                    ) : (
-                      <Badge variant="secondary" className="rounded-full text-xs lg:text-sm px-2.5 lg:px-3 py-0.5 lg:py-1">{ROLE_LABELS[member.role as keyof typeof ROLE_LABELS] || member.role}</Badge>
-                    )}
-                  </div>
-                </section>
-              ) : (
+                {view === 'simple' ? (
+                  <section className="mt-4 grid gap-3 lg:gap-4">
+                    <div className="space-y-1">
+                      <h4 className="text-[11px] lg:text-xs uppercase tracking-wide text-muted-foreground">Especialidad</h4>
+                      <div className="font-medium">
+                        {ROLE_LABELS[member.role as keyof typeof ROLE_LABELS] || member.role}
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between text-muted-foreground">
+                        <span className="text-sm lg:text-base flex items-center gap-1">
+                          <TrendingUp className="w-4 h-4" /> Progreso Academia
+                        </span>
+                        <span className="text-xs font-semibold">0%</span>
+                      </div>
+                      <div className="relative h-2 lg:h-3 w-full rounded-full bg-secondary overflow-hidden">
+                        <div className="absolute inset-y-0 left-0 w-[0%] bg-gradient-to-r from-primary to-primary/70" />
+                      </div>
+                    </div>
+
+                    <div>
+                      <h4 className="text-[11px] lg:text-xs uppercase tracking-wide text-muted-foreground mb-2">Certificaciones</h4>
+                      <div className="flex flex-wrap gap-2 lg:gap-3">
+                        {(member.role === 'coffee_master' || member.role === 'barista') ? (
+                          <>
+                            <Badge variant="warning" className="rounded-full text-xs lg:text-sm px-2.5 lg:px-3 py-0.5 lg:py-1">
+                              <Coffee className="w-3.5 h-3.5 mr-1" /> Barista Avanzado
+                            </Badge>
+                            <Badge variant="outline" className="rounded-full border-primary text-primary text-xs lg:text-sm px-2.5 lg:px-3 py-0.5 lg:py-1">
+                              <Palette className="w-3.5 h-3.5 mr-1" /> Latte Art
+                            </Badge>
+                          </>
+                        ) : (
+                          <span className="text-sm text-muted-foreground">Sin certificaciones</span>
+                        )}
+                      </div>
+                    </div>
+                  </section>
+                ) : (
                 <section className="mt-4 grid gap-4 lg:gap-6 lg:grid-cols-3">
                   {/* Columna izquierda: Información personal (plegable) */}
                   <div className="rounded-xl bg-secondary/60 p-4 lg:p-8 border">

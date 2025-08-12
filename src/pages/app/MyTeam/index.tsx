@@ -72,7 +72,7 @@ export default function MyTeam() {
   const certificados = members?.filter((m) => m.role === 'coffee_master' || m.role === 'barista').length ?? 0;
   const progresoPromedio = 0; // placeholder sin lógica nueva
   return (
-    <article className="mx-auto max-w-[1200px] px-4 lg:px-8">
+    <article className="mx-auto max-w-[1200px] px-4 lg:px-8 min-w-0">
       <Helmet>
         <title>Mi Equipo - {location} | TUPÁ Hub</title>
         <meta name="description" content="Gestión del equipo y roles por sucursal" />
@@ -127,15 +127,15 @@ export default function MyTeam() {
       </header>
 
       <section className="animate-fade-in" key={viewMode}>
-        <div className="flex flex-col md:flex-row gap-4 lg:gap-6">
-          <div className="w-full md:basis-3/5 lg:basis-3/5">
+        <div className="flex flex-col md:flex-row gap-6">
+          <div className="w-full md:basis-3/5 lg:basis-3/5 min-w-0">
             <TeamMembersList 
               onInviteClick={() => setInviteDialogOpen(true)} 
               canInvite={canInvite}
               view={viewMode}
             />
           </div>
-          <div className="w-full md:basis-2/5 lg:basis-2/5">
+          <div className="w-full md:basis-2/5 lg:basis-2/5 min-w-0">
             <PendingInvitations 
               onInviteClick={() => setInviteDialogOpen(true)} 
               canInvite={canInvite}
@@ -157,7 +157,7 @@ export default function MyTeam() {
             <Button
               onClick={() => setInviteDialogOpen(true)}
               variant="pill"
-              className="bg-warning text-warning-foreground hover:bg-warning/90 rounded-full hover-scale h-9 md:h-10 px-4 md:px-5 text-sm md:text-base w-full md:w-auto"
+              className="bg-warning text-warning-foreground hover:bg-warning/90 rounded-full hover-scale h-9 md:h-10 px-4 md:px-5 text-sm md:text-base w-auto lg:w-fit"
             >
               <PlusCircle className="w-4 h-4 mr-2" />
               Solicitar Nuevo Integrante

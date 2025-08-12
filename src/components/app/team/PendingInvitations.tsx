@@ -34,7 +34,7 @@ export function PendingInvitations({ onInviteClick, canInvite = false }: Pending
             Invitaciones pendientes
           </CardTitle>
         </CardHeader>
-        <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6 p-4 lg:p-8 pt-4 lg:pt-8">
+        <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 lg:gap-6 p-4 lg:p-8 pt-4 lg:pt-8">
           {[...Array(2)].map((_, i) => (
             <div key={i} className="flex items-center gap-3 p-3 border rounded-lg">
               <div className="flex-1 space-y-1">
@@ -93,7 +93,7 @@ export function PendingInvitations({ onInviteClick, canInvite = false }: Pending
               disabled={!canInvite}
               title={!canInvite ? 'No tienes permisos para invitar' : undefined}
               variant="pill"
-              className="bg-warning text-warning-foreground hover:bg-warning/90 hover-scale rounded-full w-full md:w-auto"
+              className="bg-warning text-warning-foreground hover:bg-warning/90 hover-scale rounded-full w-auto lg:w-fit"
             >
               <Plus className="w-4 h-4 mr-2" />
               Invitar ahora
@@ -130,11 +130,11 @@ export function PendingInvitations({ onInviteClick, canInvite = false }: Pending
         </p>
       </CardHeader>
       <CardContent className="p-4 lg:p-8 pt-4 lg:pt-8">
-        <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6 ${invitations.length > 6 ? 'max-h-[28rem] overflow-auto pr-1' : ''}`}>
+        <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 lg:gap-6 ${invitations.length > 6 ? 'max-h-[28rem] overflow-auto pr-1' : ''}`}>
           {invitations.map((invitation) => (
             <article
               key={invitation.id}
-              className="flex items-center gap-4 rounded-xl border bg-card p-4 shadow-elegant transition-all md:hover:shadow-xl md:hover:-translate-y-0.5"
+              className="flex items-center gap-4 rounded-xl border bg-card p-4 h-auto lg:min-w-[300px] shadow-elegant transition-all md:hover:shadow-xl md:hover:-translate-y-0.5"
             >
               <div className="h-12 w-12 rounded-full bg-muted grid place-items-center">
                 <Mail className="w-6 h-6 text-muted-foreground" />

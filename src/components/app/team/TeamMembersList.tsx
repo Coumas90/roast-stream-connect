@@ -84,7 +84,7 @@ export function TeamMembersList({ onInviteClick, canInvite = false, view = 'deta
             Miembros del equipo
           </CardTitle>
         </CardHeader>
-        <CardContent className="py-10 text-center">
+        <CardContent className="px-4 lg:px-8 py-10 text-center">
           <div className="flex flex-col items-center gap-4">
             <div className="h-16 w-16 rounded-full bg-warning grid place-items-center">
               <Users className="w-8 h-8 text-warning-foreground" />
@@ -97,7 +97,7 @@ export function TeamMembersList({ onInviteClick, canInvite = false, view = 'deta
               disabled={!canInvite}
               title={!canInvite ? 'No tienes permisos para invitar' : undefined}
               variant="pill"
-              className="bg-warning text-warning-foreground hover:bg-warning/90 hover-scale rounded-full"
+              className="bg-warning text-warning-foreground hover:bg-warning/90 hover-scale rounded-full w-auto lg:w-fit"
             >
               <Plus className="w-4 h-4 mr-2" />
               Invitar miembro
@@ -135,11 +135,11 @@ export function TeamMembersList({ onInviteClick, canInvite = false, view = 'deta
         </p>
       </CardHeader>
       <CardContent className="animate-fade-in p-4 lg:p-8 pt-4 lg:pt-8" key={view}>
-        <div className="flex flex-wrap gap-4 lg:gap-6 justify-center">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 lg:gap-6">
           {members.map((member) => (
             <article
               key={member.id}
-              className="w-full sm:w-[48%] md:w-[45%] lg:w-[30%] mx-auto rounded-xl border bg-card p-4 lg:p-8 shadow-elegant transition-all duration-200 md:hover:shadow-xl md:hover:-translate-y-0.5"
+              className="w-full lg:min-w-[300px] h-auto mx-auto rounded-xl border bg-card p-4 lg:p-8 shadow-elegant transition-all duration-200 md:hover:shadow-xl md:hover:-translate-y-0.5"
             >
               <header className="flex flex-wrap items-center gap-3 lg:gap-4">
                 <Avatar className="h-10 w-10 lg:h-[60px] lg:w-[60px] ring-2 ring-warning ring-offset-2 ring-offset-card">

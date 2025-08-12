@@ -119,7 +119,7 @@ function fudoBaseApi(env?: string) {
   return (env ?? "production").toLowerCase() === "staging" ? "https://api.staging.fu.do/v1alpha1" : "https://api.fu.do/v1alpha1";
 }
 
-async function fudoGetToken(params: { apiKey: string; apiSecret: string; env?: string }) {
+export async function fudoGetToken(params: { apiKey: string; apiSecret: string; env?: string }) {
   const { apiKey, apiSecret, env } = params;
   const url = fudoBaseAuth(env);
   const body = JSON.stringify({ apiKey, apiSecret });
@@ -134,7 +134,7 @@ async function fudoGetToken(params: { apiKey: string; apiSecret: string; env?: s
   throw Object.assign(new Error("provider_error"), { status: 502 });
 }
 
-async function fudoFetchSalesWindow(params: { from: string; to: string; token: string; env?: string }) {
+export async function fudoFetchSalesWindow(params: { from: string; to: string; token: string; env?: string }) {
   const { from, to, token, env } = params;
   const base = fudoBaseApi(env);
   const pageSize = 500;
@@ -273,13 +273,27 @@ export async function handlePosSyncRequest(
   const runId = (startResp.data as any)?.runId as string;
 
   try {
-    // Simulated sync
+    // Real sync aggregation
     let count = 0;
-    const total = 0;
-    const orders = 0;
-    const items = 0;
+    let total = 0;
+    let orders = 0;
+    let items = 0;
     const discounts = 0;
     const taxes = 0;
+
+    if (provider === "fudo") {
+      const sales = await fudoFetchSalesWindow({ from, to, token: fudoToken as string, env });
+      count = sales.length;
+      orders = count;
+      total = sales.reduce((acc, s) => acc + (Number(s.total) || 0), 0);
+      items = sales.reduce((acc, s) => acc + (Array.isArray(s.items) ? s.items.reduce((n, it) => n + (Number(it?.quantity ?? 0) || 0), 0) : 0), 0);
+    } else {
+      // Other providers not implemented yet in this function
+      count = 0;
+      total = 0;
+      orders = 0;
+      items = 0;
+    }
 
     if (!dryRun) {
       const { error: rpcErr } = await svc.rpc("upsert_consumption" as any, {

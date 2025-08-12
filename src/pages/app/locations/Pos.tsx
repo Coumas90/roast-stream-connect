@@ -12,6 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import type { AppPosProvider } from "@/integrations/supabase/pos-types";
 import { toast } from "sonner";
 import { useUserRole } from "@/hooks/useTeam";
+import { useCanManagePos } from "@/hooks/useCanManagePos";
 
 // Provider labels consistent with Settings page
 const providerLabels: Record<AppPosProvider, string> = {
@@ -57,6 +58,9 @@ export default function LocationPosDetail() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [rows, setRows] = useState<CredRow[]>([]);
+
+  // Permisos POS por sucursal
+  const { canManage, loading: permLoading } = useCanManagePos(locationId);
 
   // Form state
   const [provider, setProvider] = useState<AppPosProvider>("fudo");
@@ -374,9 +378,9 @@ export default function LocationPosDetail() {
             )}
 
             <div className="flex gap-2 pt-2">
-              <Button onClick={onSave} disabled={saving || verifying || testing} className="hover-scale">{saving ? "Guardando…" : "Guardar"}</Button>
-              <Button onClick={onVerify} variant="secondary" disabled={verifying || saving || testing} className="hover-scale">{verifying ? "Verificando…" : "Probar"}</Button>
-              <Button onClick={onTestSync} variant="secondary" disabled={testing || saving || verifying} className="hover-scale">{testing ? "Ejecutando…" : "Probar sync (ayer)"}</Button>
+              <Button onClick={onSave} disabled={saving || verifying || testing || canManage === false || permLoading} className="hover-scale">{saving ? "Guardando…" : "Guardar"}</Button>
+              <Button onClick={onVerify} variant="secondary" disabled={verifying || saving || testing || canManage === false || permLoading} className="hover-scale">{verifying ? "Verificando…" : "Probar"}</Button>
+              <Button onClick={onTestSync} variant="secondary" disabled={testing || saving || verifying || canManage === false || permLoading} className="hover-scale">{testing ? "Ejecutando…" : "Probar sync (ayer)"}</Button>
               <div className="ml-auto">
                 <Button variant="outline" onClick={() => navigate(-1)}>Volver</Button>
               </div>

@@ -927,7 +927,33 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      pos_provider_credentials_safe: {
+        Row: {
+          last_verified_at: string | null
+          location_id: string | null
+          masked_hints: Json | null
+          provider: Database["public"]["Enums"]["app_pos_provider"] | null
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          last_verified_at?: string | null
+          location_id?: string | null
+          masked_hints?: Json | null
+          provider?: Database["public"]["Enums"]["app_pos_provider"] | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          last_verified_at?: string | null
+          location_id?: string | null
+          masked_hints?: Json | null
+          provider?: Database["public"]["Enums"]["app_pos_provider"] | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       accept_invitation: {
@@ -1021,6 +1047,15 @@ export type Database = {
           _email: string
           _tenant_id: string
           _metadata?: Json
+        }
+        Returns: undefined
+      }
+      log_pos_credential_access: {
+        Args: {
+          _table_name: string
+          _operation: string
+          _location_id?: string
+          _provider?: string
         }
         Returns: undefined
       }

@@ -45,6 +45,21 @@ The Supabase anonymous (anon) key should be rotated periodically for security:
 - Monitor API usage for unusual patterns
 - Keep Supabase SDK and dependencies updated
 
+### Emergency Rotation (Committed Key)
+
+If the anon key was accidentally committed to the repository:
+
+1. **Immediately rotate the anon key** in your Supabase dashboard:
+   - Go to Settings > API > Generate new anon key
+   - Copy the new key value
+2. **Update deployment environments** with the new key:
+   - Update `VITE_SUPABASE_ANON_KEY` in all environments
+   - Redeploy applications to use the new key
+3. **Verify .env is not in Git**:
+   - Ensure `.env` files are properly ignored by `.gitignore`
+   - Remove any committed `.env` files from version control
+4. **Revoke the old key** after confirming the new one works
+
 ### Incident Response
 
 If a secret is exposed:

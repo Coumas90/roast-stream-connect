@@ -7,7 +7,7 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instanciate createClient with right options
+  // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "13.0.4"
@@ -937,60 +937,60 @@ export type Database = {
       assign_role_by_email: {
         Args: {
           _email: string
+          _location_code?: string
           _role: Database["public"]["Enums"]["app_role"]
           _tenant_slug?: string
-          _location_code?: string
         }
         Returns: undefined
       }
       connect_pos_location: {
         Args: {
+          _api_key: string
           _location_id: string
           _provider: Database["public"]["Enums"]["app_pos_provider"]
-          _api_key: string
         }
         Returns: undefined
       }
       create_location_invitation: {
         Args: {
           _email: string
-          _role: Database["public"]["Enums"]["app_role"]
-          _location_id: string
           _expires_in_minutes?: number
+          _location_id: string
+          _role: Database["public"]["Enums"]["app_role"]
         }
         Returns: {
-          id: string
-          token: string
           email: string
+          expires_at: string
+          id: string
+          location_id: string
           role: Database["public"]["Enums"]["app_role"]
           tenant_id: string
-          location_id: string
-          expires_at: string
+          token: string
         }[]
       }
       effective_pos: {
-        Args: { _tenant_id: string; _location_id?: string }
+        Args: { _location_id?: string; _tenant_id: string }
         Returns: {
+          connected: boolean
           provider: Database["public"]["Enums"]["app_pos_provider"]
           source: string
-          connected: boolean
         }[]
       }
       get_pos_credentials_safe: {
         Args: { _location_id: string }
         Returns: {
-          location_id: string
-          provider: Database["public"]["Enums"]["app_pos_provider"]
-          masked_hints: Json
-          status: string
           last_verified_at: string
+          location_id: string
+          masked_hints: Json
+          provider: Database["public"]["Enums"]["app_pos_provider"]
+          status: string
           updated_at: string
         }[]
       }
       has_role: {
         Args: {
-          _user_id: string
           _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
         }
         Returns: boolean
       }
@@ -1001,67 +1001,67 @@ export type Database = {
       list_location_invitations: {
         Args: { _location_id: string }
         Returns: {
-          id: string
+          accepted_at: string
+          created_at: string
+          created_by: string
           email: string
+          expires_at: string
+          id: string
+          location_id: string
           role: Database["public"]["Enums"]["app_role"]
           tenant_id: string
-          location_id: string
-          created_at: string
           updated_at: string
-          expires_at: string
-          accepted_at: string
-          created_by: string
         }[]
       }
       list_location_members: {
         Args: { _location_id: string }
         Returns: {
-          user_id: string
+          created_at: string
+          email: string
+          full_name: string
+          location_id: string
           role: Database["public"]["Enums"]["app_role"]
           tenant_id: string
-          location_id: string
-          created_at: string
-          full_name: string
-          email: string
+          user_id: string
         }[]
       }
       log_invitation_event: {
         Args: {
+          _email: string
           _event: string
           _invitation_id: string
-          _email: string
-          _tenant_id: string
           _metadata?: Json
+          _tenant_id: string
         }
         Returns: undefined
       }
       log_pos_credential_access: {
         Args: {
-          _table_name: string
-          _operation: string
           _location_id?: string
+          _operation: string
           _provider?: string
+          _table_name: string
         }
         Returns: undefined
       }
       pos_provider_credentials_public: {
         Args: { _location_id: string }
         Returns: {
-          location_id: string
-          provider: Database["public"]["Enums"]["app_pos_provider"]
-          masked_hints: Json
-          status: string
           last_verified_at: string
+          location_id: string
+          masked_hints: Json
+          provider: Database["public"]["Enums"]["app_pos_provider"]
+          status: string
           updated_at: string
         }[]
       }
       pos_security_audit_summary: {
         Args: Record<PropertyKey, never>
         Returns: {
-          location_id: string
-          provider: Database["public"]["Enums"]["app_pos_provider"]
           access_count: number
           last_access: string
+          location_id: string
+          provider: Database["public"]["Enums"]["app_pos_provider"]
           unique_users: number
         }[]
       }
@@ -1072,50 +1072,50 @@ export type Database = {
       revoke_role_by_email: {
         Args: {
           _email: string
+          _location_code?: string
           _role: Database["public"]["Enums"]["app_role"]
           _tenant_slug?: string
-          _location_code?: string
         }
         Returns: undefined
       }
       rotate_invitation_token: {
-        Args: { _invitation_id: string; _expires_in_minutes?: number }
+        Args: { _expires_in_minutes?: number; _invitation_id: string }
         Returns: {
+          expires_at: string
           id: string
           token: string
-          expires_at: string
         }[]
       }
       set_pos_location: {
         Args: {
+          _config?: Json
+          _connected: boolean
           _location_id: string
           _provider: Database["public"]["Enums"]["app_pos_provider"]
-          _connected: boolean
-          _config?: Json
         }
         Returns: undefined
       }
       set_pos_tenant: {
         Args: {
-          _tenant_id: string
-          _provider: Database["public"]["Enums"]["app_pos_provider"]
-          _connected: boolean
           _config?: Json
+          _connected: boolean
+          _provider: Database["public"]["Enums"]["app_pos_provider"]
+          _tenant_id: string
         }
         Returns: undefined
       }
       upsert_consumption: {
         Args: {
           _client_id: string
-          _location_id: string
-          _provider: string
           _date: string
-          _total: number
-          _orders: number
-          _items: number
           _discounts: number
-          _taxes: number
+          _items: number
+          _location_id: string
           _meta: Json
+          _orders: number
+          _provider: string
+          _taxes: number
+          _total: number
         }
         Returns: string
       }

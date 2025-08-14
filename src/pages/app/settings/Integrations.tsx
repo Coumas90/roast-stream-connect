@@ -59,7 +59,7 @@ export default function AppIntegrations() {
         // Fetch credentials for each location in parallel
         const results = await Promise.all(
           locList.map(async (loc) => {
-            const { data, error } = await (supabase.rpc as any)("pos_provider_credentials_public", { _location_id: loc.id });
+            const { data, error } = await (supabase.rpc as any)("get_pos_credentials_safe", { _location_id: loc.id });
             if (error) {
               // Per-location errors shouldn't break the whole page; surface later
               return { id: loc.id, rows: [], err: error } as { id: string; rows: CredRow[]; err?: any };

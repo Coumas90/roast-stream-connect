@@ -976,6 +976,17 @@ export type Database = {
           connected: boolean
         }[]
       }
+      get_pos_credentials_safe: {
+        Args: { _location_id: string }
+        Returns: {
+          location_id: string
+          provider: Database["public"]["Enums"]["app_pos_provider"]
+          masked_hints: Json
+          status: string
+          last_verified_at: string
+          updated_at: string
+        }[]
+      }
       has_role: {
         Args: {
           _user_id: string

@@ -355,28 +355,43 @@ export type Database = {
       pos_credentials: {
         Row: {
           created_at: string
+          expires_at: string | null
           id: string
+          issued_at: string
+          last_rotation_at: string | null
+          last_rotation_attempt_at: string | null
           location_id: string | null
           provider: Database["public"]["Enums"]["app_pos_provider"]
           secret_ref: string
+          status: string
           tenant_id: string | null
           updated_at: string
         }
         Insert: {
           created_at?: string
+          expires_at?: string | null
           id?: string
+          issued_at: string
+          last_rotation_at?: string | null
+          last_rotation_attempt_at?: string | null
           location_id?: string | null
           provider: Database["public"]["Enums"]["app_pos_provider"]
           secret_ref: string
+          status?: string
           tenant_id?: string | null
           updated_at?: string
         }
         Update: {
           created_at?: string
+          expires_at?: string | null
           id?: string
+          issued_at?: string
+          last_rotation_at?: string | null
+          last_rotation_attempt_at?: string | null
           location_id?: string | null
           provider?: Database["public"]["Enums"]["app_pos_provider"]
           secret_ref?: string
+          status?: string
           tenant_id?: string | null
           updated_at?: string
         }
@@ -1043,6 +1058,25 @@ export type Database = {
           _table_name: string
         }
         Returns: undefined
+      }
+      mark_credential_for_rotation: {
+        Args: {
+          _location_id: string
+          _provider: Database["public"]["Enums"]["app_pos_provider"]
+        }
+        Returns: boolean
+      }
+      pos_credentials_expiring_soon: {
+        Args: { days_ahead?: number }
+        Returns: {
+          days_until_expiry: number
+          expires_at: string
+          issued_at: string
+          last_rotation_at: string
+          location_id: string
+          provider: Database["public"]["Enums"]["app_pos_provider"]
+          status: string
+        }[]
       }
       pos_provider_credentials_public: {
         Args: { _location_id: string }

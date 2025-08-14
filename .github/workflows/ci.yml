@@ -26,3 +26,8 @@ jobs:
         run: npm test --if-present || npx vitest --run
       - name: Build
         run: npm run build
+      - name: Security checks (no ciphertext exposure)
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/tests/security_no_ciphertext_exposure.sql

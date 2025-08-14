@@ -1044,6 +1044,16 @@ export type Database = {
           updated_at: string
         }[]
       }
+      pos_security_audit_summary: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          location_id: string
+          provider: Database["public"]["Enums"]["app_pos_provider"]
+          access_count: number
+          last_access: string
+          unique_users: number
+        }[]
+      }
       revoke_invitation: {
         Args: { _invitation_id: string }
         Returns: undefined

@@ -45,6 +45,15 @@ The Supabase anonymous (anon) key should be rotated periodically for security:
 - Monitor API usage for unusual patterns
 - Keep Supabase SDK and dependencies updated
 
+### Runtime Environment Overrides
+
+For development and preview environments, you can use runtime overrides when project environment variables are not available:
+
+- **Never commit secrets** to the repository
+- For development/preview: load keys from `/env-setup.html` (runtime overrides) or configure project envs when available
+- In production: always use project environment variables; runtime overrides are disabled by default
+- Runtime overrides are stored in localStorage and only work in development mode unless explicitly enabled
+
 ### Emergency Rotation (Committed Key)
 
 If the anon key was accidentally committed to the repository:

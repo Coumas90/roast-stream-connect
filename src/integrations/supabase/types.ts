@@ -927,33 +927,7 @@ export type Database = {
       }
     }
     Views: {
-      pos_provider_credentials_safe: {
-        Row: {
-          last_verified_at: string | null
-          location_id: string | null
-          masked_hints: Json | null
-          provider: Database["public"]["Enums"]["app_pos_provider"] | null
-          status: string | null
-          updated_at: string | null
-        }
-        Insert: {
-          last_verified_at?: string | null
-          location_id?: string | null
-          masked_hints?: Json | null
-          provider?: Database["public"]["Enums"]["app_pos_provider"] | null
-          status?: string | null
-          updated_at?: string | null
-        }
-        Update: {
-          last_verified_at?: string | null
-          location_id?: string | null
-          masked_hints?: Json | null
-          provider?: Database["public"]["Enums"]["app_pos_provider"] | null
-          status?: string | null
-          updated_at?: string | null
-        }
-        Relationships: []
-      }
+      [_ in never]: never
     }
     Functions: {
       accept_invitation: {

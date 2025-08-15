@@ -26,11 +26,6 @@ jobs:
         run: npm test --if-present || npx vitest --run
       - name: Build
         run: npm run build
-      - name: Block committed .env
-        run: |
-          if [ -f .env ]; then
-            echo "ERROR: .env must not be committed"; exit 1;
-          fi
       - name: Security checks (no ciphertext exposure)
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}

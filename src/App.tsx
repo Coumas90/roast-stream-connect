@@ -46,7 +46,6 @@ import ProfilePage from "./pages/app/Profile";
 import ForgotPassword from "./pages/auth/ForgotPassword";
 import ResetPassword from "./pages/auth/ResetPassword";
 import LocationPosDetail from "./pages/app/locations/Pos";
-import EnvSetupRedirect from "./pages/EnvSetupRedirect";
 
 const queryClient = new QueryClient();
 
@@ -123,9 +122,6 @@ const App = () => (
                     <Route path="profile" element={<ProfilePage />} />
                   </Route>
 
-                  {/* Redirect env-setup to static file */}
-                  <Route path="/env-setup.html" element={<EnvSetupRedirect />} />
-                  
                   {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                   <Route path="*" element={<NotFound />} />
                 </Routes>

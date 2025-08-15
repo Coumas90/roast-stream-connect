@@ -4,6 +4,9 @@
     <meta charset="utf-8" />
     <title>Env Setup</title>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <style>
       body { font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; margin: 24px; }
       label { display:block; margin:12px 0 6px; }
@@ -29,6 +32,18 @@
     <p id="status"></p>
 
     <script>
+      // Blindaje: solo permitir en dev/preview
+      const isAllowedHost =
+        location.hostname === 'localhost' ||
+        location.hostname.startsWith('preview--') ||
+        location.hostname.endsWith('.lovableproject.com') ||
+        location.hostname.endsWith('.lovable.app');
+
+      if (!isAllowedHost) {
+        document.body.innerHTML = '⛔ No disponible en producción.';
+        throw new Error('Access blocked in production');
+      }
+
       const urlI = document.getElementById('url');
       const keyI = document.getElementById('key');
       const status = document.getElementById('status');

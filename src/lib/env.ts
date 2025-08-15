@@ -11,9 +11,17 @@ export function loadEnv(): EnvResult {
   let url = import.meta.env.VITE_SUPABASE_URL as string | undefined;
   let key = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
 
-  // 2) Overrides de runtime (localStorage) sólo en DEV o si se habilita explícitamente
+  // 2) Detección de previews de Lovable
+  const isLovablePreview =
+    typeof window !== 'undefined' &&
+    (location.hostname.startsWith('preview--') ||
+     location.hostname.endsWith('.lovableproject.com') ||
+     location.hostname.endsWith('.lovable.app'));
+
+  // 3) Overrides de runtime (localStorage) sólo en DEV, previews o si se habilita explícitamente
   const allowRuntime =
     import.meta.env.DEV ||
+    isLovablePreview ||
     (import.meta.env.VITE_ALLOW_RUNTIME_ENV as any) === 'true';
 
   if (allowRuntime) {

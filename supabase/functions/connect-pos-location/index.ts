@@ -1,11 +1,9 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createCorsHandler } from "../_shared/cors.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+const cors = createCorsHandler();
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
@@ -67,16 +65,16 @@ async function writeLog(entry: { location_id?: string | null; provider?: string 
 }
 
 serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+  if (req.method === "OPTIONS") return cors.handlePreflight(req);
 
   try {
     const { locationId, provider, apiKey } = await req.json();
     const allowed = ["fudo", "maxirest", "bistrosoft", "other"];
     if (!allowed.includes(provider)) {
-      return new Response(JSON.stringify({ error: "Proveedor no soportado" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      return cors.jsonResponse(req, { error: "Proveedor no soportado" }, { status: 400 });
     }
     if (!locationId || (typeof apiKey !== "string") || apiKey.trim().length === 0) {
-      return new Response(JSON.stringify({ error: "Parámetros inválidos" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      return cors.jsonResponse(req, { error: "Parámetros inválidos" }, { status: 400 });
     }
 
     // Validate against provider stub function
@@ -91,14 +89,14 @@ serve(async (req) => {
     const provJson = await provRes.json();
     if (!provRes.ok || provJson?.valid !== true) {
       const reason = provJson?.reason || "API key inválida";
-      return new Response(JSON.stringify({ error: reason }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      return cors.jsonResponse(req, { error: reason }, { status: 400 });
     }
 
 // Log attempt and KMS presence without exposing values
 await writeLog({ location_id: locationId, provider, level: "info", message: "connect attempt", meta: { kms_present: Boolean(KMS_HEX && KMS_HEX.length === 64) } });
 
 if (!KMS_HEX || KMS_HEX.length !== 64) {
-  return new Response(JSON.stringify({ error: "KMS key not configured", code: "KMS_KEY_MISSING" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+  return cors.jsonResponse(req, { error: "KMS key not configured", code: "KMS_KEY_MISSING" }, { status: 500 });
 }
 
 // Derive secret reference (must match DB function)
@@ -133,7 +131,7 @@ let uploadErr: any = null;
 
 if (uploadErr) {
   await writeLog({ location_id: locationId, provider, level: "error", message: "secret upload failed", meta: { reason: String(uploadErr?.message || uploadErr) } });
-  return new Response(JSON.stringify({ error: "No se pudo guardar la credencial cifrada" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+  return cors.jsonResponse(req, { error: "No se pudo guardar la credencial cifrada" }, { status: 500 });
 }
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
@@ -156,15 +154,15 @@ if (error) {
   const msg = error.message || "Error al conectar POS";
   const status = /forbidden/i.test(msg) ? 403 : /authentication required/i.test(msg) ? 401 : 400;
   await writeLog({ location_id: locationId, provider, level: "error", message: "connect failed", meta: { msg } });
-  return new Response(JSON.stringify({ error: msg }), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+  return cors.jsonResponse(req, { error: msg }, { status });
 }
 
 await writeLog({ location_id: locationId, provider, level: "info", message: "connect ok" });
 
-    return new Response(JSON.stringify({ ok: true }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    return cors.jsonResponse(req, { ok: true }, { status: 200 });
   } catch (error) {
     console.error("connect-pos-location error", error);
     await writeLog({ level: "error", message: "exception", meta: { error: String(error) } });
-    return new Response(JSON.stringify({ error: "Server error" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    return cors.jsonResponse(req, { error: "Server error" }, { status: 500 });
   }
 });

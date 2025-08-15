@@ -22,8 +22,14 @@ jobs:
         run: npm run typecheck --if-present || npx tsc --noEmit
       - name: Lint (if present)
         run: npm run lint --if-present
-      - name: Test
-        run: npm test --if-present || npx vitest --run
+      - name: Test with Coverage
+        run: npm run test:coverage --if-present || npx vitest --run --coverage
+      - name: Upload Coverage Reports
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-report
+          path: coverage/
       - name: Build
         run: npm run build
       - name: Security checks (no ciphertext exposure)

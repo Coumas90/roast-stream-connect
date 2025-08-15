@@ -1,3 +1,4 @@
+
 // src/lib/env.ts
 export type EnvResult = {
   url?: string;
@@ -24,7 +25,7 @@ export function loadEnv(): EnvResult {
     isLovablePreview ||
     (import.meta.env.VITE_ALLOW_RUNTIME_ENV as any) === 'true';
 
-  if (allowRuntime) {
+  if (allowRuntime && typeof window !== 'undefined') {
     const runtimeUrl = localStorage.getItem('__DEV_SUPABASE_URL') || undefined;
     const runtimeKey = localStorage.getItem('__DEV_SUPABASE_ANON_KEY') || undefined;
     url = runtimeUrl || url;
@@ -40,14 +41,22 @@ export function loadEnv(): EnvResult {
 
 export function requireEnv(): { url: string; key: string } {
   const { url, key, missing } = loadEnv();
-  const msg = `Missing env vars: ${missing.join(', ')}. ` +
-              `Set them in project envs OR use /env-setup.html to load runtime overrides.`;
+  
   if (missing.length) {
+    const msg = `Missing env vars: ${missing.join(', ')}. ` +
+                `Set them in project envs OR use /env-setup.html to load runtime overrides.`;
+    
     if (import.meta.env.DEV) {
       console.warn(msg);
+      // In development, return dummy values to prevent app crash
+      return { 
+        url: url || 'https://placeholder.supabase.co', 
+        key: key || 'placeholder_key' 
+      };
     } else {
       throw new Error(msg);
     }
   }
+  
   return { url: url!, key: key! };
 }

@@ -1,9 +1,8 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { createCorsHandler } from "../_shared/cors.ts";
-
-const cors = createCorsHandler();
+import { withCORS } from "../_shared/cors.ts";
+import { buildAllowlist } from "../_shared/patterns.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
@@ -64,17 +63,21 @@ async function writeLog(entry: { location_id?: string | null; provider?: string 
   }
 }
 
-serve(async (req) => {
-  if (req.method === "OPTIONS") return cors.handlePreflight(req);
-
+serve(withCORS(async (req) => {
   try {
     const { locationId, provider, apiKey } = await req.json();
     const allowed = ["fudo", "maxirest", "bistrosoft", "other"];
     if (!allowed.includes(provider)) {
-      return cors.jsonResponse(req, { error: "Proveedor no soportado" }, { status: 400 });
+      return new Response(
+        JSON.stringify({ error: "Proveedor no soportado" }),
+        { status: 400, headers: { "Content-Type": "application/json" } }
+      );
     }
     if (!locationId || (typeof apiKey !== "string") || apiKey.trim().length === 0) {
-      return cors.jsonResponse(req, { error: "Parámetros inválidos" }, { status: 400 });
+      return new Response(
+        JSON.stringify({ error: "Parámetros inválidos" }),
+        { status: 400, headers: { "Content-Type": "application/json" } }
+      );
     }
 
     // Validate against provider stub function
@@ -89,80 +92,102 @@ serve(async (req) => {
     const provJson = await provRes.json();
     if (!provRes.ok || provJson?.valid !== true) {
       const reason = provJson?.reason || "API key inválida";
-      return cors.jsonResponse(req, { error: reason }, { status: 400 });
+      return new Response(
+        JSON.stringify({ error: reason }),
+        { status: 400, headers: { "Content-Type": "application/json" } }
+      );
     }
 
-// Log attempt and KMS presence without exposing values
-await writeLog({ location_id: locationId, provider, level: "info", message: "connect attempt", meta: { kms_present: Boolean(KMS_HEX && KMS_HEX.length === 64) } });
+    // Log attempt and KMS presence without exposing values
+    await writeLog({ location_id: locationId, provider, level: "info", message: "connect attempt", meta: { kms_present: Boolean(KMS_HEX && KMS_HEX.length === 64) } });
 
-if (!KMS_HEX || KMS_HEX.length !== 64) {
-  return cors.jsonResponse(req, { error: "KMS key not configured", code: "KMS_KEY_MISSING" }, { status: 500 });
-}
-
-// Derive secret reference (must match DB function)
-const secretRef = `pos/location/${locationId}/${provider}`;
-
-// Encrypt credential using AES-GCM and save to private storage bucket
-const { iv_b64, ct_b64 } = await encryptSecret(apiKey);
-const encPayload = {
-  v: 1,
-  alg: "AES-GCM",
-  iv: iv_b64,
-  ct: ct_b64,
-  created_at: new Date().toISOString(),
-};
-
-const svcClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, { global: { headers: { Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}` } } });
-
-// Try upload; if bucket missing, create and retry
-let uploadErr: any = null;
-{
-  const blob = new Blob([JSON.stringify(encPayload)], { type: "application/json" });
-  const up1 = await svcClient.storage.from("pos-credentials").upload(`${secretRef}.json`, blob, { upsert: true, contentType: "application/json" });
-  if (up1.error) {
-    uploadErr = up1.error;
-    const created = await svcClient.storage.createBucket("pos-credentials", { public: false });
-    if (!created.error) {
-      const up2 = await svcClient.storage.from("pos-credentials").upload(`${secretRef}.json`, blob, { upsert: true, contentType: "application/json" });
-      uploadErr = up2.error || null;
+    if (!KMS_HEX || KMS_HEX.length !== 64) {
+      return new Response(
+        JSON.stringify({ error: "KMS key not configured", code: "KMS_KEY_MISSING" }),
+        { status: 500, headers: { "Content-Type": "application/json" } }
+      );
     }
-  }
-}
 
-if (uploadErr) {
-  await writeLog({ location_id: locationId, provider, level: "error", message: "secret upload failed", meta: { reason: String(uploadErr?.message || uploadErr) } });
-  return cors.jsonResponse(req, { error: "No se pudo guardar la credencial cifrada" }, { status: 500 });
-}
+    // Derive secret reference (must match DB function)
+    const secretRef = `pos/location/${locationId}/${provider}`;
 
-const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-  global: { headers: { Authorization: req.headers.get("Authorization") || "" } },
-});
+    // Encrypt credential using AES-GCM and save to private storage bucket
+    const { iv_b64, ct_b64 } = await encryptSecret(apiKey);
+    const encPayload = {
+      v: 1,
+      alg: "AES-GCM",
+      iv: iv_b64,
+      ct: ct_b64,
+      created_at: new Date().toISOString(),
+    };
 
-const { error } = await supabase.rpc("connect_pos_location", {
-  _location_id: locationId,
-  _provider: provider,
-  _api_key: apiKey,
-});
+    const svcClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, { global: { headers: { Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}` } } });
 
-if (error) {
-  // Revert secret upload on failure to connect
-  await svcClient.storage.from("pos-credentials").remove([`${secretRef}.json`]);
-}
+    // Try upload; if bucket missing, create and retry
+    let uploadErr: any = null;
+    {
+      const blob = new Blob([JSON.stringify(encPayload)], { type: "application/json" });
+      const up1 = await svcClient.storage.from("pos-credentials").upload(`${secretRef}.json`, blob, { upsert: true, contentType: "application/json" });
+      if (up1.error) {
+        uploadErr = up1.error;
+        const created = await svcClient.storage.createBucket("pos-credentials", { public: false });
+        if (!created.error) {
+          const up2 = await svcClient.storage.from("pos-credentials").upload(`${secretRef}.json`, blob, { upsert: true, contentType: "application/json" });
+          uploadErr = up2.error || null;
+        }
+      }
+    }
 
+    if (uploadErr) {
+      await writeLog({ location_id: locationId, provider, level: "error", message: "secret upload failed", meta: { reason: String(uploadErr?.message || uploadErr) } });
+      return new Response(
+        JSON.stringify({ error: "No se pudo guardar la credencial cifrada" }),
+        { status: 500, headers: { "Content-Type": "application/json" } }
+      );
+    }
 
-if (error) {
-  const msg = error.message || "Error al conectar POS";
-  const status = /forbidden/i.test(msg) ? 403 : /authentication required/i.test(msg) ? 401 : 400;
-  await writeLog({ location_id: locationId, provider, level: "error", message: "connect failed", meta: { msg } });
-  return cors.jsonResponse(req, { error: msg }, { status });
-}
+    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      global: { headers: { Authorization: req.headers.get("Authorization") || "" } },
+    });
 
-await writeLog({ location_id: locationId, provider, level: "info", message: "connect ok" });
+    const { error } = await supabase.rpc("connect_pos_location", {
+      _location_id: locationId,
+      _provider: provider,
+      _api_key: apiKey,
+    });
 
-    return cors.jsonResponse(req, { ok: true }, { status: 200 });
+    if (error) {
+      // Revert secret upload on failure to connect
+      await svcClient.storage.from("pos-credentials").remove([`${secretRef}.json`]);
+    }
+
+    if (error) {
+      const msg = error.message || "Error al conectar POS";
+      const status = /forbidden/i.test(msg) ? 403 : /authentication required/i.test(msg) ? 401 : 400;
+      await writeLog({ location_id: locationId, provider, level: "error", message: "connect failed", meta: { msg } });
+      return new Response(
+        JSON.stringify({ error: msg }),
+        { status, headers: { "Content-Type": "application/json" } }
+      );
+    }
+
+    await writeLog({ location_id: locationId, provider, level: "info", message: "connect ok" });
+
+    return new Response(
+      JSON.stringify({ ok: true }),
+      { status: 200, headers: { "Content-Type": "application/json" } }
+    );
   } catch (error) {
     console.error("connect-pos-location error", error);
     await writeLog({ level: "error", message: "exception", meta: { error: String(error) } });
-    return cors.jsonResponse(req, { error: "Server error" }, { status: 500 });
+    return new Response(
+      JSON.stringify({ error: "Server error" }),
+      { status: 500, headers: { "Content-Type": "application/json" } }
+    );
   }
-});
+}, {
+  allowlist: buildAllowlist(),
+  credentials: true,
+  maxAge: 86400,
+  allowHeaders: ["authorization", "content-type", "x-request-id"]
+}));

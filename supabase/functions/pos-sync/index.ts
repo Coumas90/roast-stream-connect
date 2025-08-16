@@ -3,6 +3,8 @@
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { decryptAESGCM, type CipherBundle } from "../_shared/crypto.ts";
+import { withCORS, requireSecureAuth } from "../_shared/cors.ts";
+import { buildAllowlist } from "../_shared/patterns.ts";
 
 // Types mirrored from app
 type AppPosProvider = "fudo" | "maxirest" | "bistrosoft" | "other";
@@ -14,10 +16,6 @@ const SERVICE_KEY: string = D?.env?.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 const ANON_KEY: string = D?.env?.get("SUPABASE_ANON_KEY") ?? "";
 const JOB_TOKEN: string = D?.env?.get("POS_SYNC_JOB_TOKEN") ?? "";
 const KMS_HEX: string = D?.env?.get("POS_CRED_KMS_KEY") ?? "";
-
-import { createCorsHandler, requireSecureAuth } from "../_shared/cors.ts";
-
-const cors = createCorsHandler();
 
 function safeEqual(a: string, b: string) {
   if (a.length !== b.length) return false;
@@ -174,14 +172,28 @@ export async function handlePosSyncRequest(
   // Enhanced auth check for orchestration endpoint
   const authCheck = requireSecureAuth(req, [JOB_TOKEN]);
   if (!authCheck.ok) {
-    return cors.jsonResponse(req, { error: authCheck.error || "forbidden" }, { status: 403 });
+    return new Response(
+      JSON.stringify({ error: authCheck.error || "forbidden" }),
+      { status: 403, headers: { "Content-Type": "application/json" } }
+    );
   }
 
   const payload = await req.json().catch(() => ({} as any));
   const { clientId, locationId, provider, range, dryRun } = payload ?? {};
 
-  if (!isUUID(clientId ?? "") || !isUUID(locationId ?? "")) return cors.jsonResponse(req, { error: "invalid uuid" }, { status: 400 });
-  if (!( ["fudo", "bistrosoft", "maxirest", "other"] as const).includes(provider)) return cors.jsonResponse(req, { error: "invalid provider" }, { status: 400 });
+  if (!isUUID(clientId ?? "") || !isUUID(locationId ?? "")) {
+    return new Response(
+      JSON.stringify({ error: "invalid uuid" }),
+      { status: 400, headers: { "Content-Type": "application/json" } }
+    );
+  }
+
+  if (!( ["fudo", "bistrosoft", "maxirest", "other"] as const).includes(provider)) {
+    return new Response(
+      JSON.stringify({ error: "invalid provider" }),
+      { status: 400, headers: { "Content-Type": "application/json" } }
+    );
+  }
 
   let from: string;
   let to: string;
@@ -191,11 +203,33 @@ export async function handlePosSyncRequest(
     from = range.from ?? yesterdayUTC();
     to = range.to ?? from;
   }
-  if (!isYYYYMMDD(from) || !isYYYYMMDD(to)) return cors.jsonResponse(req, { error: "invalid range format" }, { status: 400 });
-  if (toDateUTC(from).getTime() > toDateUTC(to).getTime()) return cors.jsonResponse(req, { error: "from>to" }, { status: 400 });
-  if (diffDaysInclusive(from, to) > 31) return cors.jsonResponse(req, { error: "range too large (max 31 days)" }, { status: 400 });
+  if (!isYYYYMMDD(from) || !isYYYYMMDD(to)) {
+    return new Response(
+      JSON.stringify({ error: "invalid range format" }),
+      { status: 400, headers: { "Content-Type": "application/json" } }
+    );
+  }
 
-  if (!kmsHex || !/^[0-9a-fA-F]{64}$/.test(kmsHex)) return cors.jsonResponse(req, { error: "kms_misconfigured" }, { status: 500 });
+  if (toDateUTC(from).getTime() > toDateUTC(to).getTime()) {
+    return new Response(
+      JSON.stringify({ error: "from>to" }),
+      { status: 400, headers: { "Content-Type": "application/json" } }
+    );
+  }
+
+  if (diffDaysInclusive(from, to) > 31) {
+    return new Response(
+      JSON.stringify({ error: "range too large (max 31 days)" }),
+      { status: 400, headers: { "Content-Type": "application/json" } }
+    );
+  }
+
+  if (!kmsHex || !/^[0-9a-fA-F]{64}$/.test(kmsHex)) {
+    return new Response(
+      JSON.stringify({ error: "kms_misconfigured" }),
+      { status: 500, headers: { "Content-Type": "application/json" } }
+    );
+  }
 
   const { data: credRow, error: credErr } = await svc
     .from("pos_provider_credentials")
@@ -204,16 +238,36 @@ export async function handlePosSyncRequest(
     .eq("provider", provider)
     .maybeSingle();
 
-  if (credErr) return cors.jsonResponse(req, { error: "db_error" }, { status: 500 });
-  if (!credRow) return cors.jsonResponse(req, { skipped: true, reason: "no_credentials" }, { status: 200 });
-  if (credRow.status === "invalid") return cors.jsonResponse(req, { skipped: true, reason: "invalid_credentials" }, { status: 200 });
+  if (credErr) {
+    return new Response(
+      JSON.stringify({ error: "db_error" }),
+      { status: 500, headers: { "Content-Type": "application/json" } }
+    );
+  }
+
+  if (!credRow) {
+    return new Response(
+      JSON.stringify({ skipped: true, reason: "no_credentials" }),
+      { status: 200, headers: { "Content-Type": "application/json" } }
+    );
+  }
+
+  if (credRow.status === "invalid") {
+    return new Response(
+      JSON.stringify({ skipped: true, reason: "invalid_credentials" }),
+      { status: 200, headers: { "Content-Type": "application/json" } }
+    );
+  }
 
   let credentials: Record<string, unknown>;
   try {
     const bundle = JSON.parse(credRow.ciphertext) as CipherBundle;
     credentials = (await decryptAESGCM(kmsHex, bundle)) as Record<string, unknown>;
   } catch {
-    return cors.jsonResponse(req, { error: "ciphertext_invalid" }, { status: 500 });
+    return new Response(
+      JSON.stringify({ error: "ciphertext_invalid" }),
+      { status: 500, headers: { "Content-Type": "application/json" } }
+    );
   }
 
   // Provider-specific precheck
@@ -234,9 +288,15 @@ export async function handlePosSyncRequest(
           .update({ status: "invalid", last_verified_at: new Date().toISOString(), updated_at: new Date().toISOString() })
           .eq("location_id", locationId)
           .eq("provider", provider);
-        return cors.jsonResponse(req, { skipped: true, reason: "invalid_credentials" }, { status: 200 });
+        return new Response(
+          JSON.stringify({ skipped: true, reason: "invalid_credentials" }),
+          { status: 200, headers: { "Content-Type": "application/json" } }
+        );
       }
-      return cors.jsonResponse(req, { skipped: true, reason: "provider_unreachable" }, { status: 200 });
+      return new Response(
+        JSON.stringify({ skipped: true, reason: "provider_unreachable" }),
+        { status: 200, headers: { "Content-Type": "application/json" } }
+      );
     }
   } else {
     // Pre-validate credentials (lightweight) for non-Fudo providers
@@ -251,13 +311,21 @@ export async function handlePosSyncRequest(
         .update({ status: "invalid", last_verified_at: new Date().toISOString(), updated_at: new Date().toISOString() })
         .eq("location_id", locationId)
         .eq("provider", provider);
-      return cors.jsonResponse(req, { skipped: true, reason: "invalid_credentials" }, { status: 200 });
+      return new Response(
+        JSON.stringify({ skipped: true, reason: "invalid_credentials" }),
+        { status: 200, headers: { "Content-Type": "application/json" } }
+      );
     }
   }
 
   // Backoff/autopause gate (only after valid credentials)
   const can = await canSync(svc, locationId, provider);
-  if (!can.ok) return cors.jsonResponse(req, { skipped: true, reason: can.reason, waitMs: can.waitMs }, { status: 200 });
+  if (!can.ok) {
+    return new Response(
+      JSON.stringify({ skipped: true, reason: can.reason, waitMs: can.waitMs }),
+      { status: 200, headers: { "Content-Type": "application/json" } }
+    );
+  }
 
   // Start run via logger (only now do we generate correlation_id)
   const correlation_id = crypto.randomUUID();
@@ -265,7 +333,12 @@ export async function handlePosSyncRequest(
   const startResp = await svc.functions.invoke("pos-sync-logger", {
     body: { action: "start", clientId: null, locationId, provider, meta: { correlation_id } },
   });
-  if (startResp.error) return cors.jsonResponse(req, { error: startResp.error.message }, { status: 500 });
+  if (startResp.error) {
+    return new Response(
+      JSON.stringify({ error: startResp.error.message }),
+      { status: 500, headers: { "Content-Type": "application/json" } }
+    );
+  }
   const runId = (startResp.data as any)?.runId as string;
 
   try {
@@ -311,18 +384,40 @@ export async function handlePosSyncRequest(
     const fin = await svc.functions.invoke("pos-sync-logger", {
       body: { action: "success", runId, count, durationMs, meta: { correlation_id } },
     });
-    if (fin.error) return cors.jsonResponse(req, { error: fin.error.message }, { status: 500 });
-    return cors.jsonResponse(req, { runId, count }, { status: 200 });
+    if (fin.error) {
+      return new Response(
+        JSON.stringify({ error: fin.error.message }),
+        { status: 500, headers: { "Content-Type": "application/json" } }
+      );
+    }
+    return new Response(
+      JSON.stringify({ runId, count }),
+      { status: 200, headers: { "Content-Type": "application/json" } }
+    );
   } catch (err) {
     const durationMs = Date.now() - t0;
     await svc.functions.invoke("pos-sync-logger", {
       body: { action: "error", runId, error: String((err as any)?.message ?? err), durationMs, meta: { correlation_id } },
     });
-    return cors.jsonResponse(req, { error: "internal error" }, { status: 500 });
+    return new Response(
+      JSON.stringify({ error: "internal error" }),
+      { status: 500, headers: { "Content-Type": "application/json" } }
+    );
   }
 }
 
-serve(async (req) => {
-  if (req.method === "OPTIONS") return cors.handlePreflight(req);
+serve(withCORS(async (req) => {
+  if (req.method !== "POST") {
+    return new Response(
+      JSON.stringify({ error: "Method not allowed" }),
+      { status: 405, headers: { "Content-Type": "application/json" } }
+    );
+  }
+
   return handlePosSyncRequest(req);
-});
+}, {
+  allowlist: buildAllowlist(),
+  credentials: false, // orchestration endpoint: sin credenciales
+  maxAge: 86400,
+  allowHeaders: ["authorization", "content-type", "x-job-token", "x-api-key"]
+}));

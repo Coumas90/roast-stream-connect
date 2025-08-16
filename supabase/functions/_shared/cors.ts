@@ -1,150 +1,65 @@
-// Secure CORS helper with origin allowlist
-// Usage: import { createCorsHandler } from "../_shared/cors.ts";
-
+// Bulletproof CORS helper with origin allowlist and RegExp support
 export interface CorsConfig {
-  allowedOrigins?: string[];
-  allowCredentials?: boolean;
-  allowedHeaders?: string[];
-  allowedMethods?: string[];
+  allowlist: (string | RegExp)[];
+  allowMethods?: string[];
+  allowHeaders?: string[];
+  exposeHeaders?: string[];
+  credentials?: boolean;
   maxAge?: number;
 }
 
-const DEFAULT_CONFIG: Required<CorsConfig> = {
-  allowedOrigins: [],
-  allowCredentials: true,
-  allowedHeaders: [
-    "authorization",
-    "x-client-info", 
-    "apikey",
-    "content-type",
-    "x-job-token",
-    "x-api-key"
-  ],
-  allowedMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-  maxAge: 86400, // 24 hours
-};
+const isAllowed = (origin: string, list: (string | RegExp)[]): boolean =>
+  list.some(e => typeof e === "string" ? e === origin : e.test(origin));
 
-function parseAllowedOrigins(): string[] {
-  const envOrigins = (globalThis as any)?.Deno?.env?.get?.("ALLOWED_ORIGINS");
-  if (!envOrigins) {
-    // Fallback to fixed list for development/staging
-    return [
-      "http://localhost:5173",
-      "http://localhost:3000", 
-      "https://localhost:5173",
-      "https://localhost:3000",
-      "https://*.lovableproject.com",
-      "https://*.supabase.co"
-    ];
+const addVary = (h: Headers, v: string): void =>
+  h.set("Vary", h.get("Vary") ? `${h.get("Vary")}, ${v}` : v);
+
+export const withCORS = (
+  handler: (req: Request) => Promise<Response> | Response,
+  opts: CorsConfig
+) => async (req: Request): Promise<Response> => {
+  const origin = req.headers.get("Origin") ?? "";
+  const isBrowser = Boolean(origin);
+  const reqHeaders = req.headers.get("Access-Control-Request-Headers") ?? "";
+  const reqMethod = req.headers.get("Access-Control-Request-Method") ?? "";
+
+  // Preflight
+  if (req.method === "OPTIONS") {
+    const res = new Response(null, { status: 204 });
+    const h = res.headers;
+    addVary(h, "Origin");
+    addVary(h, "Access-Control-Request-Method");
+    addVary(h, "Access-Control-Request-Headers");
+
+    if (!origin || !isAllowed(origin, opts.allowlist)) return res; // sin headers CORS
+
+    h.set("Access-Control-Allow-Origin", origin);
+    if (opts.credentials) h.set("Access-Control-Allow-Credentials", "true");
+    h.set("Access-Control-Allow-Methods", (opts.allowMethods ?? ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]).join(", "));
+    h.set("Access-Control-Allow-Headers", (opts.allowHeaders ?? reqHeaders || "authorization,content-type,x-request-id").toString());
+    if (opts.maxAge) h.set("Access-Control-Max-Age", String(opts.maxAge));
+    return res;
   }
-  
-  return envOrigins.split(",").map((origin: string) => origin.trim()).filter(Boolean);
-}
 
-function isOriginAllowed(origin: string | null, allowedOrigins: string[]): boolean {
-  if (!origin) return false;
-  
-  // Exact match first
-  if (allowedOrigins.includes(origin)) return true;
-  
-  // Wildcard subdomain matching (e.g., "*.example.com")
-  return allowedOrigins.some(allowed => {
-    if (allowed.includes("*")) {
-      const pattern = allowed.replace(/\./g, "\\.").replace(/\*/g, ".*");
-      const regex = new RegExp(`^${pattern}$`);
-      return regex.test(origin);
+  // Request normal
+  if (isBrowser && origin && !isAllowed(origin, opts.allowlist)) {
+    console.warn(`CORS: Origin blocked: ${origin}`);
+    return new Response("CORS origin not allowed", { status: 403 });
+  }
+
+  const res = await handler(req);
+  const h = new Headers(res.headers);
+
+  if (origin && isAllowed(origin, opts.allowlist)) {
+    addVary(h, "Origin");
+    h.set("Access-Control-Allow-Origin", origin); // nunca "*"
+    if (opts.credentials) h.set("Access-Control-Allow-Credentials", "true");
+    if (opts.exposeHeaders?.length) {
+      h.set("Access-Control-Expose-Headers", opts.exposeHeaders.join(", "));
     }
-    return false;
-  });
-}
-
-export function createCorsHandler(config: CorsConfig = {}) {
-  const finalConfig = { ...DEFAULT_CONFIG, ...config };
-  const allowedOrigins = finalConfig.allowedOrigins.length > 0 
-    ? finalConfig.allowedOrigins 
-    : parseAllowedOrigins();
-
-  return {
-    // Handle OPTIONS preflight requests
-    handlePreflight: (req: Request): Response => {
-      const origin = req.headers.get("Origin");
-      const requestMethod = req.headers.get("Access-Control-Request-Method");
-      const requestHeaders = req.headers.get("Access-Control-Request-Headers");
-
-      if (!isOriginAllowed(origin, allowedOrigins)) {
-        console.warn(`CORS: Origin blocked: ${origin}`);
-        return new Response("Forbidden", { 
-          status: 403,
-          headers: { "Content-Type": "text/plain" }
-        });
-      }
-
-      const headers: Record<string, string> = {
-        "Access-Control-Allow-Origin": origin || "*",
-        "Access-Control-Allow-Methods": finalConfig.allowedMethods.join(", "),
-        "Access-Control-Allow-Headers": finalConfig.allowedHeaders.join(", "),
-        "Access-Control-Max-Age": finalConfig.maxAge.toString(),
-        "Vary": "Origin",
-      };
-
-      if (finalConfig.allowCredentials) {
-        headers["Access-Control-Allow-Credentials"] = "true";
-      }
-
-      // Validate requested method and headers
-      if (requestMethod && !finalConfig.allowedMethods.includes(requestMethod)) {
-        return new Response("Method not allowed", { status: 405 });
-      }
-
-      if (requestHeaders) {
-        const requested = requestHeaders.split(",").map(h => h.trim().toLowerCase());
-        const allowed = finalConfig.allowedHeaders.map(h => h.toLowerCase());
-        const hasDisallowed = requested.some(h => !allowed.includes(h));
-        if (hasDisallowed) {
-          return new Response("Headers not allowed", { status: 400 });
-        }
-      }
-
-      return new Response(null, { status: 204, headers });
-    },
-
-    // Get CORS headers for actual responses
-    getHeaders: (req: Request): Record<string, string> => {
-      const origin = req.headers.get("Origin");
-      
-      if (!isOriginAllowed(origin, allowedOrigins)) {
-        console.warn(`CORS: Origin blocked in response: ${origin}`);
-        return { "Vary": "Origin" }; // Still include Vary header
-      }
-
-      const headers: Record<string, string> = {
-        "Access-Control-Allow-Origin": origin || "*",
-        "Vary": "Origin",
-      };
-
-      if (finalConfig.allowCredentials) {
-        headers["Access-Control-Allow-Credentials"] = "true";
-      }
-
-      return headers;
-    },
-
-    // Convenience method to create JSON responses with CORS
-    jsonResponse: (req: Request, data: unknown, init: ResponseInit = {}): Response => {
-      const corsHeaders = this.getHeaders(req);
-      const headers = {
-        ...corsHeaders,
-        "Content-Type": "application/json",
-        ...(init.headers || {}),
-      };
-
-      return new Response(JSON.stringify(data), {
-        ...init,
-        headers,
-      });
-    }
-  };
-}
+  }
+  return new Response(res.body, { status: res.status, statusText: res.statusText, headers: h });
+};
 
 // Enhanced auth checker for orchestration endpoints
 export function requireSecureAuth(req: Request, validTokens: string[]): { ok: boolean; error?: string } {

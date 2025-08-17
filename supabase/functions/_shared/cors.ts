@@ -36,7 +36,7 @@ export const withCORS = (
     h.set("Access-Control-Allow-Origin", origin);
     if (opts.credentials) h.set("Access-Control-Allow-Credentials", "true");
     h.set("Access-Control-Allow-Methods", (opts.allowMethods ?? ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]).join(", "));
-    h.set("Access-Control-Allow-Headers", (opts.allowHeaders ?? reqHeaders || "authorization,content-type,x-request-id").toString());
+    h.set("Access-Control-Allow-Headers", (opts.allowHeaders ?? (reqHeaders || "authorization,content-type,x-request-id")).toString());
     if (opts.maxAge) h.set("Access-Control-Max-Age", String(opts.maxAge));
     return res;
   }

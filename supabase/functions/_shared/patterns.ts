@@ -13,8 +13,8 @@ export const buildAllowlist = (): (string | RegExp)[] => {
     "http://localhost:3000",
     "https://localhost:5173",
     "https://localhost:3000",
-    /https:\/\/preview--.*\.lovable(app|project\.com)$/, // previews de Lovable
-    /https:\/\/.*\.lovableproject\.com$/,
-    /https:\/\/.*\.supabase\.co$/
+    /^https:\/\/preview--.*\.(lovable\.app|lovableproject\.com)$/, // previews de Lovable
+    /^https:\/\/.*\.lovableproject\.com$/,
+    /^https:\/\/.*\.supabase\.co$/
   ];
 };

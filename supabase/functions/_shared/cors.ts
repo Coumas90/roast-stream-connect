@@ -8,8 +8,16 @@ export interface CorsConfig {
   maxAge?: number;
 }
 
-const isAllowed = (origin: string, list: (string | RegExp)[]): boolean =>
-  list.some(e => typeof e === "string" ? e === origin : e.test(origin));
+const isAllowed = (origin: string, list: (string | RegExp)[]): boolean => {
+  // Validar que el origin sea una URL válida
+  try {
+    new URL(origin);
+  } catch {
+    console.warn(`CORS: Invalid origin URL format: ${origin}`);
+    return false;
+  }
+  return list.some(e => typeof e === "string" ? e === origin : e.test(origin));
+};
 
 const addVary = (h: Headers, v: string): void =>
   h.set("Vary", h.get("Vary") ? `${h.get("Vary")}, ${v}` : v);
@@ -27,23 +35,39 @@ export const withCORS = (
   if (req.method === "OPTIONS") {
     const res = new Response(null, { status: 204 });
     const h = res.headers;
+    
+    // Siempre añadir Vary headers para evitar problemas de caché
     addVary(h, "Origin");
     addVary(h, "Access-Control-Request-Method");
     addVary(h, "Access-Control-Request-Headers");
 
-    if (!origin || !isAllowed(origin, opts.allowlist)) return res; // sin headers CORS
+    if (!origin || !isAllowed(origin, opts.allowlist)) {
+      console.warn(`CORS: Preflight blocked for origin: ${origin || "(none)"}`);
+      return res; // sin headers CORS
+    }
+
+    // Variables intermedias para evitar mezcla de operadores
+    const requestedHeaders = req.headers.get("Access-Control-Request-Headers") ?? "";
+    const allowHeaders = opts.allowHeaders?.length
+      ? opts.allowHeaders.join(", ")
+      : (requestedHeaders || "authorization,content-type,x-request-id,x-job-token");
+    
+    const allowMethods = (opts.allowMethods?.length
+      ? opts.allowMethods
+      : ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]
+    ).join(", ");
 
     h.set("Access-Control-Allow-Origin", origin);
     if (opts.credentials) h.set("Access-Control-Allow-Credentials", "true");
-    h.set("Access-Control-Allow-Methods", (opts.allowMethods ?? ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]).join(", "));
-    h.set("Access-Control-Allow-Headers", (opts.allowHeaders ?? (reqHeaders || "authorization,content-type,x-request-id")).toString());
+    h.set("Access-Control-Allow-Methods", allowMethods);
+    h.set("Access-Control-Allow-Headers", allowHeaders);
     if (opts.maxAge) h.set("Access-Control-Max-Age", String(opts.maxAge));
     return res;
   }
 
   // Request normal
   if (isBrowser && origin && !isAllowed(origin, opts.allowlist)) {
-    console.warn(`CORS: Origin blocked: ${origin}`);
+    console.warn(`CORS: Origin blocked: ${origin} - User-Agent: ${req.headers.get("User-Agent") || "unknown"}`);
     return new Response("CORS origin not allowed", { status: 403 });
   }
 
@@ -63,23 +87,30 @@ export const withCORS = (
 
 // Enhanced auth checker for orchestration endpoints
 export function requireSecureAuth(req: Request, validTokens: string[]): { ok: boolean; error?: string } {
+  const clientIP = req.headers.get("x-forwarded-for") || req.headers.get("x-real-ip") || "unknown";
+  const userAgent = req.headers.get("User-Agent") || "unknown";
+  
   // Check for job token in headers
   const jobToken = req.headers.get("X-Job-Token") || req.headers.get("x-job-token");
   if (jobToken && validTokens.includes(jobToken)) {
+    console.log(`Secure auth success: job token - IP: ${clientIP}`);
     return { ok: true };
   }
 
   // Check for API key in headers  
   const apiKey = req.headers.get("X-API-Key") || req.headers.get("x-api-key");
   if (apiKey && validTokens.includes(apiKey)) {
+    console.log(`Secure auth success: API key - IP: ${clientIP}`);
     return { ok: true };
   }
 
   // Check Authorization header
   const auth = req.headers.get("Authorization");
   if (!auth || !auth.startsWith("Bearer ")) {
+    console.warn(`Secure auth failed: Missing/invalid auth header - IP: ${clientIP}, UA: ${userAgent}`);
     return { ok: false, error: "Missing or invalid authorization header" };
   }
 
+  console.log(`Secure auth success: JWT Bearer token - IP: ${clientIP}`);
   return { ok: true }; // JWT validation delegated to Supabase
 }

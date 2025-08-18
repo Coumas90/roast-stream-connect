@@ -26,7 +26,19 @@ export const withCORS = (
   handler: (req: Request) => Promise<Response> | Response,
   opts: CorsConfig
 ) => async (req: Request): Promise<Response> => {
-  const origin = req.headers.get("Origin") ?? "";
+  const rawOrigin = req.headers.get("Origin") ?? "";
+  let origin = "";
+  
+  // Parseo robusto de Origin con new URL().origin + fallback
+  if (rawOrigin) {
+    try {
+      origin = new URL(rawOrigin).origin;
+    } catch {
+      console.warn(`CORS: Malformed origin, using fallback: ${rawOrigin}`);
+      origin = rawOrigin; // fallback para casos edge
+    }
+  }
+  
   const isBrowser = Boolean(origin);
   const reqHeaders = req.headers.get("Access-Control-Request-Headers") ?? "";
   const reqMethod = req.headers.get("Access-Control-Request-Method") ?? "";
@@ -46,22 +58,24 @@ export const withCORS = (
       return res; // sin headers CORS
     }
 
-    // Variables intermedias para evitar mezcla de operadores
+    // Variables intermedias con defaults mejorados
     const requestedHeaders = req.headers.get("Access-Control-Request-Headers") ?? "";
     const allowHeaders = opts.allowHeaders?.length
       ? opts.allowHeaders.join(", ")
-      : (requestedHeaders || "authorization,content-type,x-request-id,x-job-token");
+      : (requestedHeaders || "authorization, content-type, x-request-id, x-job-token");
     
     const allowMethods = (opts.allowMethods?.length
       ? opts.allowMethods
       : ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]
     ).join(", ");
+    
+    const maxAge = opts.maxAge ?? 86400; // Default 24h
 
-    h.set("Access-Control-Allow-Origin", origin);
+    h.set("Access-Control-Allow-Origin", origin); // nunca "*"
     if (opts.credentials) h.set("Access-Control-Allow-Credentials", "true");
     h.set("Access-Control-Allow-Methods", allowMethods);
     h.set("Access-Control-Allow-Headers", allowHeaders);
-    if (opts.maxAge) h.set("Access-Control-Max-Age", String(opts.maxAge));
+    h.set("Access-Control-Max-Age", String(maxAge));
     return res;
   }
 
@@ -72,17 +86,23 @@ export const withCORS = (
   }
 
   const res = await handler(req);
-  const h = new Headers(res.headers);
-
-  if (origin && isAllowed(origin, opts.allowlist)) {
+  
+  // Endpoints sin Origin (server-to-server): no agregar headers CORS
+  if (!origin) return res;
+  
+  // Solo agregar headers CORS si origen está permitido
+  if (isAllowed(origin, opts.allowlist)) {
+    const h = new Headers(res.headers);
     addVary(h, "Origin");
     h.set("Access-Control-Allow-Origin", origin); // nunca "*"
     if (opts.credentials) h.set("Access-Control-Allow-Credentials", "true");
     if (opts.exposeHeaders?.length) {
       h.set("Access-Control-Expose-Headers", opts.exposeHeaders.join(", "));
     }
+    return new Response(res.body, { status: res.status, statusText: res.statusText, headers: h });
   }
-  return new Response(res.body, { status: res.status, statusText: res.statusText, headers: h });
+  
+  return res;
 };
 
 // Enhanced auth checker for orchestration endpoints

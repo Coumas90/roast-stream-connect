@@ -4,8 +4,18 @@ export const buildAllowlist = (): (string | RegExp)[] => {
     .split(",")
     .map(s => s.trim())
     .filter(Boolean)
-    // permite pasar regex en ENV como /regex/
-    .map(s => (s.startsWith("/") && s.endsWith("/")) ? new RegExp(s.slice(1, -1)) : s);
+    // permite pasar regex en ENV como /regex/ con try/catch
+    .map(s => {
+      if (s.startsWith("/") && s.endsWith("/")) {
+        try {
+          return new RegExp(s.slice(1, -1));
+        } catch (e) {
+          console.warn(`CORS: Invalid regex in ENV: ${s} - ${e.message}`);
+          return s; // fallback a string
+        }
+      }
+      return s;
+    });
 
   return [
     ...fromEnv,

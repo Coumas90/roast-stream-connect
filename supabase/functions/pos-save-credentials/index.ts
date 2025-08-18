@@ -1,13 +1,8 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
-// CORS headers (match project convention)
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "POST,OPTIONS",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+import { withCORS } from "../_shared/cors.ts";
+import { buildAllowlist } from "../_shared/patterns.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
@@ -59,16 +54,11 @@ function buildMaskedHints(creds: Record<string, any>) {
   return hints;
 }
 
-serve(async (req) => {
-  // CORS preflight
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
-
+serve(withCORS(async (req) => {
   if (req.method !== "POST") {
     return new Response(JSON.stringify({ error: "Method not allowed" }), {
       status: 405,
-      headers: { ...corsHeaders, "Content-Type": "application/json", "Cache-Control": "no-store" },
+      headers: { "Content-Type": "application/json", "Cache-Control": "no-store" },
     });
   }
 
@@ -80,7 +70,7 @@ serve(async (req) => {
     if (!body || typeof body !== "object") {
       return new Response(JSON.stringify({ error: "Invalid JSON body" }), {
         status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json", "Cache-Control": "no-store" },
+        headers: { "Content-Type": "application/json", "Cache-Control": "no-store" },
       });
     }
 
@@ -93,19 +83,19 @@ serve(async (req) => {
     if (typeof locationId !== "string" || !uuidRe.test(locationId)) {
       return new Response(JSON.stringify({ error: "Invalid locationId" }), {
         status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json", "Cache-Control": "no-store" },
+        headers: { "Content-Type": "application/json", "Cache-Control": "no-store" },
       });
     }
     if (typeof provider !== "string" || !allowedProviders.has(provider)) {
       return new Response(JSON.stringify({ error: "Unsupported provider" }), {
         status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json", "Cache-Control": "no-store" },
+        headers: { "Content-Type": "application/json", "Cache-Control": "no-store" },
       });
     }
     if (!credentials || typeof credentials !== "object" || Array.isArray(credentials) || Object.keys(credentials as any).length === 0) {
       return new Response(JSON.stringify({ error: "Invalid credentials" }), {
         status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json", "Cache-Control": "no-store" },
+        headers: { "Content-Type": "application/json", "Cache-Control": "no-store" },
       });
     }
 
@@ -117,13 +107,13 @@ serve(async (req) => {
     if (permErr) {
       return new Response(JSON.stringify({ error: "permission_check_failed" }), {
         status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json", "Cache-Control": "no-store" },
+        headers: { "Content-Type": "application/json", "Cache-Control": "no-store" },
       });
     }
     if (!canManage) {
       return new Response(JSON.stringify({ error: "forbidden" }), {
         status: 403,
-        headers: { ...corsHeaders, "Content-Type": "application/json", "Cache-Control": "no-store" },
+        headers: { "Content-Type": "application/json", "Cache-Control": "no-store" },
       });
     }
     console.info("pos-save-credentials perm_check=ok");
@@ -135,7 +125,7 @@ serve(async (req) => {
     if (!KMS_HEX || KMS_HEX.length !== 64) {
       return new Response(JSON.stringify({ error: "KMS key not configured" }), {
         status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json", "Cache-Control": "no-store" },
+        headers: { "Content-Type": "application/json", "Cache-Control": "no-store" },
       });
     }
     const enc = await encryptJsonGCM(KMS_HEX, credentials);
@@ -154,19 +144,24 @@ serve(async (req) => {
     if (upsertErr) {
       return new Response(JSON.stringify({ error: "Failed to save credentials" }), {
         status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json", "Cache-Control": "no-store" },
+        headers: { "Content-Type": "application/json", "Cache-Control": "no-store" },
       });
     }
 
     return new Response(JSON.stringify({ status: "pending", masked_hints }), {
       status: 200,
-      headers: { ...corsHeaders, "Content-Type": "application/json", "Cache-Control": "no-store" },
+      headers: { "Content-Type": "application/json", "Cache-Control": "no-store" },
     });
   } catch (error) {
     console.error("pos-save-credentials error", error);
     return new Response(JSON.stringify({ error: "Server error" }), {
       status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json", "Cache-Control": "no-store" },
+      headers: { "Content-Type": "application/json", "Cache-Control": "no-store" },
     });
   }
-});
+}, {
+  allowlist: buildAllowlist(),
+  credentials: false,
+  maxAge: 86400,
+  allowHeaders: ["authorization", "content-type", "x-client-info", "apikey"]
+}));

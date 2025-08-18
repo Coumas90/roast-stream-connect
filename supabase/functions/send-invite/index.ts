@@ -1,6 +1,8 @@
 
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { Resend } from "npm:resend@2.0.0";
+import { withCORS } from "../_shared/cors.ts";
+import { buildAllowlist } from "../_shared/patterns.ts";
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 const FROM_DEFAULT = "Lovable <onboarding@resend.dev>";
@@ -12,10 +14,6 @@ const ALLOWED_ORIGINS = (Deno.env.get("ALLOWED_ORIGINS") || "")
   .map((s) => s.trim())
   .filter(Boolean);
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
 
 // Simple in-memory rate limiter per (origin + email)
 type RateEntry = { count: number; first: number };
@@ -57,17 +55,12 @@ interface SendInvitePayload {
   tenantName?: string | null;
 }
 
-serve(async (req) => {
-  // CORS preflight
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
-
+serve(withCORS(async (req) => {
   try {
     if (req.method !== "POST") {
       return new Response(JSON.stringify({ error: "Method not allowed" }), {
         status: 405,
-        headers: { "Content-Type": "application/json", ...corsHeaders },
+        headers: { "Content-Type": "application/json" },
       });
     }
 
@@ -76,7 +69,7 @@ serve(async (req) => {
       console.warn("send-invite: blocked origin", origin);
       return new Response(JSON.stringify({ error: "Forbidden origin" }), {
         status: 403,
-        headers: { "Content-Type": "application/json", ...corsHeaders },
+        headers: { "Content-Type": "application/json" },
       });
     }
 
@@ -84,7 +77,7 @@ serve(async (req) => {
     if (!to || !inviteUrl) {
       return new Response(JSON.stringify({ error: "Missing 'to' or 'inviteUrl'" }), {
         status: 400,
-        headers: { "Content-Type": "application/json", ...corsHeaders },
+        headers: { "Content-Type": "application/json" },
       });
     }
 
@@ -92,7 +85,7 @@ serve(async (req) => {
       console.warn("send-invite: rate limited", { origin, to });
       return new Response(JSON.stringify({ error: "Too many requests, try later" }), {
         status: 429,
-        headers: { "Content-Type": "application/json", ...corsHeaders },
+        headers: { "Content-Type": "application/json" },
       });
     }
 
@@ -125,19 +118,24 @@ serve(async (req) => {
       console.error("send-invite: Resend error", error);
       return new Response(JSON.stringify({ error: error.message ?? String(error) }), {
         status: 500,
-        headers: { "Content-Type": "application/json", ...corsHeaders },
+        headers: { "Content-Type": "application/json" },
       });
     }
 
     return new Response(JSON.stringify({ ok: true }), {
       status: 200,
-      headers: { "Content-Type": "application/json", ...corsHeaders },
+      headers: { "Content-Type": "application/json" },
     });
   } catch (err: any) {
     console.error("send-invite: Unexpected error", err);
     return new Response(JSON.stringify({ error: err?.message ?? "Unexpected error" }), {
       status: 500,
-      headers: { "Content-Type": "application/json", ...corsHeaders },
+      headers: { "Content-Type": "application/json" },
     });
   }
-});
+}, {
+  allowlist: buildAllowlist(),
+  credentials: false,
+  maxAge: 86400,
+  allowHeaders: ["authorization", "content-type", "x-client-info", "apikey"]
+}));

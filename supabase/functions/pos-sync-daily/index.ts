@@ -2,6 +2,8 @@
 // deno-lint-ignore-file no-explicit-any
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { withCORS } from "../_shared/cors.ts";
+import { buildAllowlist } from "../_shared/patterns.ts";
 
 // Env access (so tests can stub globalThis.Deno)
 const D = (globalThis as any).Deno;
@@ -9,14 +11,10 @@ const SUPABASE_URL: string = D?.env?.get("SUPABASE_URL") ?? "";
 const SERVICE_KEY: string = D?.env?.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 const JOB_TOKEN: string = D?.env?.get("POS_SYNC_JOB_TOKEN") ?? "";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-job-token",
-};
 
 function json(res: unknown, init: number | ResponseInit = 200) {
   const status = typeof init === "number" ? init : init.status ?? 200;
-  const headers = { ...corsHeaders, "Content-Type": "application/json" };
+  const headers = { "Content-Type": "application/json" };
   return new Response(JSON.stringify(res), { status, headers });
 }
 
@@ -135,7 +133,6 @@ async function sendAlerts(summary: { total: number; ok: number; skipped: number;
 }
 
 export async function handlePosSyncDaily(req: Request) {
-  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   // Auth via X-Job-Token
   const tok = req.headers.get("X-Job-Token") ?? req.headers.get("x-job-token") ?? "";
@@ -211,8 +208,12 @@ export async function handlePosSyncDaily(req: Request) {
   }
 }
 
-serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+serve(withCORS(async (req) => {
   if (req.method !== "GET" && req.method !== "POST") return json({ error: "method_not_allowed" }, 405);
   return handlePosSyncDaily(req);
-});
+}, {
+  allowlist: buildAllowlist(),
+  credentials: false,
+  maxAge: 86400,
+  allowHeaders: ["authorization", "content-type", "x-job-token"]
+}));

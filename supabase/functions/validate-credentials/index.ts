@@ -1,11 +1,8 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+import { withCORS } from "../_shared/cors.ts";
+import { buildAllowlist } from "../_shared/patterns.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -54,10 +51,7 @@ function validatePayload(body: any): { ok: boolean; provider?: string; apiKey?: 
   return { ok: true, provider, apiKey };
 }
 
-serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
+serve(withCORS(async (req) => {
 
   const ip = getIp(req);
   const now = Date.now();
@@ -68,7 +62,7 @@ serve(async (req) => {
     await writeLog({ level: "warn", message: "rate_limited", meta: { ip } });
     return new Response(JSON.stringify({ valid: false, error: "Too many requests" }), {
       status: 429,
-      headers: { ...corsHeaders, "Content-Type": "application/json", "Cache-Control": "no-store" },
+      headers: { "Content-Type": "application/json", "Cache-Control": "no-store" },
     });
   } else {
     cur.count++;
@@ -81,7 +75,7 @@ serve(async (req) => {
       await writeLog({ level: "warn", message: "invalid_payload", meta: { ip, error: v.error } });
       return new Response(JSON.stringify({ valid: false, error: "Invalid payload" }), {
         status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json", "Cache-Control": "no-store" },
+        headers: { "Content-Type": "application/json", "Cache-Control": "no-store" },
       });
     }
 
@@ -91,14 +85,19 @@ serve(async (req) => {
     await writeLog({ provider: v.provider, level: "info", message: "validate", meta: { valid } });
 
     return new Response(JSON.stringify({ valid }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json", "Cache-Control": "no-store" },
+      headers: { "Content-Type": "application/json", "Cache-Control": "no-store" },
     });
   } catch (error) {
     console.error("validate-credentials error", error);
     await writeLog({ level: "error", message: "exception", meta: { error: String(error), ip } });
     return new Response(JSON.stringify({ valid: false, error: "Invalid payload" }), {
       status: 400,
-      headers: { ...corsHeaders, "Content-Type": "application/json", "Cache-Control": "no-store" },
+      headers: { "Content-Type": "application/json", "Cache-Control": "no-store" },
     });
   }
-});
+}, {
+  allowlist: buildAllowlist(),
+  credentials: false,
+  maxAge: 86400,
+  allowHeaders: ["authorization", "content-type", "x-client-info", "apikey"]
+}));

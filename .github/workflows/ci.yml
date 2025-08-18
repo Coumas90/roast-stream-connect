@@ -32,6 +32,11 @@ jobs:
           path: coverage/
       - name: Build
         run: npm run build
+      - name: Block wildcard Access-Control-Allow-Origin
+        run: |
+          if grep -rn 'Access-Control-Allow-Origin.*\*' supabase/functions; then
+            echo "ERROR: wildcard ACAO detected in Edge Functions"; exit 1;
+          fi
       - name: Security checks (no ciphertext exposure)
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}

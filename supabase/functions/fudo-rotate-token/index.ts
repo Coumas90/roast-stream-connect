@@ -27,10 +27,13 @@ interface ErrorClassification {
 
 interface RotationAttempt {
   location_id: string;
-  attempt_id: string;
+  rotation_id: string; // Used for end-to-end traceability and idempotency
+  attempt_id: string;  // Alias for rotation_id for backward compatibility
   secret_ref: string;
   start_time: number;
   success: boolean;
+  idempotent_hit?: boolean; // True if the swap was skipped due to idempotency
+  attempt_status: 'rotated' | 'idempotent' | 'failed';
   error?: string;
   error_category?: string;
 }
@@ -156,16 +159,16 @@ async function decryptSecretRef(secretRef: string): Promise<{ apiKey: string; ap
   };
 }
 
-async function updateCredentialToken(locationId: string, newToken: string, expiresIn: number, attemptId: string) {
+async function updateCredentialToken(locationId: string, newToken: string, expiresIn: number, rotationId: string): Promise<boolean> {
   const expiresAt = new Date(Date.now() + expiresIn * 1000).toISOString();
   const tokenFingerprint = await createTokenFingerprint(newToken);
   
-  // Atomic swap with idempotency - update pos_provider_credentials table
-  const { error } = await supabase
+  // Idempotent atomic swap: only update if rotation_attempt_id is null or different
+  const { data, error } = await supabase
     .from("pos_provider_credentials")
     .update({
       ciphertext: `encrypted_token_${newToken.substring(0, 8)}...`, // In real scenario, this would be properly encrypted
-      rotation_attempt_id: attemptId,
+      rotation_attempt_id: rotationId,
       last_verified_at: new Date().toISOString(),
       status: "active",
       updated_at: new Date().toISOString(),
@@ -176,27 +179,57 @@ async function updateCredentialToken(locationId: string, newToken: string, expir
     })
     .eq("location_id", locationId)
     .eq("provider", "fudo")
-    .or(`rotation_attempt_id.is.null,rotation_attempt_id.neq.${attemptId}`); // Idempotency: only update if different attempt_id or null
+    .or(`rotation_attempt_id.is.null,rotation_attempt_id.neq.${rotationId}`)
+    .select();
 
   if (error) {
     throw new Error(`Failed to update credentials: ${error.message}`);
   }
 
-  console.log(`[SUCCESS] Updated token for location ${locationId}, attempt ${attemptId}, fingerprint: ${tokenFingerprint}, expires at ${expiresAt}`);
+  const wasUpdated = data && data.length > 0;
+  
+  if (wasUpdated) {
+    console.log(`[SUCCESS] Updated token for location ${locationId}, rotation_id ${rotationId}, fingerprint: ${tokenFingerprint}, expires at ${expiresAt}`);
+  } else {
+    console.log(`[IDEMPOTENT] Token already updated for location ${locationId}, rotation_id ${rotationId} - skipping swap`);
+  }
+  
+  return wasUpdated;
+}
+
+async function persistRotationId(locationId: string, rotationId: string): Promise<void> {
+  // Persist rotation_id in pos_credentials for audit trail
+  const { error } = await supabase
+    .from("pos_credentials")
+    .update({
+      rotation_id: rotationId,
+      updated_at: new Date().toISOString()
+    })
+    .eq("location_id", locationId)
+    .eq("provider", "fudo");
+
+  if (error) {
+    console.warn(`[WARN] Failed to persist rotation_id in pos_credentials: ${error.message}`);
+    // Don't throw - this is for audit trail only, not critical for operation
+  }
 }
 
 async function rotateTokenForLocation(locationId: string, secretRef: string): Promise<RotationAttempt> {
-  const attemptId = crypto.randomUUID();
+  // Generate single rotationId for end-to-end traceability and idempotency
+  const rotationId = crypto.randomUUID();
   const attempt: RotationAttempt = {
     location_id: locationId,
-    attempt_id: attemptId,
+    rotation_id: rotationId,
+    attempt_id: rotationId, // Alias for backward compatibility
     secret_ref: secretRef.substring(0, 20) + "...", // Never log full secret ref
     start_time: Date.now(),
-    success: false
+    success: false,
+    idempotent_hit: false,
+    attempt_status: 'failed'
   };
 
   try {
-    console.log(`[START] Rotating token for location ${locationId}, attempt ${attemptId}`);
+    console.log(`[START] Rotating token for location ${locationId}, rotation_id ${rotationId}`);
     
     // 1. Decrypt current credentials
     const credentials = await decryptSecretRef(secretRef);
@@ -204,17 +237,29 @@ async function rotateTokenForLocation(locationId: string, secretRef: string): Pr
     // 2. Get new token from Fudo API
     const tokenResponse = await fudoGetToken(credentials);
     const tokenFingerprint = await createTokenFingerprint(tokenResponse.token);
-    console.log(`[API] Received new token for location ${locationId}, fingerprint: ${tokenFingerprint}, expires in ${tokenResponse.expires_in}s`);
+    console.log(`[API] Received new token for location ${locationId}, rotation_id ${rotationId}, fingerprint: ${tokenFingerprint}, expires in ${tokenResponse.expires_in}s`);
     
     // 3. Validate new token with ping/me BEFORE swapping
     const meResponse = await fudoValidateToken(tokenResponse.token, credentials.env);
-    console.log(`[VALIDATE] Token validated for user: ${meResponse.user.email}`);
+    console.log(`[VALIDATE] Token validated for user: ${meResponse.user.email}, rotation_id ${rotationId}`);
     
-    // 4. Atomic swap - update credentials only after validation success
-    await updateCredentialToken(locationId, tokenResponse.token, tokenResponse.expires_in, attemptId);
+    // 4. Idempotent atomic swap - only swap if not already done with this rotation_id
+    const wasSwapped = await updateCredentialToken(locationId, tokenResponse.token, tokenResponse.expires_in, rotationId);
     
-    attempt.success = true;
-    console.log(`[SUCCESS] Completed rotation for location ${locationId}, attempt ${attemptId}`);
+    if (wasSwapped) {
+      attempt.success = true;
+      attempt.attempt_status = 'rotated';
+      console.log(`[SUCCESS] Completed rotation for location ${locationId}, rotation_id ${rotationId}`);
+    } else {
+      attempt.success = true; // Still a success since the token was already rotated
+      attempt.idempotent_hit = true;
+      attempt.attempt_status = 'idempotent';
+      console.log(`[IDEMPOTENT] Rotation already completed for location ${locationId}, rotation_id ${rotationId}`);
+    }
+    
+    // 5. Always persist rotation_id for audit trail (success or idempotent)
+    await persistRotationId(locationId, rotationId);
+    
     return attempt;
     
   } catch (error) {
@@ -225,10 +270,11 @@ async function rotateTokenForLocation(locationId: string, secretRef: string): Pr
     const status = statusMatch ? parseInt(statusMatch[1]) : undefined;
     const classification = classifyError(status, error);
     
-    console.error(`[ERROR] Failed to rotate token for location ${locationId}, attempt ${attemptId}: ${errorMsg}, category: ${classification.category}`);
+    console.error(`[ERROR] Failed to rotate token for location ${locationId}, rotation_id ${rotationId}: ${errorMsg}, category: ${classification.category}`);
     
     attempt.error = errorMsg;
     attempt.error_category = classification.category;
+    attempt.attempt_status = 'failed';
     return attempt;
   }
 }
@@ -408,22 +454,28 @@ const handler = async (req: Request): Promise<Response> => {
     console.log(`[COMPLETE] Rotation job finished in ${duration}ms`);
     console.log(`[STATS] ${result.successes} successes, ${result.failures} failures, ${result.circuit_breaker_blocked} blocked`);
 
-    // Record metrics with enhanced metadata
+    // Record metrics with enhanced metadata including idempotency tracking
     const jobRunId = crypto.randomUUID();
     for (const attempt of result.attempts) {
-      await supabase.rpc("record_rotation_metric", {
-        p_job_run_id: jobRunId,
-        p_provider: "fudo",
-        p_location_id: attempt.location_id,
-        p_metric_type: attempt.success ? "rotation_success" : "rotation_failure",
-        p_value: 1,
-        p_duration_ms: Date.now() - attempt.start_time,
-        p_meta: {
-          attempt_id: attempt.attempt_id,
-          error_category: attempt.error_category,
-          error: attempt.error || undefined
-        }
-      });
+      // Only record metrics for actual rotations, not idempotent hits
+      if (!attempt.idempotent_hit) {
+        await supabase.rpc("record_rotation_metric", {
+          p_job_run_id: jobRunId,
+          p_provider: "fudo",
+          p_location_id: attempt.location_id,
+          p_metric_type: attempt.success ? "rotation_success" : "rotation_failure",
+          p_value: 1,
+          p_duration_ms: Date.now() - attempt.start_time,
+          p_meta: {
+            rotation_id: attempt.rotation_id,
+            attempt_id: attempt.attempt_id,
+            attempt_status: attempt.attempt_status,
+            idempotent_hit: attempt.idempotent_hit || false,
+            error_category: attempt.error_category,
+            error: attempt.error || undefined
+          }
+        });
+      }
     }
 
     return new Response(JSON.stringify({

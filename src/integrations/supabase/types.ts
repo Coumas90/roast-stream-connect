@@ -409,6 +409,7 @@ export type Database = {
           rotation_attempt_id: string | null
           rotation_error_code: string | null
           rotation_error_msg: string | null
+          rotation_id: string | null
           rotation_status: string | null
           secret_ref: string
           status: string
@@ -429,6 +430,7 @@ export type Database = {
           rotation_attempt_id?: string | null
           rotation_error_code?: string | null
           rotation_error_msg?: string | null
+          rotation_id?: string | null
           rotation_status?: string | null
           secret_ref: string
           status?: string
@@ -449,6 +451,7 @@ export type Database = {
           rotation_attempt_id?: string | null
           rotation_error_code?: string | null
           rotation_error_msg?: string | null
+          rotation_id?: string | null
           rotation_status?: string | null
           secret_ref?: string
           status?: string

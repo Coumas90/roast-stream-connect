@@ -1138,6 +1138,10 @@ export type Database = {
         }
         Returns: undefined
       }
+      trigger_pos_credentials_rotation: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
+      }
       upsert_consumption: {
         Args: {
           _client_id: string

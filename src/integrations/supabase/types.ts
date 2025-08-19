@@ -14,6 +14,27 @@ export type Database = {
   }
   public: {
     Tables: {
+      app_settings: {
+        Row: {
+          created_at: string
+          key: string
+          updated_at: string
+          value: string
+        }
+        Insert: {
+          created_at?: string
+          key: string
+          updated_at?: string
+          value: string
+        }
+        Update: {
+          created_at?: string
+          key?: string
+          updated_at?: string
+          value?: string
+        }
+        Relationships: []
+      }
       consumption_daily: {
         Row: {
           created_at: string
@@ -266,6 +287,27 @@ export type Database = {
           },
         ]
       }
+      job_locks: {
+        Row: {
+          holder: string
+          lease_until: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          holder?: string
+          lease_until: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          holder?: string
+          lease_until?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       locations: {
         Row: {
           code: string | null
@@ -354,6 +396,7 @@ export type Database = {
       }
       pos_credentials: {
         Row: {
+          consecutive_rotation_failures: number | null
           created_at: string
           expires_at: string | null
           id: string
@@ -361,13 +404,19 @@ export type Database = {
           last_rotation_at: string | null
           last_rotation_attempt_at: string | null
           location_id: string | null
+          next_attempt_at: string | null
           provider: Database["public"]["Enums"]["app_pos_provider"]
+          rotation_attempt_id: string | null
+          rotation_error_code: string | null
+          rotation_error_msg: string | null
+          rotation_status: string | null
           secret_ref: string
           status: string
           tenant_id: string | null
           updated_at: string
         }
         Insert: {
+          consecutive_rotation_failures?: number | null
           created_at?: string
           expires_at?: string | null
           id?: string
@@ -375,13 +424,19 @@ export type Database = {
           last_rotation_at?: string | null
           last_rotation_attempt_at?: string | null
           location_id?: string | null
+          next_attempt_at?: string | null
           provider: Database["public"]["Enums"]["app_pos_provider"]
+          rotation_attempt_id?: string | null
+          rotation_error_code?: string | null
+          rotation_error_msg?: string | null
+          rotation_status?: string | null
           secret_ref: string
           status?: string
           tenant_id?: string | null
           updated_at?: string
         }
         Update: {
+          consecutive_rotation_failures?: number | null
           created_at?: string
           expires_at?: string | null
           id?: string
@@ -389,7 +444,12 @@ export type Database = {
           last_rotation_at?: string | null
           last_rotation_attempt_at?: string | null
           location_id?: string | null
+          next_attempt_at?: string | null
           provider?: Database["public"]["Enums"]["app_pos_provider"]
+          rotation_attempt_id?: string | null
+          rotation_error_code?: string | null
+          rotation_error_msg?: string | null
+          rotation_status?: string | null
           secret_ref?: string
           status?: string
           tenant_id?: string | null
@@ -654,6 +714,42 @@ export type Database = {
           provider?: Database["public"]["Enums"]["app_pos_provider"]
           status?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      pos_rotation_metrics: {
+        Row: {
+          duration_ms: number | null
+          id: string
+          job_run_id: string | null
+          location_id: string | null
+          meta: Json | null
+          metric_type: string
+          provider: Database["public"]["Enums"]["app_pos_provider"] | null
+          recorded_at: string
+          value: number | null
+        }
+        Insert: {
+          duration_ms?: number | null
+          id?: string
+          job_run_id?: string | null
+          location_id?: string | null
+          meta?: Json | null
+          metric_type: string
+          provider?: Database["public"]["Enums"]["app_pos_provider"] | null
+          recorded_at?: string
+          value?: number | null
+        }
+        Update: {
+          duration_ms?: number | null
+          id?: string
+          job_run_id?: string | null
+          location_id?: string | null
+          meta?: Json | null
+          metric_type?: string
+          provider?: Database["public"]["Enums"]["app_pos_provider"] | null
+          recorded_at?: string
+          value?: number | null
         }
         Relationships: []
       }
@@ -958,6 +1054,13 @@ export type Database = {
         }
         Returns: undefined
       }
+      claim_job_lock: {
+        Args: { p_name: string; p_ttl_seconds: number }
+        Returns: {
+          acquired: boolean
+          holder: string
+        }[]
+      }
       connect_pos_location: {
         Args: {
           _api_key: string
@@ -1099,6 +1202,22 @@ export type Database = {
           unique_users: number
         }[]
       }
+      record_rotation_metric: {
+        Args: {
+          p_duration_ms?: number
+          p_job_run_id: string
+          p_location_id?: string
+          p_meta?: Json
+          p_metric_type?: string
+          p_provider?: Database["public"]["Enums"]["app_pos_provider"]
+          p_value?: number
+        }
+        Returns: undefined
+      }
+      release_job_lock: {
+        Args: { p_holder: string; p_name: string }
+        Returns: boolean
+      }
       revoke_invitation: {
         Args: { _invitation_id: string }
         Returns: undefined
@@ -1141,6 +1260,17 @@ export type Database = {
       trigger_pos_credentials_rotation: {
         Args: Record<PropertyKey, never>
         Returns: Json
+      }
+      update_rotation_status: {
+        Args: {
+          p_attempt_id?: string
+          p_error_code?: string
+          p_error_msg?: string
+          p_location_id: string
+          p_provider: Database["public"]["Enums"]["app_pos_provider"]
+          p_status: string
+        }
+        Returns: undefined
       }
       upsert_consumption: {
         Args: {

@@ -692,6 +692,7 @@ export type Database = {
           location_id: string
           masked_hints: Json
           provider: Database["public"]["Enums"]["app_pos_provider"]
+          rotation_attempt_id: string | null
           status: string
           updated_at: string
         }
@@ -702,6 +703,7 @@ export type Database = {
           location_id: string
           masked_hints?: Json
           provider: Database["public"]["Enums"]["app_pos_provider"]
+          rotation_attempt_id?: string | null
           status?: string
           updated_at?: string
         }
@@ -712,6 +714,7 @@ export type Database = {
           location_id?: string
           masked_hints?: Json
           provider?: Database["public"]["Enums"]["app_pos_provider"]
+          rotation_attempt_id?: string | null
           status?: string
           updated_at?: string
         }
@@ -929,6 +932,7 @@ export type Database = {
         Row: {
           created_at: string
           failures: number
+          location_id: string
           provider: Database["public"]["Enums"]["app_pos_provider"]
           resume_at: string | null
           state: string
@@ -938,6 +942,7 @@ export type Database = {
         Insert: {
           created_at?: string
           failures?: number
+          location_id: string
           provider: Database["public"]["Enums"]["app_pos_provider"]
           resume_at?: string | null
           state?: string
@@ -947,6 +952,7 @@ export type Database = {
         Update: {
           created_at?: string
           failures?: number
+          location_id?: string
           provider?: Database["public"]["Enums"]["app_pos_provider"]
           resume_at?: string | null
           state?: string
@@ -1085,15 +1091,30 @@ export type Database = {
         Returns: undefined
       }
       cb_check_state: {
-        Args: { _provider: Database["public"]["Enums"]["app_pos_provider"] }
+        Args:
+          | {
+              _location_id?: string
+              _provider: Database["public"]["Enums"]["app_pos_provider"]
+            }
+          | { _provider: Database["public"]["Enums"]["app_pos_provider"] }
         Returns: Json
       }
       cb_record_failure: {
-        Args: { _provider: Database["public"]["Enums"]["app_pos_provider"] }
+        Args:
+          | {
+              _location_id?: string
+              _provider: Database["public"]["Enums"]["app_pos_provider"]
+            }
+          | { _provider: Database["public"]["Enums"]["app_pos_provider"] }
         Returns: Json
       }
       cb_record_success: {
-        Args: { _provider: Database["public"]["Enums"]["app_pos_provider"] }
+        Args:
+          | {
+              _location_id?: string
+              _provider: Database["public"]["Enums"]["app_pos_provider"]
+            }
+          | { _provider: Database["public"]["Enums"]["app_pos_provider"] }
         Returns: Json
       }
       claim_job_lock: {

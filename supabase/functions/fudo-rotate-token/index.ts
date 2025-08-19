@@ -160,21 +160,23 @@ async function updateCredentialToken(locationId: string, newToken: string, expir
   const expiresAt = new Date(Date.now() + expiresIn * 1000).toISOString();
   const tokenFingerprint = await createTokenFingerprint(newToken);
   
-  // Update pos_credentials with new token (encrypted) and expiry
-  // Use attemptId for idempotency
+  // Atomic swap with idempotency - update pos_provider_credentials table
   const { error } = await supabase
-    .from("pos_credentials")
+    .from("pos_provider_credentials")
     .update({
-      secret_ref: `pos/location/${locationId}/fudo`, // In real scenario, this would be encrypted
-      expires_at: expiresAt,
-      last_rotation_at: new Date().toISOString(),
+      ciphertext: `encrypted_token_${newToken.substring(0, 8)}...`, // In real scenario, this would be properly encrypted
       rotation_attempt_id: attemptId,
+      last_verified_at: new Date().toISOString(),
       status: "active",
-      updated_at: new Date().toISOString()
+      updated_at: new Date().toISOString(),
+      masked_hints: {
+        expires_at: expiresAt,
+        token_fingerprint: tokenFingerprint
+      }
     })
     .eq("location_id", locationId)
     .eq("provider", "fudo")
-    .eq("rotation_attempt_id", attemptId); // Idempotency check
+    .or(`rotation_attempt_id.is.null,rotation_attempt_id.neq.${attemptId}`); // Idempotency: only update if different attempt_id or null
 
   if (error) {
     throw new Error(`Failed to update credentials: ${error.message}`);
@@ -236,29 +238,54 @@ const handler = async (req: Request): Promise<Response> => {
     return new Response(null, { headers: { "Access-Control-Allow-Origin": "*" } });
   }
 
+  // Heartbeat helper with jitter to maintain lease locks
+  let shouldStop = false;
+  let renewFails = 0;
+  const jitter = () => 15 + Math.floor(Math.random() * 30); // 15-45s jitter
+  
+  const startHeartbeat = (lockName: string, holder: string, ttlSeconds: number) => {
+    const intervalMs = (ttlSeconds * 500) + jitter() * 1000; // ~TTL*0.5 + jitter
+    return setInterval(async () => {
+      if (shouldStop) return;
+      
+      const { data: renewed, error } = await supabase.rpc("renew_job_lock", {
+        p_name: lockName,
+        p_holder: holder,
+        p_ttl_seconds: ttlSeconds
+      });
+      
+      renewFails = renewed && !error ? 0 : renewFails + 1;
+      if (renewFails >= 2) {
+        console.warn(`[HEARTBEAT] Failed to renew lock ${renewFails} times, marking for graceful shutdown`);
+        shouldStop = true;
+      }
+    }, intervalMs);
+  };
+
   try {
     const startTime = Date.now();
     console.log("[START] Fudo token rotation job initiated");
 
-    // Check circuit breaker state for Fudo provider
-    const { data: circuitState, error: cbError } = await supabase.rpc("cb_check_state", { 
-      _provider: "fudo" 
+    // Check global circuit breaker state for Fudo provider
+    const { data: globalCbState, error: cbError } = await supabase.rpc("cb_check_state", { 
+      _provider: "fudo",
+      _location_id: null // Global check
     });
 
     if (cbError) {
-      console.error("[ERROR] Failed to check circuit breaker state:", cbError);
+      console.error("[ERROR] Failed to check global circuit breaker state:", cbError);
       throw new Error(`Circuit breaker check failed: ${cbError.message}`);
     }
 
-    console.log(`[CB] Circuit breaker state: ${JSON.stringify(circuitState)}`);
+    console.log(`[CB GLOBAL] Circuit breaker state: ${JSON.stringify(globalCbState)}`);
 
-    if (!circuitState.allowed) {
-      console.warn(`[CB] Circuit breaker is ${circuitState.state}, skipping rotation`);
+    if (!globalCbState.allowed) {
+      console.warn(`[CB GLOBAL] Global circuit breaker is ${globalCbState.state}, skipping rotation`);
       return new Response(JSON.stringify({
         success: false,
-        message: `Circuit breaker is ${circuitState.state}`,
-        circuit_breaker: circuitState,
-        resume_at: circuitState.resume_at
+        message: `Global circuit breaker is ${globalCbState.state}`,
+        circuit_breaker: globalCbState,
+        resume_at: globalCbState.resume_at
       }), {
         status: 503,
         headers: { "Content-Type": "application/json" }
@@ -299,30 +326,51 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     // For half-open circuit breaker, test with only 1 location
-    const locationsToProcess = circuitState.test_mode ? 
+    const locationsToProcess = globalCbState.test_mode ? 
       expiringCreds.slice(0, 1) : expiringCreds;
 
-    if (circuitState.test_mode) {
+    if (globalCbState.test_mode) {
       console.log("[CB] Half-open mode: testing with 1 location only");
     }
 
     // Process each location
     for (const cred of locationsToProcess) {
+      // Check if we should stop due to heartbeat failure
+      if (shouldStop) {
+        console.warn(`[HEARTBEAT] Stopping rotation due to heartbeat failure`);
+        result.circuit_breaker_blocked = locationsToProcess.length - result.processed;
+        break;
+      }
+
       result.processed++;
       
+      // Check location-specific circuit breaker state
+      const { data: locationCbState } = await supabase.rpc("cb_check_state", { 
+        _provider: "fudo",
+        _location_id: cred.location_id
+      });
+
+      if (locationCbState && !locationCbState.allowed) {
+        console.warn(`[CB LOCATION] Location ${cred.location_id} circuit breaker is ${locationCbState.state}, skipping`);
+        result.circuit_breaker_blocked++;
+        continue;
+      }
+
       const attempt = await rotateTokenForLocation(cred.location_id, cred.secret_ref);
       result.attempts.push(attempt);
       
       if (attempt.success) {
         result.successes++;
         
-        // Record success with circuit breaker
-        const { error: cbSuccessError } = await supabase.rpc("cb_record_success", { 
-          _provider: "fudo" 
+        // Record success with both global and location-specific circuit breakers
+        await supabase.rpc("cb_record_success", { 
+          _provider: "fudo",
+          _location_id: null // Global
         });
-        if (cbSuccessError) {
-          console.error("[CB ERROR] Failed to record success:", cbSuccessError);
-        }
+        await supabase.rpc("cb_record_success", { 
+          _provider: "fudo", 
+          _location_id: cred.location_id // Location-specific
+        });
         
       } else {
         result.failures++;
@@ -333,14 +381,18 @@ const handler = async (req: Request): Promise<Response> => {
         );
         
         if (classification.shouldIncrementBreaker) {
-          // Record failure with circuit breaker
-          const { data: cbResult, error: cbFailError } = await supabase.rpc("cb_record_failure", { 
-            _provider: "fudo" 
+          // Record failure with both global and location-specific circuit breakers
+          const { data: globalCbResult } = await supabase.rpc("cb_record_failure", { 
+            _provider: "fudo",
+            _location_id: null // Global
           });
-          if (cbFailError) {
-            console.error("[CB ERROR] Failed to record failure:", cbFailError);
-          } else if (cbResult?.state === 'open') {
-            console.warn("[CB] Circuit breaker opened due to failures, stopping rotation");
+          await supabase.rpc("cb_record_failure", { 
+            _provider: "fudo", 
+            _location_id: cred.location_id // Location-specific
+          });
+          
+          if (globalCbResult?.state === 'open') {
+            console.warn("[CB GLOBAL] Global circuit breaker opened due to failures, stopping rotation");
             result.circuit_breaker_blocked = locationsToProcess.length - result.processed;
             break;
           }

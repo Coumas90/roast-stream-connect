@@ -1,30 +1,65 @@
-# POS Credentials Rotation - Cron Jobs & Manual Triggers
+# POS Credentials Rotation - Runbook Operacional "Bulletproof"
 
-Este documento describe la configuración y operación del sistema de rotación automática de credenciales POS.
+Este documento describe el setup, operación y troubleshooting del sistema automatizado de rotación de credenciales POS con arquitectura production-ready.
 
-## Configuración del Cron Job
+## 🔧 Configuración del Cron Job
 
-### Horario Programado
-- **Frecuencia**: Diario
-- **Hora**: 03:15 America/Argentina/Buenos_Aires (06:15 UTC)
-- **Cron Expression**: `15 6 * * *`
+### Horario y Configuración
+- **Función**: `pos-credentials-rotation`
+- **Frecuencia**: Diario a las 03:15 AM (hora Buenos Aires) / 06:15 UTC
+- **Expresión cron**: `15 6 * * *`
+- **Método**: HTTP POST
+- **Headers**: 
+  - `Content-Type: application/json`
+  - `X-Job-Token: <POS_SYNC_JOB_TOKEN>` (desde Vault)
+- **Body**: `{"scheduled": true, "timestamp": "...", "trigger": "cron"}`
 
-### Job Configurado en Supabase
+### Configuración Dinámica en Supabase
 ```sql
+-- Configuración con base URL dinámica y token desde Vault
 SELECT cron.schedule(
   'pos-credentials-rotation-daily',
   '15 6 * * *',
   $$
   SELECT net.http_post(
-    url:='https://ipjidjijilhpblxrnaeg.supabase.co/functions/v1/pos-credentials-rotation',
-    headers:='{"Content-Type": "application/json", "X-Job-Token": "' || current_setting('app.pos_sync_job_token') || '"}'::jsonb,
-    body:='{"timestamp": "' || now() || '"}'::jsonb
-  ) as request_id;
+    url := (SELECT value FROM app_settings WHERE key='edge_base_url') || '/functions/v1/pos-credentials-rotation',
+    headers := jsonb_build_object(
+      'Content-Type','application/json',
+      'X-Job-Token', vault.decrypted_secret('POS_SYNC_JOB_TOKEN')
+    ),
+    body := jsonb_build_object('scheduled', true, 'timestamp', now(), 'trigger', 'cron')
+  );
   $$
 );
 ```
 
-## Comandos Manuales
+## 🚀 Mejoras "Bulletproof" Implementadas
+
+### 1. Lease Lock System (Single Run Guarantee)
+- **Tipo**: Database lease lock con TTL
+- **TTL**: 15 minutos (900 segundos)
+- **Tabla**: `job_locks`
+- **Función**: `claim_job_lock()` / `release_job_lock()`
+- **Garantía**: Solo una ejecución simultánea real
+
+### 2. State Machine para Credenciales
+- **Estados**: `active` → `pending` → `rotating` → `rotated`/`failed`
+- **Campos**: `rotation_status`, `rotation_attempt_id`, `next_attempt_at`
+- **Backoff automático**: 1h → 4h → 12h → 24h (exponencial)
+- **Concurrencia**: `FOR UPDATE SKIP LOCKED`
+
+### 3. Configuración Dinámica
+- **Base URL**: `app_settings.edge_base_url`
+- **Token**: `vault.decrypted_secret('POS_SYNC_JOB_TOKEN')`
+- **Portabilidad**: No hardcode en SQL
+
+### 4. Observabilidad Avanzada
+- **Métricas**: `pos_rotation_metrics` por provider/location
+- **Job Run ID**: UUID único por ejecución
+- **Structured Logging**: Sin PII en respuestas
+- **Error Codes**: Para clasificación de fallos
+
+## 📋 Comandos Manuales
 
 ### Trigger Manual desde SQL
 ```sql
@@ -34,7 +69,6 @@ SELECT public.trigger_pos_credentials_rotation();
 
 ### Trigger Manual desde Edge Function
 ```bash
-# Desde terminal con curl
 curl -X POST \
   https://ipjidjijilhpblxrnaeg.supabase.co/functions/v1/pos-credentials-rotation \
   -H "Content-Type: application/json" \
@@ -42,163 +76,197 @@ curl -X POST \
   -d '{"timestamp": "2025-01-19T12:00:00Z", "trigger": "manual"}'
 ```
 
-### Verificar Jobs Activos
+### Verificar Jobs y Configuración
 ```sql
 -- Ver todos los cron jobs configurados
 SELECT * FROM cron.job;
 
--- Ver el job específico de rotación
-SELECT * FROM cron.job WHERE jobname = 'pos-credentials-rotation-daily';
+-- Ver configuración dinámica
+SELECT * FROM app_settings WHERE key = 'edge_base_url';
+
+-- Ver lease locks activos
+SELECT * FROM job_locks WHERE lease_until > now();
 ```
 
-## Lógica de Rotación
+## 🔄 Lógica de Rotación Avanzada
 
 ### Criterios de Elegibilidad
-1. **Status**: Solo credenciales con status = 'active'
+1. **Status**: `rotation_status IN ('active', 'failed')`
 2. **Expiración**: Credenciales que expiran en ≤ 7 días
-3. **Lock**: Sin rotación en las últimas 2 horas
+3. **Backoff**: `next_attempt_at IS NULL OR next_attempt_at <= now()`
+4. **Lease**: Lock de 15 minutos a nivel job
+5. **Row Lock**: `FOR UPDATE SKIP LOCKED` por credencial
 
-### Proceso de Rotación
-1. **Identificación**: Consulta `pos_credentials_expiring_soon(7)`
-2. **Lock Check**: Verifica `last_rotation_attempt_at` (timeout: 2h)
-3. **Marcado**: Ejecuta `mark_credential_for_rotation()`
-4. **Rotación**: Genera nuevas credenciales con el proveedor
-5. **Logging**: Registra resultado en `pos_logs`
+### Proceso de Rotación con State Machine
+1. **Lease Lock**: `claim_job_lock('pos-credentials-rotation', 900)`
+2. **Selección**: `pos_credentials_for_rotation(7)` con `SKIP LOCKED`
+3. **Estado**: `pending` → `rotating` → `rotated`/`failed`
+4. **Backoff**: Automático en fallos con error codes
+5. **Métricas**: Por attempt, success, failure, backoff
+6. **Release**: `release_job_lock()` en `finally`
 
-### Lock Mechanism
-- **Tipo**: Natural lock usando `last_rotation_attempt_at`
-- **Timeout**: 2 horas (7200 segundos)
-- **Propósito**: Evitar rotaciones simultáneas y solapamiento
+### Backoff Strategy (Exponential)
+- **Fallo 1**: 1 hora
+- **Fallo 2**: 4 horas  
+- **Fallo 3**: 12 horas
+- **Fallo 4+**: 24 horas máximo
 
-## Troubleshooting
+## 📊 Troubleshooting Avanzado
 
-### Verificar Ejecución del Cron
+### Verificar Ejecución del Job
 ```sql
--- Ver historial de ejecuciones
+-- Historial de ejecuciones del cron
 SELECT 
-  runid, 
-  jobid, 
-  start_time, 
-  end_time, 
-  status, 
-  return_message
+  runid, jobid, start_time, end_time, status, return_message
 FROM cron.job_run_details 
 WHERE jobid = (SELECT jobid FROM cron.job WHERE jobname = 'pos-credentials-rotation-daily')
-ORDER BY start_time DESC
-LIMIT 10;
+ORDER BY start_time DESC LIMIT 10;
+
+-- Ver lease locks recientes
+SELECT name, lease_until, holder, updated_at 
+FROM job_locks 
+ORDER BY updated_at DESC;
 ```
 
-### Verificar Logs de Rotación
+### Métricas y Logs Estructurados
 ```sql
--- Ver logs de rotación de credenciales
+-- Métricas por job run
 SELECT 
-  ts,
-  level,
-  message,
-  location_id,
-  provider,
-  meta
+  job_run_id,
+  metric_type,
+  COUNT(*) as count,
+  AVG(duration_ms) as avg_duration_ms
+FROM pos_rotation_metrics 
+WHERE recorded_at > now() - interval '7 days'
+GROUP BY job_run_id, metric_type
+ORDER BY job_run_id DESC;
+
+-- Logs de rotación (sin PII)
+SELECT ts, level, message, meta->>'job_run_id' as job_run_id
 FROM pos_logs 
 WHERE scope = 'credential_rotation'
-ORDER BY ts DESC
-LIMIT 20;
+ORDER BY ts DESC LIMIT 20;
 ```
 
-### Credenciales Pendientes de Rotación
+### Credenciales por Estado
 ```sql
--- Ver credenciales próximas a expirar
-SELECT * FROM pos_credentials_expiring_soon(7);
+-- Estado actual de credenciales
+SELECT 
+  rotation_status,
+  COUNT(*) as count,
+  AVG(consecutive_rotation_failures) as avg_failures
+FROM pos_credentials 
+GROUP BY rotation_status;
 
--- Ver credenciales con lock activo
+-- Credenciales en backoff
 SELECT 
   location_id,
   provider,
-  status,
-  last_rotation_attempt_at,
-  expires_at,
-  EXTRACT(EPOCH FROM (now() - last_rotation_attempt_at))/3600 as hours_since_last_attempt
+  rotation_status,
+  consecutive_rotation_failures,
+  next_attempt_at,
+  rotation_error_code,
+  EXTRACT(EPOCH FROM (next_attempt_at - now()))/3600 as hours_until_retry
 FROM pos_credentials 
-WHERE last_rotation_attempt_at > now() - interval '2 hours'
-ORDER BY last_rotation_attempt_at DESC;
+WHERE next_attempt_at > now()
+ORDER BY next_attempt_at;
 ```
 
-### Problemas Comunes
+## 🚨 Alerting y Monitoreo
 
-#### 1. Job no ejecuta
-- Verificar que `pg_cron` y `pg_net` estén habilitados
-- Verificar token `POS_SYNC_JOB_TOKEN` en secrets
-- Revisar logs de Supabase Edge Functions
+### Métricas Clave para Alertas
+1. **job_locked > 0**: Job no puede ejecutar (lease lock ocupado)
+2. **rotation_failure > 0**: Fallos en rotación
+3. **backoff_scheduled > 0**: Credenciales en backoff
+4. **credentials_near_expiry**: Sin rotar por 24h
 
-#### 2. Credenciales no rotan
-- Verificar que el proveedor esté disponible
-- Verificar permisos de ubicación
-- Revisar locks activos (timeout 2h)
+### Health Check Query
+```sql
+-- Health check completo
+SELECT 
+  'job_lock_health' as metric,
+  CASE WHEN COUNT(*) = 0 THEN 'ok' ELSE 'locked' END as status
+FROM job_locks WHERE lease_until > now()
+UNION ALL
+SELECT 
+  'credentials_health',
+  CASE WHEN COUNT(*) = 0 THEN 'ok' ELSE 'critical' END
+FROM pos_credentials 
+WHERE expires_at <= now() + interval '1 day' 
+  AND rotation_status != 'rotated';
+```
 
-#### 3. Fallos de autenticación
-- Verificar token `X-Job-Token` en headers
-- Verificar configuración de secrets en Supabase
+## 🔧 Operaciones Avanzadas
 
-## Métricas y Alertas
+### Pausar Rotaciones
+```sql
+-- Pausar por 1 hora (ej: durante mantenimiento)
+UPDATE pos_credentials 
+SET next_attempt_at = now() + interval '1 hour'
+WHERE rotation_status = 'active';
+```
 
-### Métricas Esperadas
-- **Total credenciales evaluadas**: Número de credenciales próximas a expirar
-- **Rotaciones exitosas**: Credenciales rotadas correctamente
-- **Skipped**: Credenciales omitidas (lock o status inactivo)
-- **Errores**: Fallos en rotación
+### Reprocesar Fallidos
+```sql
+-- Reset de credenciales fallidas para reintento inmediato
+UPDATE pos_credentials 
+SET rotation_status = 'active',
+    next_attempt_at = NULL,
+    consecutive_rotation_failures = 0
+WHERE rotation_status = 'failed';
+```
 
-### Response Format
+### Cleanup de Métricas Antiguas
+```sql
+-- Limpiar métricas > 30 días
+DELETE FROM pos_rotation_metrics 
+WHERE recorded_at < now() - interval '30 days';
+```
+
+## 🔐 Seguridad Endurecida
+
+### Autorización
+- **Cron Job**: Token validation en tiempo constante
+- **Manual Trigger**: Solo `is_tupa_admin()`
+- **Rate Limiting**: Ligero en Edge Function
+- **Content-Type**: Validación estricta
+
+### Auditoría Completa
+- **pos_logs**: Todas las operaciones (scope: `credential_rotation`)
+- **pos_rotation_metrics**: Métricas granulares por job/provider/location  
+- **No PII**: Responses sin location_id ni provider específicos
+- **Structured**: Logs con job_run_id para correlación
+
+### Configuración de Secrets
+```sql
+-- Rotar POS_SYNC_JOB_TOKEN
+-- 1. Generar nuevo token: openssl rand -hex 32
+-- 2. Actualizar en Supabase Secrets
+-- 3. El cron job usará automáticamente el nuevo token
+```
+
+## 📈 Métricas de Producción
+
+### Response Format (Sin PII)
 ```json
 {
   "success": true,
   "summary": {
     "total": 5,
     "rotated": 3,
-    "skipped": 1,
-    "errors": 1
-  },
-  "details": [
-    {
-      "location_id": "uuid",
-      "provider": "fudo",
-      "status": "rotated"
-    }
-  ]
+    "skipped": 0,
+    "errors": 2
+  }
+  // Note: details removed for security
 }
 ```
 
-## Rotación Manual de Tokens
-
-### Regenerar Job Token
-1. Generar nuevo token en Supabase Secrets
-2. Actualizar variable `POS_SYNC_JOB_TOKEN`
-3. El cron job usará automáticamente el nuevo token
-
-### Desactivar Temporalmente
-```sql
--- Desactivar el job
-SELECT cron.unschedule('pos-credentials-rotation-daily');
-
--- Reactivar el job
-SELECT cron.schedule(
-  'pos-credentials-rotation-daily',
-  '15 6 * * *',
-  $$ /* mismo SQL del job */ $$
-);
-```
-
-## Seguridad
-
-### Autorización
-- **Cron Job**: Autenticado por `X-Job-Token`
-- **Manual Trigger**: Solo `is_tupa_admin()`
-- **Logs**: Sin información sensible (PII)
-
-### Auditoría
-- Todas las operaciones se registran en `pos_logs`
-- Scope: `credential_rotation`
-- Incluye metadata de usuario y timestamp
-- Logs de acceso a credenciales en `security_audit`
+### KPIs Operacionales
+- **Success Rate**: > 95%
+- **Avg Duration**: < 30 segundos
+- **Lock Conflicts**: < 1%
+- **Backoff Rate**: < 10%
 
 ---
 
-**Nota**: Este sistema está diseñado para ser robusto y seguro. El lock mechanism previene ejecuciones simultáneas y el logging completo facilita la auditoría y troubleshooting.
+**🎯 Status**: Production-Ready con arquitectura bulletproof para single-run, state machine, observabilidad completa y seguridad endurecida.

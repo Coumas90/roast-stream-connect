@@ -287,6 +287,33 @@ export type Database = {
           },
         ]
       }
+      job_heartbeats: {
+        Row: {
+          created_at: string
+          job_name: string
+          last_run_at: string
+          metadata: Json | null
+          status: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          job_name: string
+          last_run_at?: string
+          metadata?: Json | null
+          status?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          job_name?: string
+          last_run_at?: string
+          metadata?: Json | null
+          status?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       job_locks: {
         Row: {
           holder: string
@@ -1351,6 +1378,10 @@ export type Database = {
       trigger_pos_credentials_rotation: {
         Args: Record<PropertyKey, never>
         Returns: Json
+      }
+      update_job_heartbeat: {
+        Args: { p_job_name: string; p_metadata?: Json; p_status?: string }
+        Returns: undefined
       }
       update_rotation_status: {
         Args: {

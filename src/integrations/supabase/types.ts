@@ -1157,6 +1157,10 @@ export type Database = {
           source: string
         }[]
       }
+      gc_pos_rotation_metrics_batched: {
+        Args: { _batch_size?: number; _retention_days?: number }
+        Returns: Json
+      }
       get_fudo_credentials_expiring: {
         Args: { _days_ahead?: number }
         Returns: {
@@ -1316,6 +1320,10 @@ export type Database = {
         }[]
       }
       run_pos_rotation: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
+      }
+      run_scheduled_gc: {
         Args: Record<PropertyKey, never>
         Returns: Json
       }

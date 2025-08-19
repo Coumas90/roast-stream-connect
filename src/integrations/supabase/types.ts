@@ -1190,6 +1190,21 @@ export type Database = {
           source: string
         }[]
       }
+      execute_atomic_rotation: {
+        Args: {
+          p_expires_at?: string
+          p_location_id: string
+          p_new_token_encrypted: string
+          p_provider: Database["public"]["Enums"]["app_pos_provider"]
+          p_rotation_id: string
+        }
+        Returns: {
+          is_idempotent: boolean
+          operation_result: string
+          rows_affected: number
+          token_id: string
+        }[]
+      }
       gc_pos_rotation_metrics_batched: {
         Args: { _batch_size?: number; _retention_days?: number }
         Returns: Json

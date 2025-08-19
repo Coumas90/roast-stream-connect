@@ -152,22 +152,16 @@ async function checkJobHeartbeats(supabase: any): Promise<HealthcheckResult> {
 
     result.unhealthy_jobs.push(unhealthyJob);
 
-    // Check if we should suppress alerts (circuit breaker)
-    // Only send alert if we haven't alerted for this job in the last 6 hours
-    const lastAlertKey = `alert_${job.job_name}`;
-    const { data: lastAlert } = await supabase
-      .from('job_heartbeats')
-      .select('metadata')
-      .eq('job_name', lastAlertKey)
-      .single();
-
-    const lastAlertTime = lastAlert?.metadata?.last_alert_sent;
-    const sixHoursAgo = Date.now() - 6 * 60 * 60 * 1000;
-
-    if (lastAlertTime && new Date(lastAlertTime).getTime() > sixHoursAgo) {
-      result.suppressed_alerts++;
-      console.log(`[ALERT] Suppressing alert for ${job.job_name} (already alerted within 6h)`);
-      continue;
+    // Check antispam: only send alert if we haven't alerted for this job in the last 6 hours
+    if (job.last_alert_at) {
+      const timeSinceLastAlert = Date.now() - new Date(job.last_alert_at).getTime();
+      const hoursSinceLastAlert = timeSinceLastAlert / (1000 * 60 * 60);
+      
+      if (hoursSinceLastAlert < 6) {
+        result.suppressed_alerts++;
+        console.log(`[ALERT] Suppressing alert for ${job.job_name} (last alert ${hoursSinceLastAlert.toFixed(1)}h ago)`);
+        continue;
+      }
     }
 
     // Send alerts
@@ -177,16 +171,11 @@ async function checkJobHeartbeats(supabase: any): Promise<HealthcheckResult> {
     if (slackSent || emailSent) {
       result.alerts_sent++;
       
-      // Record alert timestamp to prevent spam
-      await supabase.rpc('update_job_heartbeat', {
-        p_job_name: lastAlertKey,
-        p_status: 'alert_sent',
-        p_metadata: {
-          last_alert_sent: new Date().toISOString(),
-          alert_for_job: job.job_name,
-          channels_sent: { slack: slackSent, email: emailSent }
-        }
-      });
+      // Record alert timestamp in the last_alert_at column to prevent spam
+      await supabase
+        .from('job_heartbeats')
+        .update({ last_alert_at: new Date().toISOString() })
+        .eq('job_name', job.job_name);
     }
   }
 

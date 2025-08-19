@@ -291,6 +291,7 @@ export type Database = {
         Row: {
           created_at: string
           job_name: string
+          last_alert_at: string | null
           last_run_at: string
           metadata: Json | null
           status: string | null
@@ -299,6 +300,7 @@ export type Database = {
         Insert: {
           created_at?: string
           job_name: string
+          last_alert_at?: string | null
           last_run_at?: string
           metadata?: Json | null
           status?: string | null
@@ -307,6 +309,7 @@ export type Database = {
         Update: {
           created_at?: string
           job_name?: string
+          last_alert_at?: string | null
           last_run_at?: string
           metadata?: Json | null
           status?: string | null

@@ -516,6 +516,36 @@ const handler = async (req: Request): Promise<Response> => {
       });
     }
 
+    // ✅ Record heartbeat on successful completion
+    if (result.successes > 0 || result.total_candidates === 0) {
+      await supabase.rpc('update_job_heartbeat', {
+        p_job_name: 'fudo_rotate_token',
+        p_status: 'healthy',
+        p_metadata: {
+          last_execution: new Date().toISOString(),
+          total_candidates: result.total_candidates,
+          successes: result.successes,
+          failures: result.failures,
+          duration_ms: duration,
+          job_run_id: jobRunId
+        }
+      });
+      console.log('[HEARTBEAT] Recorded healthy heartbeat for fudo_rotate_token');
+    } else {
+      // Record unhealthy if all failed
+      await supabase.rpc('update_job_heartbeat', {
+        p_job_name: 'fudo_rotate_token', 
+        p_status: 'unhealthy',
+        p_metadata: {
+          last_execution: new Date().toISOString(),
+          total_failures: result.failures,
+          error_summary: 'All rotation attempts failed',
+          job_run_id: jobRunId
+        }
+      });
+      console.log('[HEARTBEAT] Recorded unhealthy heartbeat for fudo_rotate_token');
+    }
+
     return new Response(JSON.stringify({
       success: result.failures === 0,
       message: `Processed ${result.processed} locations, ${result.successes} successful rotations`,

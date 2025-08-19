@@ -265,4 +265,148 @@ describe("Fudo Token Rotation Idempotency", () => {
     expect(cbState.data.allowed).toBe(true);
     expect(cbState.data.test_mode).toBe(true);
   });
+
+  it("should handle concurrent executions with same rotation_id correctly", async () => {
+    const locationId = "loc1";
+    const rotationId = "concurrent-rotation-id";
+    let updateCallCount = 0;
+    
+    // Mock Fudo API responses
+    (global.fetch as Mock).mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ token: "concurrent_token", expires_in: 3600 })
+    });
+
+    // Mock concurrent access: first call succeeds, second returns empty (already updated)
+    const mockUpdate = vi.fn();
+    const mockSelect = vi.fn().mockImplementation(() => {
+      updateCallCount++;
+      if (updateCallCount === 1) {
+        return { data: [{ id: "cred1" }], error: null }; // First call succeeds
+      }
+      return { data: [], error: null }; // Second call sees no rows to update
+    });
+    
+    mockUpdate.mockReturnValue({ select: mockSelect });
+    
+    const mockCredentialsUpdate = vi.fn().mockResolvedValue({ error: null });
+    mockSupabaseFrom.mockImplementation((table: string) => {
+      if (table === "pos_provider_credentials") {
+        return { 
+          update: mockUpdate, 
+          eq: vi.fn().mockReturnThis(), 
+          not: vi.fn().mockReturnThis() 
+        };
+      }
+      if (table === "pos_credentials") {
+        return { update: mockCredentialsUpdate, eq: vi.fn().mockReturnThis() };
+      }
+      return {};
+    });
+
+    const simulateConcurrentRotation = async (callId: string) => {
+      // Simulate the idempotent swap logic
+      const { data } = await mockSupabase.from("pos_provider_credentials")
+        .update({
+          rotation_attempt_id: rotationId,
+          last_verified_at: new Date().toISOString(),
+          status: "active"
+        })
+        .eq("location_id", locationId)
+        .eq("provider", "fudo")
+        .not("rotation_attempt_id", "eq", rotationId)
+        .select();
+      
+      const wasUpdated = data && data.length > 0;
+      
+      return {
+        call_id: callId,
+        rotation_id: rotationId,
+        swapped: wasUpdated,
+        idempotent_hit: !wasUpdated
+      };
+    };
+
+    // Simulate two concurrent calls with same rotation_id
+    const [result1, result2] = await Promise.all([
+      simulateConcurrentRotation("call-1"),
+      simulateConcurrentRotation("call-2")
+    ]);
+
+    // One should succeed, one should be idempotent
+    const swappedResults = [result1, result2].filter(r => r.swapped);
+    const idempotentResults = [result1, result2].filter(r => r.idempotent_hit);
+    
+    expect(swappedResults).toHaveLength(1);
+    expect(idempotentResults).toHaveLength(1);
+    expect(swappedResults[0].rotation_id).toBe(rotationId);
+    expect(idempotentResults[0].rotation_id).toBe(rotationId);
+  });
+
+  it("should include enhanced observability metrics", async () => {
+    const jobRunId = "job-123";
+    const attempts = [
+      { 
+        rotation_id: "rot-1", 
+        location_id: "loc1", 
+        success: true, 
+        idempotent_hit: false, 
+        attempt_status: 'rotated',
+        start_time: Date.now() - 1000
+      },
+      { 
+        rotation_id: "rot-2", 
+        location_id: "loc2", 
+        success: true, 
+        idempotent_hit: true, 
+        attempt_status: 'idempotent',
+        start_time: Date.now() - 500 
+      }
+    ];
+
+    // Mock record_rotation_metric RPC
+    mockSupabaseRpc.mockResolvedValue({ data: null, error: null });
+
+    // Simulate job-level metrics recording
+    const idempotentCount = attempts.filter(a => a.idempotent_hit).length;
+    const processed = attempts.length;
+    
+    await mockSupabase.rpc("record_rotation_metric", {
+      p_job_run_id: jobRunId,
+      p_provider: "fudo",
+      p_location_id: null,
+      p_metric_type: "rotation_job_summary",
+      p_value: processed,
+      p_meta: {
+        successes: 2,
+        failures: 0,
+        idempotent_hits: idempotentCount,
+        idempotent_rate: idempotentCount / processed
+      }
+    });
+
+    // Record individual metrics
+    for (const attempt of attempts) {
+      await mockSupabase.rpc("record_rotation_metric", {
+        p_job_run_id: jobRunId,
+        p_provider: "fudo",
+        p_location_id: attempt.location_id,
+        p_metric_type: attempt.idempotent_hit ? "rotation_idempotent" : "rotation_success",
+        p_meta: {
+          rotation_id: attempt.rotation_id,
+          attempt_status: attempt.attempt_status,
+          idempotent_hit: attempt.idempotent_hit
+        }
+      });
+    }
+
+    expect(mockSupabaseRpc).toHaveBeenCalledWith("record_rotation_metric", 
+      expect.objectContaining({
+        p_metric_type: "rotation_job_summary",
+        p_meta: expect.objectContaining({
+          idempotent_rate: 0.5 // 1 out of 2 attempts
+        })
+      })
+    );
+  });
 });

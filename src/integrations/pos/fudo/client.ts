@@ -61,7 +61,9 @@ export class DefaultFudoClient implements FudoClient {
       if (!context.didRetry && this.isExpired401(fudoError)) {
         await fudoMetrics.increment('fudo.401_total', {
           location_id: locationId,
-          operation: context.operation
+          operation: context.operation,
+          didRetry: false,
+          reason: 'token_expired'
         });
 
         if (!locationId) {
@@ -73,7 +75,9 @@ export class DefaultFudoClient implements FudoClient {
         if (!canRotate) {
           await fudoMetrics.increment('fudo.401_failed_circuit_open', {
             location_id: locationId,
-            operation: context.operation
+            operation: context.operation,
+            didRetry: false,
+            reason: 'circuit_breaker_open'
           });
           throw this.wrapFudoError(fudoError, 'Circuit breaker open, rotation blocked');
         }
@@ -92,18 +96,29 @@ export class DefaultFudoClient implements FudoClient {
           await refreshPromise;
           await fudoMetrics.increment('fudo.401_recovered_attempt', {
             location_id: locationId,
-            operation: context.operation
+            operation: context.operation,
+            rotation_id: crypto.randomUUID(),
+            didRetry: false
           });
 
           // Retry the original operation once
-          return await this.callWithRetry(operation, {
+          const result = await this.callWithRetry(operation, {
             ...context,
             didRetry: true
           });
+
+          await fudoMetrics.increment('fudo.401_recovered', {
+            location_id: locationId,
+            operation: context.operation,
+            didRetry: true
+          });
+
+          return result;
         } catch (rotationError) {
           await fudoMetrics.increment('fudo.rotate_ondemand_failed', {
             location_id: locationId,
-            error: (rotationError as Error).message
+            error: (rotationError as Error).message,
+            didRetry: false
           });
           throw this.wrapFudoError(fudoError, 'Token rotation failed');
         }
@@ -115,7 +130,27 @@ export class DefaultFudoClient implements FudoClient {
           location_id: locationId,
           operation: context.operation,
           error_status: fudoError.status,
-          error_code: fudoError.code
+          error_code: fudoError.code,
+          didRetry: true,
+          reason: this.isExpired401(fudoError) ? 'still_expired_after_rotation' : 'permission_error'
+        });
+
+        // If second attempt also fails with 401, open circuit breaker
+        if (this.isExpired401(fudoError)) {
+          await supabase.rpc('cb_record_failure', {
+            _provider: 'fudo',
+            _location_id: locationId
+          });
+        }
+      } else if (fudoError.status === 401 && !this.isExpired401(fudoError)) {
+        // 401 but not token expiration (e.g., permission error)
+        await fudoMetrics.increment('fudo.401_permission_error', {
+          location_id: locationId,
+          operation: context.operation,
+          error_status: fudoError.status,
+          error_code: fudoError.code,
+          didRetry: false,
+          reason: 'permission_denied'
         });
       }
 
@@ -176,7 +211,7 @@ export class DefaultFudoClient implements FudoClient {
   }
 
   /**
-   * Perform on-demand token rotation using existing atomic rotation RPC
+   * Perform on-demand token rotation using the correct internal endpoint
    */
   private async rotateOnDemand(locationId: string): Promise<void> {
     const rotationId = crypto.randomUUID();
@@ -188,34 +223,23 @@ export class DefaultFudoClient implements FudoClient {
         rotation_id: rotationId
       });
 
-      // Generate new token (placeholder - real implementation would call Fudo API)
-      const newTokenEncrypted = await this.generateNewToken();
-
-      // Use existing atomic rotation RPC
-      const { data, error } = await supabase.rpc('execute_atomic_rotation', {
-        p_location_id: locationId,
-        p_provider: 'fudo',
-        p_rotation_id: rotationId,
-        p_new_token_encrypted: newTokenEncrypted,
-        p_expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() // 30 days
-      });
+      // Call internal rotation endpoint with explicit timeout and retry
+      const { data, error } = await this.callRotationEndpoint(locationId, rotationId);
 
       if (error) {
-        throw new Error(`Atomic rotation failed: ${error.message}`);
+        throw new Error(`Token rotation failed: ${error.message}`);
       }
 
       const duration = Date.now() - startTime;
-      const isIdempotent = data?.[0]?.is_idempotent === true;
+      const isIdempotent = data?.operation_result === 'idempotent';
 
       await fudoMetrics.increment('fudo.rotate_ondemand_success', {
         location_id: locationId,
         rotation_id: rotationId,
         duration_ms: duration,
-        idempotent: isIdempotent
+        idempotent: isIdempotent,
+        didRetry: false
       });
-
-      // Update local config with new token (in real implementation)
-      // this.cfg.apiKey = newToken;
 
     } catch (error) {
       const duration = Date.now() - startTime;
@@ -223,20 +247,63 @@ export class DefaultFudoClient implements FudoClient {
         location_id: locationId,
         rotation_id: rotationId,
         duration_ms: duration,
-        error: (error as Error).message
+        error: (error as Error).message,
+        didRetry: false
       });
       throw error;
     }
   }
 
   /**
-   * Generate new token (placeholder for real Fudo API integration)
+   * Call the internal pos-credentials-rotation endpoint with timeout and retry
    */
-  private async generateNewToken(): Promise<string> {
-    // Placeholder: real implementation would call Fudo API to refresh token
-    // For now, return a dummy encrypted token
-    return `encrypted_token_${Date.now()}_${Math.random()}`;
+  private async callRotationEndpoint(locationId: string, rotationId: string, retryCount = 0): Promise<{ data?: any; error?: any }> {
+    const maxRetries = 1;
+    const timeoutMs = 8000; // 8 second timeout
+    const backoffMs = 2000; // 2 second backoff
+
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+      const { data, error } = await supabase.functions.invoke('pos-credentials-rotation', {
+        body: {
+          location_id: locationId,
+          provider: 'fudo',
+          rotation_id: rotationId,
+          mode: 'single-location'
+        },
+        // @ts-ignore - AbortController signal is supported but not in types
+        signal: controller.signal
+      });
+
+      clearTimeout(timeoutId);
+
+      if (error) {
+        throw new Error(error.message || 'Unknown rotation error');
+      }
+
+      return { data };
+    } catch (error) {
+      if (retryCount < maxRetries && !this.isPermissionError(error as Error)) {
+        await new Promise(resolve => setTimeout(resolve, backoffMs));
+        return this.callRotationEndpoint(locationId, rotationId, retryCount + 1);
+      }
+      return { error };
+    }
   }
+
+  /**
+   * Check if error is related to permissions rather than network/timeout
+   */
+  private isPermissionError(error: Error): boolean {
+    const message = error.message?.toLowerCase() || '';
+    return message.includes('permission') || 
+           message.includes('forbidden') || 
+           message.includes('unauthorized') ||
+           message.includes('access denied');
+  }
+
 
   /**
    * Wrap Fudo errors with clear messaging and context

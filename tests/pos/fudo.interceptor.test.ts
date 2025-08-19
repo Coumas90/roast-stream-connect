@@ -1,26 +1,36 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { DefaultFudoClient } from "../../src/integrations/pos/fudo/client";
 import type { POSConfig } from "../../sdk/pos";
-import { fudoMetrics } from "../../src/integrations/pos/fudo/metrics";
 
-// Mock Supabase
-const mockSupabase = {
-  rpc: vi.fn(),
-  from: vi.fn(() => ({
-    insert: vi.fn()
-  }))
+// Mock Supabase client
+const mockSupabaseRpc = vi.fn();
+const mockSupabaseFunctions = {
+  invoke: vi.fn()
 };
 
 vi.mock("@/integrations/supabase/client", () => ({
-  supabase: mockSupabase
-}));
-
-// Mock metrics
-vi.mock("../../src/integrations/pos/fudo/metrics", () => ({
-  fudoMetrics: {
-    increment: vi.fn().mockResolvedValue(undefined)
+  supabase: {
+    rpc: mockSupabaseRpc,
+    functions: mockSupabaseFunctions
   }
 }));
+
+// Mock fudoMetrics
+const mockFudoMetrics = {
+  increment: vi.fn().mockResolvedValue(undefined)
+};
+
+vi.mock("../../src/integrations/pos/fudo/metrics", () => ({
+  fudoMetrics: mockFudoMetrics
+}));
+
+// Mock crypto.randomUUID
+Object.defineProperty(global, 'crypto', {
+  value: {
+    randomUUID: () => 'test-rotation-id-123'
+  },
+  writable: true
+});
 
 describe("Fudo Interceptor 401 + Retry", () => {
   let client: DefaultFudoClient;
@@ -31,7 +41,7 @@ describe("Fudo Interceptor 401 + Retry", () => {
     config = {
       provider: "fudo",
       apiKey: "test-key",
-      locationId: "loc-123"
+      locationId: "test-location"
     };
     client = new DefaultFudoClient(config);
   });
@@ -41,88 +51,131 @@ describe("Fudo Interceptor 401 + Retry", () => {
   });
 
   it("should handle expired 401 and rotate token once", async () => {
-    // Mock circuit breaker as closed (allows rotation)
-    mockSupabase.rpc.mockImplementation((fn, params) => {
-      if (fn === 'cb_check_state') {
-        return Promise.resolve({ data: { allowed: true }, error: null });
-      }
-      if (fn === 'execute_atomic_rotation') {
-        return Promise.resolve({ 
-          data: [{ operation_result: 'rotated', is_idempotent: false }], 
-          error: null 
-        });
-      }
-      return Promise.resolve({ data: null, error: null });
+    // Setup: circuit breaker allows rotation
+    mockSupabaseRpc.mockResolvedValueOnce({
+      data: { allowed: true },
+      error: null
     });
 
+    // Setup: rotation endpoint succeeds
+    mockSupabaseFunctions.invoke.mockResolvedValueOnce({
+      data: { operation_result: 'rotated', rows_affected: 1, token_id: 'test-id' },
+      error: null
+    });
+
+    // Create client that will throw 401 first, then succeed
     let callCount = 0;
-    const mockFetchSales = vi.fn(async () => {
+    const mockOperation = vi.fn().mockImplementation(() => {
       callCount++;
       if (callCount === 1) {
-        // First call: throw 401 expired token error
         const error: any = new Error('Token expired');
         error.status = 401;
         error.code = 'TOKEN_EXPIRED';
         throw error;
       }
-      // Second call: success after rotation
-      return { data: [{ id: "sale1", total: 10 }], nextCursor: undefined };
-    });
-
-    // Replace the actual fetchSales implementation
-    (client as any).callWithRetry = async function<T>(
-      operation: () => Promise<T>,
-      context: { operation: string; params?: any; didRetry?: boolean }
-    ): Promise<T> {
-      if (context.operation === 'fetchSales') {
-        return mockFetchSales() as T;
-      }
-      return operation();
-    };
-
-    const result = await client.fetchSales({ from: "2024-01-01", to: "2024-01-02" });
-
-    expect(result).toEqual({ data: [{ id: "sale1", total: 10 }], nextCursor: undefined });
-    expect(callCount).toBe(2); // First call fails, second succeeds
-    expect(mockSupabase.rpc).toHaveBeenCalledWith('cb_check_state', {
-      _provider: 'fudo',
-      _location_id: 'loc-123'
-    });
-    expect(mockSupabase.rpc).toHaveBeenCalledWith('execute_atomic_rotation', expect.objectContaining({
-      p_location_id: 'loc-123',
-      p_provider: 'fudo'
-    }));
-  });
-
-  it("should not retry for permission errors (403)", async () => {
-    let callCount = 0;
-    const mockOperation = vi.fn(async () => {
-      callCount++;
-      const error: any = new Error('Insufficient permissions');
-      error.status = 403;
-      throw error;
+      return { data: ['success'] };
     });
 
     // Access the private method for testing
     const callWithRetry = (client as any).callWithRetry.bind(client);
+    const result = await callWithRetry(mockOperation, { operation: 'fetchSales' });
 
-    await expect(callWithRetry(mockOperation, { operation: 'test' })).rejects.toThrow('Insufficient permissions');
-    expect(callCount).toBe(1); // Should not retry
-    expect(mockSupabase.rpc).not.toHaveBeenCalled(); // No rotation attempted
+    expect(result).toEqual({ data: ['success'] });
+    expect(mockOperation).toHaveBeenCalledTimes(2);
+    
+    // Verify circuit breaker was checked
+    expect(mockSupabaseRpc).toHaveBeenCalledWith('cb_check_state', {
+      _provider: 'fudo',
+      _location_id: 'test-location'
+    });
+
+    // Verify rotation endpoint was called correctly
+    expect(mockSupabaseFunctions.invoke).toHaveBeenCalledWith('pos-credentials-rotation', {
+      body: {
+        location_id: 'test-location',
+        provider: 'fudo',
+        rotation_id: 'test-rotation-id-123',
+        mode: 'single-location'
+      },
+      signal: expect.any(AbortSignal)
+    });
+
+    // Verify metrics include proper attributes
+    expect(mockFudoMetrics.increment).toHaveBeenCalledWith('fudo.401_total', {
+      location_id: 'test-location',
+      operation: 'fetchSales',
+      didRetry: false,
+      reason: 'token_expired'
+    });
+
+    expect(mockFudoMetrics.increment).toHaveBeenCalledWith('fudo.rotate_ondemand_success', {
+      location_id: 'test-location',
+      rotation_id: 'test-rotation-id-123',
+      duration_ms: expect.any(Number),
+      idempotent: false,
+      didRetry: false
+    });
+
+    expect(mockFudoMetrics.increment).toHaveBeenCalledWith('fudo.401_recovered', {
+      location_id: 'test-location',
+      operation: 'fetchSales',
+      didRetry: true
+    });
+  });
+
+  it("should not retry for permission errors (403)", async () => {
+    const mockOperation = vi.fn().mockImplementation(() => {
+      const error: any = new Error('Insufficient permissions');
+      error.status = 403;
+      error.code = 'FORBIDDEN';
+      throw error;
+    });
+
+    const callWithRetry = (client as any).callWithRetry.bind(client);
+    await expect(callWithRetry(mockOperation, { operation: 'fetchSales' }))
+      .rejects.toThrow('Insufficient permissions for this operation');
+
+    expect(mockOperation).toHaveBeenCalledTimes(1);
+    expect(mockSupabaseRpc).not.toHaveBeenCalled();
+    expect(mockSupabaseFunctions.invoke).not.toHaveBeenCalled();
+    expect(mockFudoMetrics.increment).not.toHaveBeenCalledWith('fudo.401_total', expect.any(Object));
+  });
+
+  it("should handle 401 permission errors without rotation", async () => {
+    const mockOperation = vi.fn().mockImplementation(() => {
+      const error: any = new Error('Access denied to tenant');
+      error.status = 401;
+      error.code = 'ACCESS_DENIED';
+      throw error;
+    });
+
+    const callWithRetry = (client as any).callWithRetry.bind(client);
+    await expect(callWithRetry(mockOperation, { operation: 'fetchSales' }))
+      .rejects.toThrow('Authentication failed');
+
+    expect(mockOperation).toHaveBeenCalledTimes(1);
+    expect(mockSupabaseRpc).not.toHaveBeenCalled();
+    expect(mockSupabaseFunctions.invoke).not.toHaveBeenCalled();
+    
+    // Should log permission error metric
+    expect(mockFudoMetrics.increment).toHaveBeenCalledWith('fudo.401_permission_error', {
+      location_id: 'test-location',
+      operation: 'fetchSales',
+      error_status: 401,
+      error_code: 'ACCESS_DENIED',
+      didRetry: false,
+      reason: 'permission_denied'
+    });
   });
 
   it("should not retry when circuit breaker is open", async () => {
-    // Mock circuit breaker as open (blocks rotation)
-    mockSupabase.rpc.mockImplementation((fn) => {
-      if (fn === 'cb_check_state') {
-        return Promise.resolve({ data: { allowed: false, state: 'open' }, error: null });
-      }
-      return Promise.resolve({ data: null, error: null });
+    // Setup: circuit breaker blocks rotation
+    mockSupabaseRpc.mockResolvedValueOnce({
+      data: { allowed: false, state: 'open' },
+      error: null
     });
 
-    let callCount = 0;
-    const mockOperation = vi.fn(async () => {
-      callCount++;
+    const mockOperation = vi.fn().mockImplementation(() => {
       const error: any = new Error('Token expired');
       error.status = 401;
       error.code = 'TOKEN_EXPIRED';
@@ -130,88 +183,195 @@ describe("Fudo Interceptor 401 + Retry", () => {
     });
 
     const callWithRetry = (client as any).callWithRetry.bind(client);
+    await expect(callWithRetry(mockOperation, { operation: 'fetchSales' }))
+      .rejects.toThrow('Circuit breaker open, rotation blocked');
 
-    await expect(callWithRetry(mockOperation, { operation: 'test' })).rejects.toThrow('Circuit breaker open');
-    expect(callCount).toBe(1); // Should not retry
-    expect(fudoMetrics.increment).toHaveBeenCalledWith('fudo.401_failed_circuit_open', expect.any(Object));
+    expect(mockOperation).toHaveBeenCalledTimes(1);
+    expect(mockSupabaseFunctions.invoke).not.toHaveBeenCalled();
+    
+    expect(mockFudoMetrics.increment).toHaveBeenCalledWith('fudo.401_failed_circuit_open', {
+      location_id: 'test-location',
+      operation: 'fetchSales',
+      didRetry: false,
+      reason: 'circuit_breaker_open'
+    });
   });
 
   it("should only attempt rotation once per location (deduplication)", async () => {
-    // Mock circuit breaker as closed
-    mockSupabase.rpc.mockImplementation((fn) => {
-      if (fn === 'cb_check_state') {
-        return Promise.resolve({ data: { allowed: true }, error: null });
-      }
-      if (fn === 'execute_atomic_rotation') {
-        // Simulate slow rotation
-        return new Promise(resolve => {
-          setTimeout(() => {
-            resolve({ data: [{ operation_result: 'rotated' }], error: null });
-          }, 100);
-        });
-      }
-      return Promise.resolve({ data: null, error: null });
+    // Setup: circuit breaker allows rotation
+    mockSupabaseRpc.mockResolvedValue({
+      data: { allowed: true },
+      error: null
     });
 
-    const mockOperation = vi.fn(async () => {
-      const error: any = new Error('Token expired');
-      error.status = 401;
-      error.code = 'TOKEN_EXPIRED';
-      throw error;
-    });
-
-    const callWithRetry = (client as any).callWithRetry.bind(client);
-
-    // Start two concurrent operations that both encounter 401
-    const promises = [
-      callWithRetry(mockOperation, { operation: 'test1' }).catch(() => 'failed1'),
-      callWithRetry(mockOperation, { operation: 'test2' }).catch(() => 'failed2')
-    ];
-
-    await Promise.all(promises);
-
-    // Should only call execute_atomic_rotation once due to deduplication
-    const rotationCalls = mockSupabase.rpc.mock.calls.filter(call => call[0] === 'execute_atomic_rotation');
-    expect(rotationCalls.length).toBe(1);
-  });
-
-  it("should log comprehensive metrics for all scenarios", async () => {
-    // Mock circuit breaker as closed
-    mockSupabase.rpc.mockImplementation((fn) => {
-      if (fn === 'cb_check_state') {
-        return Promise.resolve({ data: { allowed: true }, error: null });
-      }
-      if (fn === 'execute_atomic_rotation') {
-        return Promise.resolve({ data: [{ operation_result: 'rotated' }], error: null });
-      }
-      return Promise.resolve({ data: null, error: null });
+    // Setup: rotation endpoint succeeds (called only once due to deduplication)
+    mockSupabaseFunctions.invoke.mockResolvedValue({
+      data: { operation_result: 'rotated', rows_affected: 1, token_id: 'test-id' },
+      error: null
     });
 
     let callCount = 0;
-    const mockOperation = vi.fn(async () => {
+    const mockOperation = vi.fn().mockImplementation(() => {
       callCount++;
-      if (callCount <= 2) {
-        // Both calls fail to test failed_after_retry
+      if (callCount <= 2) { // First two calls fail with 401
         const error: any = new Error('Token expired');
         error.status = 401;
         error.code = 'TOKEN_EXPIRED';
         throw error;
       }
-      return "success";
+      return { data: ['success'] };
+    });
+
+    // Make two concurrent requests
+    const callWithRetry = (client as any).callWithRetry.bind(client);
+    const [result1, result2] = await Promise.all([
+      callWithRetry(mockOperation, { operation: 'fetchSales' }),
+      callWithRetry(mockOperation, { operation: 'fetchSales' })
+    ]);
+
+    expect(result1).toEqual({ data: ['success'] });
+    expect(result2).toEqual({ data: ['success'] });
+    
+    // Should only call rotation endpoint once even with concurrent 401s
+    expect(mockSupabaseFunctions.invoke).toHaveBeenCalledTimes(1);
+    expect(mockSupabaseFunctions.invoke).toHaveBeenCalledWith('pos-credentials-rotation', expect.objectContaining({
+      body: expect.objectContaining({
+        location_id: 'test-location',
+        provider: 'fudo',
+        mode: 'single-location'
+      })
+    }));
+  });
+
+  it("should handle rotation timeout and open circuit breaker", async () => {
+    // Setup: circuit breaker allows rotation initially
+    mockSupabaseRpc.mockResolvedValueOnce({
+      data: { allowed: true },
+      error: null
+    });
+
+    // Setup: rotation endpoint times out
+    mockSupabaseFunctions.invoke.mockRejectedValueOnce(new Error('Request timeout'));
+
+    const mockOperation = vi.fn().mockImplementation(() => {
+      const error: any = new Error('Token expired');
+      error.status = 401;
+      error.code = 'TOKEN_EXPIRED';
+      throw error;
     });
 
     const callWithRetry = (client as any).callWithRetry.bind(client);
+    await expect(callWithRetry(mockOperation, { operation: 'fetchSales' }))
+      .rejects.toThrow('Token rotation failed');
 
-    await expect(callWithRetry(mockOperation, { operation: 'test' })).rejects.toThrow();
+    expect(mockOperation).toHaveBeenCalledTimes(1);
+    
+    // Verify failure metrics
+    expect(mockFudoMetrics.increment).toHaveBeenCalledWith('fudo.rotate_ondemand_failed', {
+      location_id: 'test-location',
+      rotation_id: 'test-rotation-id-123',
+      duration_ms: expect.any(Number),
+      error: 'Token rotation failed: Request timeout',
+      didRetry: false
+    });
+  });
 
-    // Verify metrics were logged
-    expect(fudoMetrics.increment).toHaveBeenCalledWith('fudo.401_total', expect.objectContaining({
-      location_id: 'loc-123',
-      operation: 'test'
-    }));
-    expect(fudoMetrics.increment).toHaveBeenCalledWith('fudo.401_failed_after_retry', expect.objectContaining({
-      location_id: 'loc-123',
-      operation: 'test'
-    }));
+  it("should open circuit breaker on second 401 failure", async () => {
+    // Setup: circuit breaker allows rotation
+    mockSupabaseRpc.mockResolvedValueOnce({
+      data: { allowed: true },
+      error: null
+    });
+
+    // Setup: rotation succeeds but second attempt still fails
+    mockSupabaseFunctions.invoke.mockResolvedValueOnce({
+      data: { operation_result: 'rotated', rows_affected: 1, token_id: 'test-id' },
+      error: null
+    });
+
+    // Setup: circuit breaker failure recording
+    mockSupabaseRpc.mockResolvedValueOnce({
+      data: { state: 'open' },
+      error: null
+    });
+
+    const mockOperation = vi.fn().mockImplementation(() => {
+      const error: any = new Error('Token expired');
+      error.status = 401;
+      error.code = 'TOKEN_EXPIRED';
+      throw error;
+    });
+
+    const callWithRetry = (client as any).callWithRetry.bind(client);
+    await expect(callWithRetry(mockOperation, { operation: 'fetchSales' }))
+      .rejects.toThrow('Authentication failed');
+
+    // Verify circuit breaker failure was recorded after second 401
+    expect(mockSupabaseRpc).toHaveBeenCalledWith('cb_record_failure', {
+      _provider: 'fudo',
+      _location_id: 'test-location'
+    });
+
+    // Verify second failure metrics
+    expect(mockFudoMetrics.increment).toHaveBeenCalledWith('fudo.401_failed_after_retry', {
+      location_id: 'test-location',
+      operation: 'fetchSales',
+      error_status: 401,
+      error_code: 'TOKEN_EXPIRED',
+      didRetry: true,
+      reason: 'still_expired_after_rotation'
+    });
+  });
+
+  it("should log comprehensive metrics for all scenarios", async () => {
+    // Test successful recovery
+    mockSupabaseRpc.mockResolvedValueOnce({ data: { allowed: true }, error: null });
+    mockSupabaseFunctions.invoke.mockResolvedValueOnce({
+      data: { operation_result: 'rotated', rows_affected: 1, token_id: 'test-id' },
+      error: null
+    });
+
+    let callCount = 0;
+    const mockOperation = vi.fn().mockImplementation(() => {
+      callCount++;
+      if (callCount === 1) {
+        const error: any = new Error('Token expired');
+        error.status = 401;
+        error.code = 'TOKEN_EXPIRED';
+        throw error;
+      }
+      return { data: ['success'] };
+    });
+
+    const callWithRetry = (client as any).callWithRetry.bind(client);
+    await callWithRetry(mockOperation, { operation: 'fetchSales' });
+
+    // Verify comprehensive metrics were logged with proper attributes
+    expect(mockFudoMetrics.increment).toHaveBeenCalledWith('fudo.401_total', {
+      location_id: 'test-location',
+      operation: 'fetchSales',
+      didRetry: false,
+      reason: 'token_expired'
+    });
+    
+    expect(mockFudoMetrics.increment).toHaveBeenCalledWith('fudo.rotate_ondemand_attempt', {
+      location_id: 'test-location',
+      rotation_id: 'test-rotation-id-123'
+    });
+    
+    expect(mockFudoMetrics.increment).toHaveBeenCalledWith('fudo.401_recovered_attempt', {
+      location_id: 'test-location',
+      operation: 'fetchSales',
+      rotation_id: 'test-rotation-id-123',
+      didRetry: false
+    });
+    
+    expect(mockFudoMetrics.increment).toHaveBeenCalledWith('fudo.rotate_ondemand_success', {
+      location_id: 'test-location',
+      rotation_id: 'test-rotation-id-123',
+      duration_ms: expect.any(Number),
+      idempotent: false,
+      didRetry: false
+    });
   });
 });

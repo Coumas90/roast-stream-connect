@@ -925,6 +925,36 @@ export type Database = {
           },
         ]
       }
+      rotation_cb: {
+        Row: {
+          created_at: string
+          failures: number
+          provider: Database["public"]["Enums"]["app_pos_provider"]
+          resume_at: string | null
+          state: string
+          updated_at: string
+          window_start: string
+        }
+        Insert: {
+          created_at?: string
+          failures?: number
+          provider: Database["public"]["Enums"]["app_pos_provider"]
+          resume_at?: string | null
+          state?: string
+          updated_at?: string
+          window_start?: string
+        }
+        Update: {
+          created_at?: string
+          failures?: number
+          provider?: Database["public"]["Enums"]["app_pos_provider"]
+          resume_at?: string | null
+          state?: string
+          updated_at?: string
+          window_start?: string
+        }
+        Relationships: []
+      }
       stock_ledger: {
         Row: {
           id: string
@@ -1054,6 +1084,18 @@ export type Database = {
         }
         Returns: undefined
       }
+      cb_check_state: {
+        Args: { _provider: Database["public"]["Enums"]["app_pos_provider"] }
+        Returns: Json
+      }
+      cb_record_failure: {
+        Args: { _provider: Database["public"]["Enums"]["app_pos_provider"] }
+        Returns: Json
+      }
+      cb_record_success: {
+        Args: { _provider: Database["public"]["Enums"]["app_pos_provider"] }
+        Returns: Json
+      }
       claim_job_lock: {
         Args: { p_name: string; p_ttl_seconds: number }
         Returns: {
@@ -1092,6 +1134,15 @@ export type Database = {
           connected: boolean
           provider: Database["public"]["Enums"]["app_pos_provider"]
           source: string
+        }[]
+      }
+      get_fudo_credentials_expiring: {
+        Args: { _days_ahead?: number }
+        Returns: {
+          days_until_expiry: number
+          expires_at: string
+          location_id: string
+          secret_ref: string
         }[]
       }
       get_pos_credentials_safe: {

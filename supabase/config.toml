@@ -29,3 +29,9 @@ verify_jwt = false
 
 [functions.pos-sync-ui]
 verify_jwt = true
+
+[functions.fudo-rotate-token]
+verify_jwt = false
+
+[functions.pos-credentials-rotation]
+verify_jwt = false

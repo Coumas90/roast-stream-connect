@@ -1218,6 +1218,10 @@ export type Database = {
         Args: { p_holder: string; p_name: string }
         Returns: boolean
       }
+      renew_job_lock: {
+        Args: { p_holder: string; p_name: string; p_ttl_seconds: number }
+        Returns: boolean
+      }
       revoke_invitation: {
         Args: { _invitation_id: string }
         Returns: undefined
@@ -1238,6 +1242,10 @@ export type Database = {
           id: string
           token: string
         }[]
+      }
+      run_pos_rotation: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
       }
       set_pos_location: {
         Args: {

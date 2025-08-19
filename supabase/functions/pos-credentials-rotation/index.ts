@@ -8,6 +8,7 @@ const JOB_TOKEN = Deno.env.get("POS_SYNC_JOB_TOKEN")!;
 // Lease lock timeout: 15 minutes (900 seconds)
 const LEASE_LOCK_TTL_SECONDS = 900;
 const LOCK_NAME = 'pos-credentials-rotation';
+const HEARTBEAT_INTERVAL_MS = 450000; // 7.5 minutes (TTL * 0.5)
 
 function json(res: unknown, init: number | ResponseInit = 200) {
   const headers = { "Content-Type": "application/json" };
@@ -195,6 +196,25 @@ async function handleCredentialsRotation(req: Request): Promise<Response> {
   const lockHolder = claim[0].holder;
   console.log(`Acquired lease lock: ${lockHolder}`);
 
+  // Start heartbeat to prevent lock expiry during long rotations
+  const heartbeatInterval = setInterval(async () => {
+    try {
+      const renewed = await svc.rpc('renew_job_lock', {
+        p_name: LOCK_NAME,
+        p_holder: lockHolder,
+        p_ttl_seconds: LEASE_LOCK_TTL_SECONDS
+      });
+      
+      if (renewed?.data) {
+        console.log(`Lease lock renewed: ${lockHolder}`);
+      } else {
+        console.warn(`Failed to renew lease lock: ${lockHolder}`);
+      }
+    } catch (error) {
+      console.error("Heartbeat error:", error);
+    }
+  }, HEARTBEAT_INTERVAL_MS);
+
   try {
     // Get credentials that need rotation with FOR UPDATE SKIP LOCKED
     const credentials = await getCredentialsForRotation(svc);
@@ -303,6 +323,9 @@ async function handleCredentialsRotation(req: Request): Promise<Response> {
     }, 500);
 
   } finally {
+    // Clear heartbeat interval
+    clearInterval(heartbeatInterval);
+    
     // 2) ALWAYS RELEASE LEASE LOCK
     const { error: releaseError } = await svc.rpc('release_job_lock', { 
       p_name: LOCK_NAME, 
@@ -317,4 +340,12 @@ async function handleCredentialsRotation(req: Request): Promise<Response> {
   }
 }
 
-Deno.serve(withCORS(handleCredentialsRotation));
+// Enhanced CORS configuration - no wildcard origins, strict validation
+const ALLOWED_ORIGINS = Deno.env.get("ALLOWED_ORIGINS")?.split(",") || [];
+
+Deno.serve(withCORS(handleCredentialsRotation, {
+  allowlist: ALLOWED_ORIGINS,
+  allowMethods: ["POST", "OPTIONS"],
+  allowHeaders: ["Content-Type", "X-Job-Token"],
+  credentials: false
+}));

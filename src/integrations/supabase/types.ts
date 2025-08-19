@@ -1210,10 +1210,13 @@ export type Database = {
         Returns: Json
       }
       get_fudo_credentials_expiring: {
-        Args: { _days_ahead?: number }
+        Args:
+          | { _days_ahead?: number }
+          | { _days_ahead?: number; _limit?: number }
         Returns: {
           days_until_expiry: number
           expires_at: string
+          last_rotation_attempt_at: string
           location_id: string
           secret_ref: string
         }[]
@@ -1287,6 +1290,13 @@ export type Database = {
         Returns: undefined
       }
       mark_credential_for_rotation: {
+        Args: {
+          _location_id: string
+          _provider: Database["public"]["Enums"]["app_pos_provider"]
+        }
+        Returns: boolean
+      }
+      mark_rotation_attempt: {
         Args: {
           _location_id: string
           _provider: Database["public"]["Enums"]["app_pos_provider"]

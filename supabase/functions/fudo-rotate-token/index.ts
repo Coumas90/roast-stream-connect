@@ -299,9 +299,10 @@ const handler = async (req: Request): Promise<Response> => {
       });
     }
 
-    // Get credentials expiring soon (≤ 3 days)
+    // Get credentials expiring soon (≤ 3 days) with N=50 limit and 4h cooldown
     const { data: expiringCreds, error: credsError } = await supabase.rpc("get_fudo_credentials_expiring", {
-      _days_ahead: 3
+      _days_ahead: 3,
+      _limit: 50  // Never process more than 50 tokens per execution
     });
 
     if (credsError) {
@@ -319,13 +320,13 @@ const handler = async (req: Request): Promise<Response> => {
       attempts: []
     };
 
-    console.log(`[INFO] Found ${result.total_candidates} Fudo credentials expiring within 3 days`);
+    console.log(`[INFO] Found ${result.total_candidates} Fudo credentials eligible for rotation (max 50 per run, 4h cooldown)`);
 
     if (result.total_candidates === 0) {
-      console.log("[INFO] No credentials need rotation at this time");
+      console.log("[INFO] No credentials need rotation at this time (respecting cooldown and limits)");
       return new Response(JSON.stringify({
         success: true,
-        message: "No credentials need rotation",
+        message: "No credentials need rotation (respecting cooldown and limits)",
         result
       }), {
         status: 200,
@@ -363,6 +364,19 @@ const handler = async (req: Request): Promise<Response> => {
         result.circuit_breaker_blocked++;
         continue;
       }
+
+      // CRITICAL: Mark rotation attempt BEFORE processing to persist timestamp
+      const attemptMarked = await supabase.rpc("mark_rotation_attempt", {
+        _location_id: cred.location_id,
+        _provider: "fudo"
+      });
+
+      if (!attemptMarked.data) {
+        console.warn(`[COOLDOWN] Failed to mark attempt for location ${cred.location_id}, skipping (possible concurrent attempt)`);
+        continue;
+      }
+
+      console.log(`[ATTEMPT] Marked rotation attempt for location ${cred.location_id} at ${new Date().toISOString()}`);
 
       const attempt = await rotateTokenForLocation(cred.location_id, cred.secret_ref);
       result.attempts.push(attempt);

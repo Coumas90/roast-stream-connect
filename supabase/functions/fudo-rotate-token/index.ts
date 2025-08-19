@@ -8,7 +8,7 @@ const supabase = createClient(
 );
 
 interface FudoTokenResponse {
-  token: string;
+  access_token: string;
   expires_in: number;
 }
 
@@ -26,16 +26,14 @@ interface ErrorClassification {
 }
 
 interface RotationAttempt {
-  location_id: string;
-  rotation_id: string; // Used for end-to-end traceability and idempotency
-  attempt_id: string;  // Alias for rotation_id for backward compatibility
-  secret_ref: string;
-  start_time: number;
-  success: boolean;
-  idempotent_hit?: boolean; // True if the swap was skipped due to idempotency
-  attempt_status: 'rotated' | 'idempotent' | 'failed';
+  locationId: string;
+  rotationId: string;
+  provider: string;
+  status: 'pending' | 'completed' | 'failed' | 'idempotent';
+  startedAt: number;
+  completedAt?: number;
   error?: string;
-  error_category?: string;
+  metadata?: any;
 }
 
 interface RotationResult {
@@ -43,6 +41,7 @@ interface RotationResult {
   processed: number;
   successes: number;
   failures: number;
+  idempotent_hits: number;
   circuit_breaker_blocked: number;
   attempts: RotationAttempt[];
 }
@@ -74,21 +73,21 @@ function classifyError(status?: number, err?: Error): ErrorClassification {
 
 async function createTokenFingerprint(token: string): Promise<string> {
   try {
-    // Create a truncated HMAC for logging (first 8 chars)
+    // Create a truncated HMAC for logging (first 16 chars)
     const encoder = new TextEncoder();
-    const key = encoder.encode('fudo-token-fingerprint');
+    const key = encoder.encode('fudo-token-fingerprint-key');
     const data = encoder.encode(token);
     
     const cryptoKey = await crypto.subtle.importKey('raw', key, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
     const signature = await crypto.subtle.sign('HMAC', cryptoKey, data);
     const hex = Array.from(new Uint8Array(signature)).map(b => b.toString(16).padStart(2, '0')).join('');
-    return hex.substring(0, 8);
+    return `sha256:${hex.substring(0, 16)}...`;
   } catch {
-    return 'unknown';
+    return 'sha256:unknown...';
   }
 }
 
-async function fudoGetToken(credentials: { apiKey: string; apiSecret: string; env: string }) {
+async function fudoGetToken(credentials: { apiKey: string; apiSecret: string; env: string }): Promise<FudoTokenResponse> {
   const baseUrl = credentials.env === "production" ? "https://api.fudo.com" : "https://staging-api.fudo.com";
   
   const controller = new AbortController();
@@ -119,7 +118,7 @@ async function fudoGetToken(credentials: { apiKey: string; apiSecret: string; en
   }
 }
 
-async function fudoValidateToken(token: string, env: string) {
+async function fudoValidateToken(token: string, env: string): Promise<FudoMeResponse> {
   const baseUrl = env === "production" ? "https://api.fudo.com" : "https://staging-api.fudo.com";
   
   const controller = new AbortController();
@@ -159,143 +158,86 @@ async function decryptSecretRef(secretRef: string): Promise<{ apiKey: string; ap
   };
 }
 
-async function updateCredentialToken(locationId: string, newToken: string, expiresIn: number, rotationId: string): Promise<boolean> {
-  const expiresAt = new Date(Date.now() + expiresIn * 1000).toISOString();
-  const tokenFingerprint = await createTokenFingerprint(newToken);
-  
-  // Idempotent atomic swap: only update if rotation_attempt_id is null or different using IS DISTINCT FROM
-  const { data, error } = await supabase
-    .from("pos_provider_credentials")
-    .update({
-      ciphertext: `encrypted_token_${newToken.substring(0, 8)}...`, // In real scenario, this would be properly encrypted
-      rotation_attempt_id: rotationId,
-      last_verified_at: new Date().toISOString(),
-      status: "active",
-      updated_at: new Date().toISOString(),
-      masked_hints: {
-        expires_at: expiresAt,
-        token_fingerprint: tokenFingerprint
-      }
-    })
-    .eq("location_id", locationId)
-    .eq("provider", "fudo")
-    .not("rotation_attempt_id", "eq", rotationId) // Use IS DISTINCT FROM logic for better SQL performance
-    .select();
-
-  if (error) {
-    throw new Error(`Failed to update credentials: ${error.message}`);
-  }
-
-  const wasUpdated = data && data.length > 0;
-  
-  if (wasUpdated) {
-    console.log(`[SUCCESS] Updated token for location ${locationId}, rotation_id ${rotationId}, fingerprint: ${tokenFingerprint}, expires at ${expiresAt}`);
-  } else {
-    console.log(`[IDEMPOTENT] Token already updated for location ${locationId}, rotation_id ${rotationId} - skipping swap`);
-  }
-  
-  return wasUpdated;
-}
-
-async function persistRotationId(locationId: string, rotationId: string): Promise<void> {
-  // Persist rotation_id in pos_credentials for audit trail
-  const { error } = await supabase
-    .from("pos_credentials")
-    .update({
-      rotation_id: rotationId,
-      updated_at: new Date().toISOString()
-    })
-    .eq("location_id", locationId)
-    .eq("provider", "fudo");
-
-  if (error) {
-    console.warn(`[WARN] Failed to persist rotation_id in pos_credentials: ${error.message}`);
-    // Don't throw - this is for audit trail only, not critical for operation
-  }
-}
-
 async function rotateTokenForLocation(locationId: string, secretRef: string): Promise<RotationAttempt> {
-  // Generate single rotationId for end-to-end traceability and idempotency
   const rotationId = crypto.randomUUID();
   const attempt: RotationAttempt = {
-    location_id: locationId,
-    rotation_id: rotationId,
-    attempt_id: rotationId, // Alias for backward compatibility
-    secret_ref: secretRef.substring(0, 20) + "...", // Never log full secret ref
-    start_time: Date.now(),
-    success: false,
-    idempotent_hit: false,
-    attempt_status: 'failed'
+    locationId,
+    rotationId,
+    provider: "fudo",
+    status: "pending",
+    startedAt: Date.now(),
   };
 
   try {
-    console.log(`[START] Rotating token for location ${locationId}, rotation_id ${rotationId}`);
+    // Step 1: Decrypt credentials
+    const credentials = await decryptSecretRef(secretRef);
     
-    // ATOMIC TRANSACTION: All operations for this location must succeed or rollback
-    const { data: transactionResult, error: txError } = await supabase.rpc('execute_atomic_rotation', {
-      p_location_id: locationId,
-      p_rotation_id: rotationId,
-      p_secret_ref: secretRef
-    });
+    // Step 2: Get new token from Fudo API
+    const tokenResponse = await fudoGetToken(credentials);
+    if (!tokenResponse.access_token) {
+      throw new Error("No access token received from Fudo API");
+    }
 
-    if (txError || !transactionResult) {
-      // Fallback to step-by-step execution if atomic function unavailable
-      console.log(`[FALLBACK] Atomic transaction unavailable, executing step-by-step for location ${locationId}, rotation_id ${rotationId}`);
-      
-      // 1. Decrypt current credentials
-      const credentials = await decryptSecretRef(secretRef);
-      
-      // 2. Get new token from Fudo API
-      const tokenResponse = await fudoGetToken(credentials);
-      const tokenFingerprint = await createTokenFingerprint(tokenResponse.token);
-      console.log(`[API] Received new token for location ${locationId}, rotation_id ${rotationId}, fingerprint: ${tokenFingerprint}, expires in ${tokenResponse.expires_in}s`);
-      
-      // 3. Validate new token with ping/me BEFORE swapping
-      const meResponse = await fudoValidateToken(tokenResponse.token, credentials.env);
-      console.log(`[VALIDATE] Token validated for user: ${meResponse.user.email}, rotation_id ${rotationId}`);
-      
-      // 4. Idempotent atomic swap - only swap if not already done with this rotation_id
-      const wasSwapped = await updateCredentialToken(locationId, tokenResponse.token, tokenResponse.expires_in, rotationId);
-      
-      if (wasSwapped) {
-        attempt.success = true;
-        attempt.attempt_status = 'rotated';
-        console.log(`[SUCCESS] Completed rotation for location ${locationId}, rotation_id ${rotationId}`);
-      } else {
-        attempt.success = true; // Still a success since the token was already rotated
-        attempt.idempotent_hit = true;
-        attempt.attempt_status = 'idempotent';
-        console.log(`[IDEMPOTENT] Rotation already completed for location ${locationId}, rotation_id ${rotationId}`);
+    // Step 3: Validate new token (outside of transaction)
+    await fudoValidateToken(tokenResponse.access_token, credentials.env);
+
+    // Step 4: Create token fingerprint for logging (never log raw token)
+    const fingerprint = await createTokenFingerprint(tokenResponse.access_token);
+
+    // Step 5: Execute atomic rotation via stored procedure
+    const { data: rotationResult, error: rotationError } = await supabase.rpc(
+      'execute_atomic_rotation',
+      {
+        p_location_id: locationId,
+        p_provider: 'fudo',
+        p_rotation_id: rotationId,
+        p_new_token_encrypted: tokenResponse.access_token,
+        p_expires_at: tokenResponse.expires_in 
+          ? new Date(Date.now() + (tokenResponse.expires_in * 1000)).toISOString()
+          : null
       }
-      
-      // 5. Always persist rotation_id for audit trail (success or idempotent)
-      await persistRotationId(locationId, rotationId);
+    );
+
+    if (rotationError) {
+      throw new Error(`Atomic rotation failed: ${rotationError.message}`);
+    }
+
+    const result = rotationResult[0];
+    const isIdempotent = result.is_idempotent;
+    
+    // Don't duplicate metrics/logs if this was an idempotent retry
+    if (!isIdempotent) {
+      attempt.status = "completed";
+      attempt.metadata = { 
+        operation_result: result.operation_result,
+        rows_affected: result.rows_affected,
+        token_id: result.token_id,
+        fingerprint,
+        expires_in: tokenResponse.expires_in || 3600,
+        atomic: true
+      };
+      console.log(`✅ Token rotated successfully for location ${locationId}, operation: ${result.operation_result}, fingerprint: ${fingerprint}`);
     } else {
-      // Atomic transaction succeeded
-      attempt.success = transactionResult.success;
-      attempt.idempotent_hit = transactionResult.idempotent_hit;
-      attempt.attempt_status = transactionResult.attempt_status;
-      
-      console.log(`[ATOMIC] ${attempt.idempotent_hit ? 'Idempotent' : 'Successful'} atomic rotation for location ${locationId}, rotation_id ${rotationId}`);
+      attempt.status = "idempotent";
+      attempt.metadata = { 
+        operation_result: result.operation_result,
+        fingerprint,
+        atomic: true,
+        idempotent_hit: true
+      };
+      console.log(`🔄 Idempotent rotation detected for location ${locationId}, rotation_id: ${rotationId}`);
     }
     
-    return attempt;
-    
+    attempt.completedAt = Date.now();
+
   } catch (error) {
-    const errorMsg = error instanceof Error ? error.message : String(error);
-    
-    // Classify error to determine if it should increment circuit breaker
-    const statusMatch = errorMsg.match(/(\d{3})/);
-    const status = statusMatch ? parseInt(statusMatch[1]) : undefined;
-    const classification = classifyError(status, error);
-    
-    console.error(`[ERROR] Failed to rotate token for location ${locationId}, rotation_id ${rotationId}: ${errorMsg}, category: ${classification.category}`);
-    
-    attempt.error = errorMsg;
-    attempt.error_category = classification.category;
-    attempt.attempt_status = 'failed';
-    return attempt;
+    attempt.status = "failed";
+    attempt.error = error instanceof Error ? error.message : String(error);
+    attempt.completedAt = Date.now();
+    console.error(`❌ Token rotation failed for location ${locationId}:`, error);
   }
+
+  return attempt;
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -372,6 +314,7 @@ const handler = async (req: Request): Promise<Response> => {
       processed: 0,
       successes: 0,
       failures: 0,
+      idempotent_hits: 0,
       circuit_breaker_blocked: 0,
       attempts: []
     };
@@ -424,7 +367,7 @@ const handler = async (req: Request): Promise<Response> => {
       const attempt = await rotateTokenForLocation(cred.location_id, cred.secret_ref);
       result.attempts.push(attempt);
       
-      if (attempt.success) {
+      if (attempt.status === "completed") {
         result.successes++;
         
         // Record success with both global and location-specific circuit breakers
@@ -437,7 +380,11 @@ const handler = async (req: Request): Promise<Response> => {
           _location_id: cred.location_id // Location-specific
         });
         
-      } else {
+      } else if (attempt.status === "idempotent") {
+        result.idempotent_hits++;
+        // Don't update circuit breaker for idempotent hits
+        
+      } else if (attempt.status === "failed") {
         result.failures++;
         
         // Only increment circuit breaker for network/5xx/rate limit errors, not auth failures
@@ -471,52 +418,50 @@ const handler = async (req: Request): Promise<Response> => {
     const duration = Date.now() - startTime;
     
     console.log(`[COMPLETE] Rotation job finished in ${duration}ms`);
-    console.log(`[STATS] ${result.successes} successes, ${result.failures} failures, ${result.circuit_breaker_blocked} blocked`);
+    console.log(`[STATS] ${result.successes} successes, ${result.failures} failures, ${result.idempotent_hits} idempotent, ${result.circuit_breaker_blocked} blocked`);
 
-    // Record metrics with enhanced metadata including idempotency tracking
+    // Record detailed metrics for this job run
     const jobRunId = crypto.randomUUID();
-    const idempotentCount = result.attempts.filter(a => a.idempotent_hit).length;
     
-    // Record job-level metrics including idempotency rate
+    // Job-level summary metrics
     await supabase.rpc("record_rotation_metric", {
       p_job_run_id: jobRunId,
       p_provider: "fudo",
-      p_location_id: null, // Job-level metric
-      p_metric_type: "rotation_job_summary",
+      p_metric_type: "job_summary",
       p_value: result.processed,
       p_duration_ms: duration,
       p_meta: {
         total_candidates: result.total_candidates,
         successes: result.successes,
         failures: result.failures,
+        idempotent_hits: result.idempotent_hits,
         circuit_breaker_blocked: result.circuit_breaker_blocked,
-        idempotent_hits: idempotentCount,
-        idempotent_rate: result.processed > 0 ? (idempotentCount / result.processed) : 0
+        trigger: "cron",
+        timestamp: new Date().toISOString()
       }
     });
-    
-    // Record individual attempt metrics
+
+    // Individual attempt metrics (exclude idempotent to avoid metric duplication)
     for (const attempt of result.attempts) {
-      await supabase.rpc("record_rotation_metric", {
-        p_job_run_id: jobRunId,
-        p_provider: "fudo",
-        p_location_id: attempt.location_id,
-        p_metric_type: attempt.idempotent_hit ? "rotation_idempotent" : 
-                      (attempt.success ? "rotation_success" : "rotation_failure"),
-        p_value: 1,
-        p_duration_ms: Date.now() - attempt.start_time,
-        p_meta: {
-          rotation_id: attempt.rotation_id,
-          attempt_id: attempt.attempt_id,
-          attempt_status: attempt.attempt_status,
-          idempotent_hit: attempt.idempotent_hit || false,
-          error_category: attempt.error_category,
-          error: attempt.error || undefined
-        }
-      });
+      if (attempt.status !== 'idempotent') {
+        await supabase.rpc("record_rotation_metric", {
+          p_job_run_id: jobRunId,
+          p_provider: "fudo",
+          p_location_id: attempt.locationId,
+          p_metric_type: "rotation_attempt",
+          p_value: attempt.status === 'completed' ? 1 : 0,
+          p_duration_ms: attempt.completedAt ? attempt.completedAt - attempt.startedAt : null,
+          p_meta: {
+            rotation_id: attempt.rotationId,
+            status: attempt.status,
+            error: attempt.error,
+            ...attempt.metadata
+          }
+        });
+      }
     }
 
-    // ✅ Record heartbeat on successful completion
+    // Record heartbeat on successful completion
     if (result.successes > 0 || result.total_candidates === 0) {
       await supabase.rpc('update_job_heartbeat', {
         p_job_name: 'fudo_rotate_token',
@@ -526,6 +471,7 @@ const handler = async (req: Request): Promise<Response> => {
           total_candidates: result.total_candidates,
           successes: result.successes,
           failures: result.failures,
+          idempotent_hits: result.idempotent_hits,
           duration_ms: duration,
           job_run_id: jobRunId
         }
@@ -548,7 +494,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     return new Response(JSON.stringify({
       success: result.failures === 0,
-      message: `Processed ${result.processed} locations, ${result.successes} successful rotations`,
+      message: `Processed ${result.processed} locations, ${result.successes} successful rotations, ${result.idempotent_hits} idempotent hits`,
       result,
       duration_ms: duration,
       job_run_id: jobRunId

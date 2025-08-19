@@ -20,12 +20,19 @@ interface FudoMeResponse {
   };
 }
 
+interface ErrorClassification {
+  category: 'network' | 'rate_limited' | '5xx' | 'invalid_credentials' | 'client_error' | 'ok';
+  shouldIncrementBreaker: boolean;
+}
+
 interface RotationAttempt {
   location_id: string;
+  attempt_id: string;
   secret_ref: string;
   start_time: number;
   success: boolean;
   error?: string;
+  error_category?: string;
 }
 
 interface RotationResult {
@@ -37,45 +44,104 @@ interface RotationResult {
   attempts: RotationAttempt[];
 }
 
+// Helper functions
+function classifyError(status?: number, err?: Error): ErrorClassification {
+  if (!status) {
+    return { category: 'network', shouldIncrementBreaker: true };
+  }
+  
+  if (status === 429) {
+    return { category: 'rate_limited', shouldIncrementBreaker: true };
+  }
+  
+  if (status >= 500) {
+    return { category: '5xx', shouldIncrementBreaker: true };
+  }
+  
+  if (status === 401 || status === 403 || status === 422) {
+    return { category: 'invalid_credentials', shouldIncrementBreaker: false };
+  }
+  
+  if (status >= 400) {
+    return { category: 'client_error', shouldIncrementBreaker: false };
+  }
+  
+  return { category: 'ok', shouldIncrementBreaker: false };
+}
+
+async function createTokenFingerprint(token: string): Promise<string> {
+  try {
+    // Create a truncated HMAC for logging (first 8 chars)
+    const encoder = new TextEncoder();
+    const key = encoder.encode('fudo-token-fingerprint');
+    const data = encoder.encode(token);
+    
+    const cryptoKey = await crypto.subtle.importKey('raw', key, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+    const signature = await crypto.subtle.sign('HMAC', cryptoKey, data);
+    const hex = Array.from(new Uint8Array(signature)).map(b => b.toString(16).padStart(2, '0')).join('');
+    return hex.substring(0, 8);
+  } catch {
+    return 'unknown';
+  }
+}
+
 async function fudoGetToken(credentials: { apiKey: string; apiSecret: string; env: string }) {
   const baseUrl = credentials.env === "production" ? "https://api.fudo.com" : "https://staging-api.fudo.com";
   
-  const response = await fetch(`${baseUrl}/auth/token`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      api_key: credentials.apiKey,
-      api_secret: credentials.apiSecret,
-    }),
-  });
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout
+  
+  try {
+    const response = await fetch(`${baseUrl}/auth/token`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        api_key: credentials.apiKey,
+        api_secret: credentials.apiSecret,
+      }),
+      signal: controller.signal,
+    });
 
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error(`Token request failed: ${response.status} ${error}`);
+    if (!response.ok) {
+      const error = await response.text();
+      const classification = classifyError(response.status);
+      throw new Error(`Token request failed: ${response.status} ${error} (${classification.category})`);
+    }
+
+    return await response.json() as FudoTokenResponse;
+  } finally {
+    clearTimeout(timeoutId);
   }
-
-  return await response.json() as FudoTokenResponse;
 }
 
 async function fudoValidateToken(token: string, env: string) {
   const baseUrl = env === "production" ? "https://api.fudo.com" : "https://staging-api.fudo.com";
   
-  const response = await fetch(`${baseUrl}/me`, {
-    method: "GET",
-    headers: {
-      "Authorization": `Bearer ${token}`,
-      "Content-Type": "application/json",
-    },
-  });
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
+  
+  try {
+    const response = await fetch(`${baseUrl}/me`, {
+      method: "GET",
+      headers: {
+        "Authorization": `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      signal: controller.signal,
+    });
 
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error(`Token validation failed: ${response.status} ${error}`);
+    if (!response.ok) {
+      const error = await response.text();
+      const classification = classifyError(response.status);
+      throw new Error(`Token validation failed: ${response.status} ${error} (${classification.category})`);
+    }
+
+    return await response.json() as FudoMeResponse;
+  } finally {
+    clearTimeout(timeoutId);
   }
-
-  return await response.json() as FudoMeResponse;
 }
 
 async function decryptSecretRef(secretRef: string): Promise<{ apiKey: string; apiSecret: string; env: string }> {
@@ -90,61 +156,77 @@ async function decryptSecretRef(secretRef: string): Promise<{ apiKey: string; ap
   };
 }
 
-async function updateCredentialToken(locationId: string, newToken: string, expiresIn: number) {
+async function updateCredentialToken(locationId: string, newToken: string, expiresIn: number, attemptId: string) {
   const expiresAt = new Date(Date.now() + expiresIn * 1000).toISOString();
+  const tokenFingerprint = await createTokenFingerprint(newToken);
   
   // Update pos_credentials with new token (encrypted) and expiry
+  // Use attemptId for idempotency
   const { error } = await supabase
     .from("pos_credentials")
     .update({
       secret_ref: `pos/location/${locationId}/fudo`, // In real scenario, this would be encrypted
       expires_at: expiresAt,
       last_rotation_at: new Date().toISOString(),
+      rotation_attempt_id: attemptId,
       status: "active",
       updated_at: new Date().toISOString()
     })
     .eq("location_id", locationId)
-    .eq("provider", "fudo");
+    .eq("provider", "fudo")
+    .eq("rotation_attempt_id", attemptId); // Idempotency check
 
   if (error) {
     throw new Error(`Failed to update credentials: ${error.message}`);
   }
 
-  console.log(`[SUCCESS] Updated token for location ${locationId}, expires at ${expiresAt}`);
+  console.log(`[SUCCESS] Updated token for location ${locationId}, attempt ${attemptId}, fingerprint: ${tokenFingerprint}, expires at ${expiresAt}`);
 }
 
 async function rotateTokenForLocation(locationId: string, secretRef: string): Promise<RotationAttempt> {
+  const attemptId = crypto.randomUUID();
   const attempt: RotationAttempt = {
     location_id: locationId,
+    attempt_id: attemptId,
     secret_ref: secretRef.substring(0, 20) + "...", // Never log full secret ref
     start_time: Date.now(),
     success: false
   };
 
   try {
-    console.log(`[START] Rotating token for location ${locationId}`);
+    console.log(`[START] Rotating token for location ${locationId}, attempt ${attemptId}`);
     
     // 1. Decrypt current credentials
     const credentials = await decryptSecretRef(secretRef);
     
     // 2. Get new token from Fudo API
     const tokenResponse = await fudoGetToken(credentials);
-    console.log(`[API] Received new token for location ${locationId}, expires in ${tokenResponse.expires_in}s`);
+    const tokenFingerprint = await createTokenFingerprint(tokenResponse.token);
+    console.log(`[API] Received new token for location ${locationId}, fingerprint: ${tokenFingerprint}, expires in ${tokenResponse.expires_in}s`);
     
-    // 3. Validate new token with ping/me
+    // 3. Validate new token with ping/me BEFORE swapping
     const meResponse = await fudoValidateToken(tokenResponse.token, credentials.env);
     console.log(`[VALIDATE] Token validated for user: ${meResponse.user.email}`);
     
     // 4. Atomic swap - update credentials only after validation success
-    await updateCredentialToken(locationId, tokenResponse.token, tokenResponse.expires_in);
+    await updateCredentialToken(locationId, tokenResponse.token, tokenResponse.expires_in, attemptId);
     
     attempt.success = true;
+    console.log(`[SUCCESS] Completed rotation for location ${locationId}, attempt ${attemptId}`);
     return attempt;
     
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : String(error);
-    console.error(`[ERROR] Failed to rotate token for location ${locationId}: ${errorMsg}`);
+    
+    // Classify error to determine if it should increment circuit breaker
+    const statusMatch = errorMsg.match(/(\d{3})/);
+    const status = statusMatch ? parseInt(statusMatch[1]) : undefined;
+    const classification = classifyError(status, error);
+    
+    console.error(`[ERROR] Failed to rotate token for location ${locationId}, attempt ${attemptId}: ${errorMsg}, category: ${classification.category}`);
+    
     attempt.error = errorMsg;
+    attempt.error_category = classification.category;
     return attempt;
   }
 }
@@ -245,16 +327,26 @@ const handler = async (req: Request): Promise<Response> => {
       } else {
         result.failures++;
         
-        // Record failure with circuit breaker
-        const { data: cbResult, error: cbFailError } = await supabase.rpc("cb_record_failure", { 
-          _provider: "fudo" 
-        });
-        if (cbFailError) {
-          console.error("[CB ERROR] Failed to record failure:", cbFailError);
-        } else if (cbResult?.state === 'open') {
-          console.warn("[CB] Circuit breaker opened due to failures, stopping rotation");
-          result.circuit_breaker_blocked = locationsToProcess.length - result.processed;
-          break;
+        // Only increment circuit breaker for network/5xx/rate limit errors, not auth failures
+        const classification = classifyError(
+          attempt.error?.match(/(\d{3})/)?.[1] ? parseInt(attempt.error.match(/(\d{3})/)[1]) : undefined
+        );
+        
+        if (classification.shouldIncrementBreaker) {
+          // Record failure with circuit breaker
+          const { data: cbResult, error: cbFailError } = await supabase.rpc("cb_record_failure", { 
+            _provider: "fudo" 
+          });
+          if (cbFailError) {
+            console.error("[CB ERROR] Failed to record failure:", cbFailError);
+          } else if (cbResult?.state === 'open') {
+            console.warn("[CB] Circuit breaker opened due to failures, stopping rotation");
+            result.circuit_breaker_blocked = locationsToProcess.length - result.processed;
+            break;
+          }
+          console.log(`[CB] Circuit breaker failure recorded for location ${cred.location_id}, category: ${classification.category}`);
+        } else {
+          console.log(`[CB] Auth/client error for location ${cred.location_id}, not counting towards circuit breaker, category: ${classification.category}`);
         }
       }
     }
@@ -264,7 +356,7 @@ const handler = async (req: Request): Promise<Response> => {
     console.log(`[COMPLETE] Rotation job finished in ${duration}ms`);
     console.log(`[STATS] ${result.successes} successes, ${result.failures} failures, ${result.circuit_breaker_blocked} blocked`);
 
-    // Record metrics
+    // Record metrics with enhanced metadata
     const jobRunId = crypto.randomUUID();
     for (const attempt of result.attempts) {
       await supabase.rpc("record_rotation_metric", {
@@ -274,7 +366,11 @@ const handler = async (req: Request): Promise<Response> => {
         p_metric_type: attempt.success ? "rotation_success" : "rotation_failure",
         p_value: 1,
         p_duration_ms: Date.now() - attempt.start_time,
-        p_meta: attempt.error ? { error: attempt.error } : {}
+        p_meta: {
+          attempt_id: attempt.attempt_id,
+          error_category: attempt.error_category,
+          error: attempt.error || undefined
+        }
       });
     }
 

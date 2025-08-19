@@ -30,7 +30,7 @@ export const withCORS = (
   let origin = "";
   
   // Parseo robusto de Origin con new URL().origin + fallback
-  if (rawOrigin) {
+  if (rawOrigin && rawOrigin !== 'null') {
     try {
       origin = new URL(rawOrigin).origin;
     } catch {

@@ -3,19 +3,19 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 /**
  * Unit tests for Fudo Token Rotation Concurrency & Cooldown (Card 7)
  * 
- * Criteria:
- * - Never processes > N=50 per execution
- * - Respects 4-hour cooldown from last_rotation_attempt_at
- * - Respects circuit breaker open state (no processing)
- * - Marks attempt timestamp before processing
+ * Updated for atomic leasing approach:
+ * - Never processes > N=50 per execution via lease_fudo_rotation_candidates
+ * - Respects 4-hour cooldown atomically in the lease function
+ * - Respects circuit breaker and cooldown in candidate selection
+ * - Marks attempt timestamp atomically with selection (no race conditions)
  * - Prioritizes never-attempted and most urgent credentials
  */
-describe("Fudo Token Rotation - Concurrency & Cooldown", () => {
+describe("Fudo Token Rotation - Atomic Leasing & Cooldown", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
   });
 
-  describe("Selector Function Tests (get_fudo_credentials_expiring)", () => {
+  describe("Atomic Leasing Function Tests (lease_fudo_rotation_candidates)", () => {
     it("should respect N=50 limit by default", async () => {
       // Mock 100 credentials but should only return 50
       const mockCredentials = Array.from({ length: 100 }, (_, i) => ({
@@ -197,60 +197,103 @@ describe("Fudo Token Rotation - Concurrency & Cooldown", () => {
     });
   });
 
-  describe("Attempt Marking", () => {
-    it("should mark rotation attempt before processing", async () => {
-      const mockLocation = "test-location-123";
-      const mockProvider = "fudo";
+  describe("Atomic Leasing & Concurrency", () => {
+    it("should lease and mark attempts atomically", async () => {
+      const mockCandidates = [
+        { location_id: "loc1", secret_ref: "ref1", expires_at: new Date().toISOString() },
+        { location_id: "loc2", secret_ref: "ref2", expires_at: new Date().toISOString() }
+      ];
       
-      // Simulate the mark_rotation_attempt function
-      let attemptMarked = false;
-      let markedTimestamp: Date | null = null;
-      
-      const mockMarkAttempt = (locationId: string, provider: string) => {
-        if (locationId === mockLocation && provider === mockProvider) {
-          attemptMarked = true;
-          markedTimestamp = new Date();
-          return { data: true };
-        }
-        return { data: false };
+      // Simulate atomic leasing function that selects and marks in one operation
+      const mockLeaseFunction = (limit: number, cooldown: string) => {
+        // In real implementation, this would be done in a single SQL statement
+        const leasedCredentials = mockCandidates.slice(0, limit);
+        // last_rotation_attempt_at is set to now() atomically in the UPDATE
+        return { data: leasedCredentials };
       };
 
-      const result = mockMarkAttempt(mockLocation, mockProvider);
+      const result = mockLeaseFunction(50, "4 hours");
 
-      expect(result.data).toBe(true);
-      expect(attemptMarked).toBe(true);
-      expect(markedTimestamp).toBeInstanceOf(Date);
+      expect(result.data).toHaveLength(2);
+      expect(result.data[0].location_id).toBe("loc1");
+      expect(result.data[1].location_id).toBe("loc2");
     });
 
-    it("should skip processing if attempt marking fails", async () => {
-      const mockLocation = "concurrent-location";
+    it("should prevent concurrent processing via atomic selection", async () => {
+      const mockLocation = "test-location";
+      let callCount = 0;
       
-      // Simulate concurrent attempt scenario where marking fails
-      const mockMarkAttempt = () => ({ data: false });
-      
-      const result = mockMarkAttempt();
-      const shouldProcess = result.data;
+      // Simulate atomic leasing with concurrent calls
+      const mockLeaseFunction = () => {
+        callCount++;
+        if (callCount === 1) {
+          // First call successfully leases the location
+          return { data: [{ location_id: mockLocation, secret_ref: "ref1", expires_at: new Date().toISOString() }] };
+        } else {
+          // Second concurrent call finds nothing (already leased by first call)
+          return { data: [] };
+        }
+      };
 
-      expect(shouldProcess).toBe(false);
-      // In real implementation, this would continue to next location
+      const result1 = mockLeaseFunction();
+      const result2 = mockLeaseFunction();
+
+      expect(result1.data).toHaveLength(1);
+      expect(result2.data).toHaveLength(0);
+      expect(callCount).toBe(2);
     });
 
-    it("should prevent concurrent processing with cooldown check", async () => {
+    it("should respect circuit breaker in atomic selection", async () => {
+      const now = new Date();
+      const futureTime = new Date(now.getTime() + (30 * 60 * 1000)); // 30 minutes from now
+      
+      // Mock credential with circuit breaker blocking
+      const mockCredentialWithBreaker = {
+        location_id: "blocked-location",
+        next_attempt_at: futureTime.toISOString(), // Still in future, so blocked
+        expires_at: now.toISOString()
+      };
+
+      // Atomic leasing should filter out credentials where next_attempt_at > now()
+      const isBlocked = new Date(mockCredentialWithBreaker.next_attempt_at) > now;
+      const eligibleCredentials = isBlocked ? [] : [mockCredentialWithBreaker];
+
+      expect(isBlocked).toBe(true);
+      expect(eligibleCredentials).toHaveLength(0);
+    });
+
+    it("should maintain 4-hour cooldown filter atomically", async () => {
       const now = new Date();
       const twoHoursAgo = new Date(now.getTime() - (2 * 60 * 60 * 1000));
+      const fiveHoursAgo = new Date(now.getTime() - (5 * 60 * 60 * 1000));
       
-      // Mock a credential that was attempted 2 hours ago (within 4h cooldown)
-      const mockCredential = {
-        location_id: "recent-attempt",
-        last_rotation_attempt_at: twoHoursAgo.toISOString()
-      };
+      const mockCredentials = [
+        { 
+          location_id: "within-cooldown", 
+          last_rotation_attempt_at: twoHoursAgo.toISOString(),
+          expires_at: now.toISOString()
+        },
+        { 
+          location_id: "outside-cooldown", 
+          last_rotation_attempt_at: fiveHoursAgo.toISOString(),
+          expires_at: now.toISOString()
+        },
+        { 
+          location_id: "never-attempted", 
+          last_rotation_attempt_at: null,
+          expires_at: now.toISOString()
+        }
+      ];
 
-      // Function should not allow marking if within cooldown
-      const isWithinCooldown = new Date(mockCredential.last_rotation_attempt_at) > 
-        new Date(now.getTime() - (4 * 60 * 60 * 1000));
+      // Simulate cooldown filter in atomic leasing
+      const fourHourCutoff = new Date(now.getTime() - (4 * 60 * 60 * 1000));
+      const eligibleCredentials = mockCredentials.filter(cred => 
+        cred.last_rotation_attempt_at === null || 
+        new Date(cred.last_rotation_attempt_at) <= fourHourCutoff
+      );
 
-      expect(isWithinCooldown).toBe(true);
-      // mark_rotation_attempt should return false for this case
+      expect(eligibleCredentials).toHaveLength(2);
+      expect(eligibleCredentials.map(c => c.location_id)).toEqual(["outside-cooldown", "never-attempted"]);
     });
   });
 

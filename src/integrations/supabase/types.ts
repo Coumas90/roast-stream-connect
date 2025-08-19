@@ -1243,6 +1243,14 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: boolean
       }
+      lease_fudo_rotation_candidates: {
+        Args: { p_cooldown?: unknown; p_limit?: number }
+        Returns: {
+          expires_at: string
+          location_id: string
+          secret_ref: string
+        }[]
+      }
       list_location_invitations: {
         Args: { _location_id: string }
         Returns: {

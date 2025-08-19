@@ -299,19 +299,19 @@ const handler = async (req: Request): Promise<Response> => {
       });
     }
 
-    // Get credentials expiring soon (≤ 3 days) with N=50 limit and 4h cooldown
-    const { data: expiringCreds, error: credsError } = await supabase.rpc("get_fudo_credentials_expiring", {
-      _days_ahead: 3,
-      _limit: 50  // Never process more than 50 tokens per execution
+    // Atomic leasing: select eligible candidates and mark attempts in one operation
+    const { data: leasedCreds, error: leaseError } = await supabase.rpc("lease_fudo_rotation_candidates", {
+      p_limit: 50,
+      p_cooldown: "4 hours"
     });
 
-    if (credsError) {
-      console.error("[ERROR] Failed to fetch expiring credentials:", credsError);
-      throw new Error(`Failed to fetch credentials: ${credsError.message}`);
+    if (leaseError) {
+      console.error("[ERROR] Failed to lease rotation candidates:", leaseError);
+      throw new Error(`Failed to lease candidates: ${leaseError.message}`);
     }
 
     const result: RotationResult = {
-      total_candidates: expiringCreds?.length || 0,
+      total_candidates: leasedCreds?.length || 0,
       processed: 0,
       successes: 0,
       failures: 0,
@@ -320,13 +320,13 @@ const handler = async (req: Request): Promise<Response> => {
       attempts: []
     };
 
-    console.log(`[INFO] Found ${result.total_candidates} Fudo credentials eligible for rotation (max 50 per run, 4h cooldown)`);
+    console.log(`[INFO] Leased ${result.total_candidates} Fudo credentials for rotation (max 50 per run, 4h cooldown, circuit breaker aware)`);
 
     if (result.total_candidates === 0) {
-      console.log("[INFO] No credentials need rotation at this time (respecting cooldown and limits)");
+      console.log("[INFO] No credentials need rotation at this time (respecting cooldown, limits, and circuit breaker)");
       return new Response(JSON.stringify({
         success: true,
-        message: "No credentials need rotation (respecting cooldown and limits)",
+        message: "No credentials need rotation (respecting cooldown, limits, and circuit breaker)",
         result
       }), {
         status: 200,
@@ -336,13 +336,13 @@ const handler = async (req: Request): Promise<Response> => {
 
     // For half-open circuit breaker, test with only 1 location
     const locationsToProcess = globalCbState.test_mode ? 
-      expiringCreds.slice(0, 1) : expiringCreds;
+      leasedCreds.slice(0, 1) : leasedCreds;
 
     if (globalCbState.test_mode) {
       console.log("[CB] Half-open mode: testing with 1 location only");
     }
 
-    // Process each location
+    // Process each leased location (attempt already marked atomically)
     for (const cred of locationsToProcess) {
       // Check if we should stop due to heartbeat failure
       if (shouldStop) {
@@ -365,18 +365,7 @@ const handler = async (req: Request): Promise<Response> => {
         continue;
       }
 
-      // CRITICAL: Mark rotation attempt BEFORE processing to persist timestamp
-      const attemptMarked = await supabase.rpc("mark_rotation_attempt", {
-        _location_id: cred.location_id,
-        _provider: "fudo"
-      });
-
-      if (!attemptMarked.data) {
-        console.warn(`[COOLDOWN] Failed to mark attempt for location ${cred.location_id}, skipping (possible concurrent attempt)`);
-        continue;
-      }
-
-      console.log(`[ATTEMPT] Marked rotation attempt for location ${cred.location_id} at ${new Date().toISOString()}`);
+      console.log(`[LEASE] Processing leased location ${cred.location_id} (attempt already marked atomically)`);
 
       const attempt = await rotateTokenForLocation(cred.location_id, cred.secret_ref);
       result.attempts.push(attempt);

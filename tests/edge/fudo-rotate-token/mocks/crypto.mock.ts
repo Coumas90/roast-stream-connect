@@ -5,7 +5,7 @@ export const createCryptoMocks = () => {
   const mockImportKey = vi.fn();
   const mockSign = vi.fn();
 
-  // Setup default return values
+  // Setup default return values - fixed for determinism
   mockRandomUUID.mockReturnValue("rotation-id-12345");
   
   mockImportKey.mockResolvedValue({} as CryptoKey);

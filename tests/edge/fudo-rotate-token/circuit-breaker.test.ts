@@ -25,6 +25,8 @@ describe("Fudo Rotate Token - Circuit Breaker Behavior", () => {
   let handler: (req: Request) => Promise<Response>;
 
   beforeEach(async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2024-01-01T10:00:00.000Z'));
     cryptoMocks.activate();
     denoEnvMock.activate();
     fudoApiMocks.activate();
@@ -37,6 +39,7 @@ describe("Fudo Rotate Token - Circuit Breaker Behavior", () => {
   });
 
   afterEach(() => {
+    vi.useRealTimers();
     vi.resetAllMocks();
     cryptoMocks.restore();
     denoEnvMock.restore();

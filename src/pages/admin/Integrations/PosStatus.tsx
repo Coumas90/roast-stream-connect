@@ -2,10 +2,17 @@ import React, { useMemo } from "react";
 import { Helmet } from "react-helmet-async";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
+import { PosDashboard } from "@/components/admin/dashboard/PosDashboard";
+import { usePosDashboard } from "@/hooks/usePosDashboard";
+import { RefreshCw, Activity } from "lucide-react";
 
 export default function PosStatusPage() {
+  const { data: dashboardData, isLoading: isDashboardLoading, refetch: refetchDashboard } = usePosDashboard();
+  
   const { data: runs } = useQuery({
     queryKey: ["pos_sync_runs_admin"],
     queryFn: async () => {
@@ -47,16 +54,43 @@ export default function PosStatusPage() {
   return (
     <article className="space-y-6">
       <Helmet>
-        <title>POS Status | TUPÁ Hub</title>
-        <meta name="description" content="Estado y logs del POS por sucursal y proveedor" />
+        <title>POS Dashboard | TUPÁ Hub</title>
+        <meta name="description" content="Dashboard completo del sistema POS con MTTR, expiraciones y estado de breakers" />
         <link rel="canonical" href="/admin/integrations/pos/status" />
       </Helmet>
-      <h1 className="sr-only">Estado POS</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-semibold tracking-tight">POS Operations Dashboard</h1>
+        <Button 
+          variant="outline" 
+          size="sm" 
+          onClick={() => refetchDashboard()}
+          disabled={isDashboardLoading}
+        >
+          <RefreshCw className={`h-4 w-4 mr-2 ${isDashboardLoading ? 'animate-spin' : ''}`} />
+          Refresh
+        </Button>
+      </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Último sync por sucursal/proveedor</CardTitle>
-        </CardHeader>
+      <Tabs defaultValue="dashboard" className="space-y-6">
+        <TabsList>
+          <TabsTrigger value="dashboard" className="flex items-center gap-2">
+            <Activity className="h-4 w-4" />
+            Dashboard
+          </TabsTrigger>
+          <TabsTrigger value="logs">Sync Logs</TabsTrigger>
+          <TabsTrigger value="errors">Error Logs</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="dashboard" className="space-y-0">
+          <PosDashboard data={dashboardData!} isLoading={isDashboardLoading} />
+        </TabsContent>
+
+        <TabsContent value="logs" className="space-y-6">
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Último sync por sucursal/proveedor</CardTitle>
+          </CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
@@ -86,10 +120,12 @@ export default function PosStatusPage() {
               ))}
             </TableBody>
           </Table>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+        </TabsContent>
 
-      <Card>
+        <TabsContent value="errors" className="space-y-6">
+        <Card>
         <CardHeader>
           <CardTitle>Errores recientes</CardTitle>
         </CardHeader>
@@ -116,8 +152,10 @@ export default function PosStatusPage() {
               ))}
             </TableBody>
           </Table>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+        </TabsContent>
+      </Tabs>
     </article>
   );
 }

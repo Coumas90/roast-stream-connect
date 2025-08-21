@@ -605,6 +605,7 @@ export type Database = {
       }
       pos_logs: {
         Row: {
+          event_code: Database["public"]["Enums"]["pos_event_code"] | null
           id: string
           level: string
           location_id: string | null
@@ -616,6 +617,7 @@ export type Database = {
           ts: string
         }
         Insert: {
+          event_code?: Database["public"]["Enums"]["pos_event_code"] | null
           id?: string
           level: string
           location_id?: string | null
@@ -627,6 +629,7 @@ export type Database = {
           ts?: string
         }
         Update: {
+          event_code?: Database["public"]["Enums"]["pos_event_code"] | null
           id?: string
           level?: string
           location_id?: string | null
@@ -1172,6 +1175,17 @@ export type Database = {
           recovery_count: number
         }[]
       }
+      calculate_pos_mttr_7d_enhanced: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          avg_mttr_minutes: number
+          failure_count: number
+          location_id: string
+          mttr_status: string
+          provider: Database["public"]["Enums"]["app_pos_provider"]
+          recovery_count: number
+        }[]
+      }
       cb_check_state: {
         Args:
           | {
@@ -1532,6 +1546,10 @@ export type Database = {
       app_pos_provider: "fudo" | "maxirest" | "bistrosoft" | "other"
       app_role: "tupa_admin" | "owner" | "manager" | "coffee_master" | "barista"
       order_status: "draft" | "approved" | "sent" | "fulfilled" | "cancelled"
+      pos_event_code:
+        | "rotation_started"
+        | "rotation_failure"
+        | "rotation_success"
       stock_txn_type: "receipt" | "consumption" | "adjustment"
     }
     CompositeTypes: {
@@ -1663,6 +1681,11 @@ export const Constants = {
       app_pos_provider: ["fudo", "maxirest", "bistrosoft", "other"],
       app_role: ["tupa_admin", "owner", "manager", "coffee_master", "barista"],
       order_status: ["draft", "approved", "sent", "fulfilled", "cancelled"],
+      pos_event_code: [
+        "rotation_started",
+        "rotation_failure",
+        "rotation_success",
+      ],
       stock_txn_type: ["receipt", "consumption", "adjustment"],
     },
   },

@@ -1107,7 +1107,45 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      pos_dashboard_breakers: {
+        Row: {
+          failures: number | null
+          location_id: string | null
+          location_name: string | null
+          provider: Database["public"]["Enums"]["app_pos_provider"] | null
+          resume_at: string | null
+          state: string | null
+          status_color: string | null
+          tenant_name: string | null
+          updated_at: string | null
+          window_start: string | null
+        }
+        Relationships: []
+      }
+      pos_dashboard_expirations: {
+        Row: {
+          consecutive_rotation_failures: number | null
+          days_until_expiry: number | null
+          expires_at: string | null
+          hours_until_expiry: number | null
+          last_rotation_at: string | null
+          location_id: string | null
+          location_name: string | null
+          provider: Database["public"]["Enums"]["app_pos_provider"] | null
+          rotation_status: string | null
+          status: string | null
+          tenant_name: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pos_credentials_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       accept_invitation: {
@@ -1122,6 +1160,17 @@ export type Database = {
           _tenant_slug?: string
         }
         Returns: undefined
+      }
+      calculate_pos_mttr_7d: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          avg_mttr_minutes: number
+          failure_count: number
+          location_id: string
+          mttr_status: string
+          provider: Database["public"]["Enums"]["app_pos_provider"]
+          recovery_count: number
+        }[]
       }
       cb_check_state: {
         Args:
@@ -1241,6 +1290,10 @@ export type Database = {
           status: string
           updated_at: string
         }[]
+      }
+      get_pos_dashboard_summary: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
       }
       has_role: {
         Args: {

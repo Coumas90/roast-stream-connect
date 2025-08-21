@@ -1,5 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.54.0';
+import { healthcheckLogger } from "../_shared/secure-logger.ts";
+import { alertHealthcheckFailed } from "../_shared/alerts.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -159,24 +161,34 @@ async function checkJobHeartbeats(supabase: any): Promise<HealthcheckResult> {
       
       if (hoursSinceLastAlert < 6) {
         result.suppressed_alerts++;
-        console.log(`[ALERT] Suppressing alert for ${job.job_name} (last alert ${hoursSinceLastAlert.toFixed(1)}h ago)`);
+        healthcheckLogger.warn('alert_suppressed', {
+          job_name: job.job_name,
+          hours_since_last_alert: hoursSinceLastAlert
+        });
         continue;
       }
     }
 
-    // Send alerts
-    const slackSent = await sendSlackAlert(unhealthyJob);
-    const emailSent = await sendEmailAlert(unhealthyJob);
+    // Send alerts using new system
+    await alertHealthcheckFailed(
+      unhealthyJob.job_name,
+      unhealthyJob.hours_overdue,
+      unhealthyJob.status,
+      unhealthyJob.metadata
+    );
 
-    if (slackSent || emailSent) {
-      result.alerts_sent++;
-      
-      // Record alert timestamp in the last_alert_at column to prevent spam
-      await supabase
-        .from('job_heartbeats')
-        .update({ last_alert_at: new Date().toISOString() })
-        .eq('job_name', job.job_name);
-    }
+    result.alerts_sent++;
+    
+    // Record alert timestamp in the last_alert_at column to prevent spam
+    await supabase
+      .from('job_heartbeats')
+      .update({ last_alert_at: new Date().toISOString() })
+      .eq('job_name', job.job_name);
+    
+    healthcheckLogger.info('health_alert_sent', {
+      job_name: job.job_name,
+      hours_overdue: unhealthyJob.hours_overdue
+    });
   }
 
   // Count healthy jobs
@@ -201,17 +213,19 @@ async function handler(req: Request): Promise<Response> {
 
   try {
     const startTime = Date.now();
-    console.log('[HEALTHCHECK] Starting job heartbeat healthcheck');
+    healthcheckLogger.info('healthcheck_start', {
+      trigger: 'cron'
+    });
 
     const result = await checkJobHeartbeats(supabase);
     const duration = Date.now() - startTime;
 
-    console.log('[HEALTHCHECK] Completed:', {
-      healthy_jobs: result.healthy_jobs.length,
-      unhealthy_jobs: result.unhealthy_jobs.length,
+    healthcheckLogger.info('healthcheck_complete', {
+      healthy_jobs_found: result.healthy_jobs.length,
+      unhealthy_jobs_found: result.unhealthy_jobs.length,
       alerts_sent: result.alerts_sent,
       suppressed_alerts: result.suppressed_alerts,
-      duration_ms: duration
+      elapsed_ms: duration
     });
 
     // Record our own healthcheck heartbeat
@@ -237,7 +251,7 @@ async function handler(req: Request): Promise<Response> {
     });
 
   } catch (error: any) {
-    console.error('[HEALTHCHECK] Fatal error:', error);
+    healthcheckLogger.error('healthcheck_fatal_error', error instanceof Error ? error : new Error(String(error)));
     
     // Record failed healthcheck
     await supabase.rpc('update_job_heartbeat', {

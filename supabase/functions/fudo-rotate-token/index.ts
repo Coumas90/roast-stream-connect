@@ -1,6 +1,8 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.54.0";
 import { withCORS } from "../_shared/cors.ts";
+import { fudoLogger } from "../_shared/secure-logger.ts";
+import { alertCircuitBreakerOpen, alertRotationFailures } from "../_shared/alerts.ts";
 
 const supabase = createClient(
   Deno.env.get("SUPABASE_URL")!,
@@ -149,7 +151,10 @@ async function fudoValidateToken(token: string, env: string): Promise<FudoMeResp
 async function decryptSecretRef(secretRef: string): Promise<{ apiKey: string; apiSecret: string; env: string }> {
   // In a real implementation, this would decrypt using KMS
   // For now, return mock credentials for development
-  console.log(`[SECURITY] Accessing encrypted secret: ${secretRef.substring(0, 20)}...`);
+  fudoLogger.info('secret_access', {
+    secret_ref_prefix: secretRef.substring(0, 20),
+    operation: 'decrypt'
+  });
   
   return {
     apiKey: "mock_api_key",
@@ -216,7 +221,12 @@ async function rotateTokenForLocation(locationId: string, secretRef: string): Pr
         expires_in: tokenResponse.expires_in || 3600,
         atomic: true
       };
-      console.log(`✅ Token rotated successfully for location ${locationId}, operation: ${result.operation_result}, fingerprint: ${fingerprint}`);
+      fudoLogger.rotationEvent('rotation_success', 'fudo', locationId, rotationId, {
+        operation_result: result.operation_result,
+        fingerprint,
+        expires_in: tokenResponse.expires_in || 3600,
+        elapsed_ms: Date.now() - attempt.startedAt
+      });
     } else {
       attempt.status = "idempotent";
       attempt.metadata = { 
@@ -225,7 +235,10 @@ async function rotateTokenForLocation(locationId: string, secretRef: string): Pr
         atomic: true,
         idempotent_hit: true
       };
-      console.log(`🔄 Idempotent rotation detected for location ${locationId}, rotation_id: ${rotationId}`);
+      fudoLogger.rotationEvent('rotation_idempotent', 'fudo', locationId, rotationId, {
+        operation_result: result.operation_result,
+        fingerprint
+      });
     }
     
     attempt.completedAt = Date.now();
@@ -234,7 +247,12 @@ async function rotateTokenForLocation(locationId: string, secretRef: string): Pr
     attempt.status = "failed";
     attempt.error = error instanceof Error ? error.message : String(error);
     attempt.completedAt = Date.now();
-    console.error(`❌ Token rotation failed for location ${locationId}:`, error);
+    fudoLogger.error('rotation_failed', error instanceof Error ? error : new Error(String(error)), {
+      provider: 'fudo',
+      location_id: locationId,
+      rotation_id: rotationId,
+      elapsed_ms: Date.now() - attempt.startedAt
+    });
   }
 
   return attempt;
@@ -271,7 +289,12 @@ const handler = async (req: Request): Promise<Response> => {
 
   try {
     const startTime = Date.now();
-    console.log("[START] Fudo token rotation job initiated");
+    const jobRunId = crypto.randomUUID();
+    fudoLogger.info('job_start', {
+      provider: 'fudo',
+      request_id: jobRunId,
+      trigger: 'cron'
+    });
 
     // Check global circuit breaker state for Fudo provider
     const { data: globalCbState, error: cbError } = await supabase.rpc("cb_check_state", { 
@@ -280,14 +303,25 @@ const handler = async (req: Request): Promise<Response> => {
     });
 
     if (cbError) {
-      console.error("[ERROR] Failed to check global circuit breaker state:", cbError);
+      fudoLogger.error('cb_check_failed', cbError, {
+        provider: 'fudo',
+        scope: 'global'
+      });
       throw new Error(`Circuit breaker check failed: ${cbError.message}`);
     }
 
-    console.log(`[CB GLOBAL] Circuit breaker state: ${JSON.stringify(globalCbState)}`);
+    fudoLogger.circuitBreakerEvent('cb_global_checked', 'fudo', globalCbState.state, undefined, {
+      allowed: globalCbState.allowed,
+      failures: globalCbState.failures
+    });
 
     if (!globalCbState.allowed) {
-      console.warn(`[CB GLOBAL] Global circuit breaker is ${globalCbState.state}, skipping rotation`);
+      fudoLogger.warn('cb_global_blocked', {
+        provider: 'fudo',
+        cb_state: globalCbState.state,
+        resume_at: globalCbState.resume_at,
+        failures: globalCbState.failures
+      });
       return new Response(JSON.stringify({
         success: false,
         message: `Global circuit breaker is ${globalCbState.state}`,
@@ -306,7 +340,10 @@ const handler = async (req: Request): Promise<Response> => {
     });
 
     if (leaseError) {
-      console.error("[ERROR] Failed to lease rotation candidates:", leaseError);
+      fudoLogger.error('lease_failed', leaseError, {
+        provider: 'fudo',
+        operation: 'lease_candidates'
+      });
       throw new Error(`Failed to lease candidates: ${leaseError.message}`);
     }
 
@@ -320,10 +357,18 @@ const handler = async (req: Request): Promise<Response> => {
       attempts: []
     };
 
-    console.log(`[INFO] Leased ${result.total_candidates} Fudo credentials for rotation (max 50 per run, 4h cooldown, circuit breaker aware)`);
+    fudoLogger.info('candidates_leased', {
+      provider: 'fudo',
+      total_candidates: result.total_candidates,
+      max_per_run: 50,
+      cooldown: '4h'
+    });
 
     if (result.total_candidates === 0) {
-      console.log("[INFO] No credentials need rotation at this time (respecting cooldown, limits, and circuit breaker)");
+      fudoLogger.info('no_candidates', {
+        provider: 'fudo',
+        reason: 'cooldown_limits_cb_aware'
+      });
       return new Response(JSON.stringify({
         success: true,
         message: "No credentials need rotation (respecting cooldown, limits, and circuit breaker)",
@@ -339,14 +384,21 @@ const handler = async (req: Request): Promise<Response> => {
       leasedCreds.slice(0, 1) : leasedCreds;
 
     if (globalCbState.test_mode) {
-      console.log("[CB] Half-open mode: testing with 1 location only");
+      fudoLogger.circuitBreakerEvent('cb_test_mode', 'fudo', 'half-open', undefined, {
+        locations_to_test: 1,
+        total_available: leasedCreds.length
+      });
     }
 
     // Process each leased location (attempt already marked atomically)
     for (const cred of locationsToProcess) {
       // Check if we should stop due to heartbeat failure
       if (shouldStop) {
-        console.warn(`[HEARTBEAT] Stopping rotation due to heartbeat failure`);
+        fudoLogger.warn('heartbeat_failure_stop', {
+          provider: 'fudo',
+          processed: result.processed,
+          remaining: locationsToProcess.length - result.processed
+        });
         result.circuit_breaker_blocked = locationsToProcess.length - result.processed;
         break;
       }
@@ -360,12 +412,19 @@ const handler = async (req: Request): Promise<Response> => {
       });
 
       if (locationCbState && !locationCbState.allowed) {
-        console.warn(`[CB LOCATION] Location ${cred.location_id} circuit breaker is ${locationCbState.state}, skipping`);
+        fudoLogger.circuitBreakerEvent('cb_location_blocked', 'fudo', locationCbState.state, cred.location_id, {
+          failures: locationCbState.failures
+        });
         result.circuit_breaker_blocked++;
         continue;
       }
 
-      console.log(`[LEASE] Processing leased location ${cred.location_id} (attempt already marked atomically)`);
+      fudoLogger.info('processing_location', {
+        provider: 'fudo',
+        location_id: cred.location_id,
+        attempt: result.processed,
+        marked_atomically: true
+      });
 
       const attempt = await rotateTokenForLocation(cred.location_id, cred.secret_ref);
       result.attempts.push(attempt);
@@ -407,24 +466,43 @@ const handler = async (req: Request): Promise<Response> => {
           });
           
           if (globalCbResult?.state === 'open') {
-            console.warn("[CB GLOBAL] Global circuit breaker opened due to failures, stopping rotation");
+            fudoLogger.circuitBreakerEvent('cb_global_opened', 'fudo', 'open', undefined, {
+              trigger: 'failures',
+              remaining_locations: locationsToProcess.length - result.processed
+            });
+            // Send circuit breaker alert
+            await alertCircuitBreakerOpen('fudo', null, globalCbResult.failures, globalCbResult.resume_at);
             result.circuit_breaker_blocked = locationsToProcess.length - result.processed;
             break;
           }
-          console.log(`[CB] Circuit breaker failure recorded for location ${cred.location_id}, category: ${classification.category}`);
+          fudoLogger.circuitBreakerEvent('cb_failure_recorded', 'fudo', 'closed', cred.location_id, {
+            category: classification.category,
+            should_increment: true
+          });
         } else {
-          console.log(`[CB] Auth/client error for location ${cred.location_id}, not counting towards circuit breaker, category: ${classification.category}`);
+          fudoLogger.info('cb_auth_error_ignored', {
+            provider: 'fudo',
+            location_id: cred.location_id,
+            category: classification.category,
+            should_increment: false
+          });
         }
       }
     }
 
     const duration = Date.now() - startTime;
     
-    console.log(`[COMPLETE] Rotation job finished in ${duration}ms`);
-    console.log(`[STATS] ${result.successes} successes, ${result.failures} failures, ${result.idempotent_hits} idempotent, ${result.circuit_breaker_blocked} blocked`);
+    fudoLogger.info('job_complete', {
+      provider: 'fudo',
+      elapsed_ms: duration,
+      processed: result.processed,
+      successes: result.successes,
+      failures: result.failures,
+      idempotent_hits: result.idempotent_hits,
+      circuit_breaker_blocked: result.circuit_breaker_blocked
+    });
 
     // Record detailed metrics for this job run
-    const jobRunId = crypto.randomUUID();
     
     // Job-level summary metrics
     await supabase.rpc("record_rotation_metric", {
@@ -479,7 +557,11 @@ const handler = async (req: Request): Promise<Response> => {
           job_run_id: jobRunId
         }
       });
-      console.log('[HEARTBEAT] Recorded healthy heartbeat for fudo_rotate_token');
+      fudoLogger.info('heartbeat_healthy', {
+        provider: 'fudo',
+        job_name: 'fudo_rotate_token',
+        request_id: jobRunId
+      });
     } else {
       // Record unhealthy if all failed
       await supabase.rpc('update_job_heartbeat', {
@@ -492,7 +574,12 @@ const handler = async (req: Request): Promise<Response> => {
           job_run_id: jobRunId
         }
       });
-      console.log('[HEARTBEAT] Recorded unhealthy heartbeat for fudo_rotate_token');
+      fudoLogger.error('heartbeat_unhealthy', {
+        provider: 'fudo',
+        job_name: 'fudo_rotate_token',
+        total_failures: result.failures,
+        request_id: jobRunId
+      });
     }
 
     return new Response(JSON.stringify({

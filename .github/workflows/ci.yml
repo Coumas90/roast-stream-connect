@@ -24,6 +24,10 @@ jobs:
         run: npm run lint --if-present
       - name: Test with Coverage
         run: npm run test:coverage --if-present || npx vitest --run --coverage
+      - name: Chaos Infrastructure Smoke Test
+        env:
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: npm run test:chaos:smoke
       - name: Upload Coverage Reports
         uses: actions/upload-artifact@v4
         if: always()

@@ -14,6 +14,62 @@ export type Database = {
   }
   public: {
     Tables: {
+      alert_incidents: {
+        Row: {
+          acknowledged_at: string | null
+          alert_rule_id: string
+          channels_notified: Json | null
+          created_at: string | null
+          id: string
+          message: string
+          metadata: Json | null
+          resolved_at: string | null
+          severity: string
+          status: string
+          triggered_at: string
+          triggered_by: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          acknowledged_at?: string | null
+          alert_rule_id: string
+          channels_notified?: Json | null
+          created_at?: string | null
+          id?: string
+          message: string
+          metadata?: Json | null
+          resolved_at?: string | null
+          severity: string
+          status?: string
+          triggered_at?: string
+          triggered_by?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          acknowledged_at?: string | null
+          alert_rule_id?: string
+          channels_notified?: Json | null
+          created_at?: string | null
+          id?: string
+          message?: string
+          metadata?: Json | null
+          resolved_at?: string | null
+          severity?: string
+          status?: string
+          triggered_at?: string
+          triggered_by?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "alert_incidents_alert_rule_id_fkey"
+            columns: ["alert_rule_id"]
+            isOneToOne: false
+            referencedRelation: "alert_rules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       alert_rules: {
         Row: {
           alert_type: string
@@ -1367,6 +1423,10 @@ export type Database = {
         Args: { _token: string }
         Returns: undefined
       }
+      acknowledge_alert_incident: {
+        Args: { p_incident_id: string }
+        Returns: boolean
+      }
       assign_role_by_email: {
         Args: {
           _email: string
@@ -1537,6 +1597,22 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: Json
       }
+      get_recent_alert_incidents: {
+        Args: { days_back?: number }
+        Returns: {
+          acknowledged_at: string
+          alert_rule_id: string
+          channels_notified: Json
+          id: string
+          message: string
+          metadata: Json
+          resolved_at: string
+          rule_name: string
+          severity: string
+          status: string
+          triggered_at: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -1653,6 +1729,16 @@ export type Database = {
           unique_users: number
         }[]
       }
+      record_alert_incident: {
+        Args: {
+          p_alert_rule_id: string
+          p_message: string
+          p_metadata?: Json
+          p_severity: string
+          p_triggered_by?: string
+        }
+        Returns: string
+      }
       record_chaos_metric: {
         Args: {
           p_expected_value?: number
@@ -1691,6 +1777,10 @@ export type Database = {
           _location_id: string
           _provider: Database["public"]["Enums"]["app_pos_provider"]
         }
+        Returns: boolean
+      }
+      resolve_alert_incident: {
+        Args: { p_incident_id: string }
         Returns: boolean
       }
       revoke_invitation: {

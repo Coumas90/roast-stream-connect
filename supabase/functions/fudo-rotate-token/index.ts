@@ -487,6 +487,37 @@ const handler = async (req: Request): Promise<Response> => {
             should_increment: false
           });
         }
+
+        // Check if this location now has 3+ consecutive failures and send alert
+        const { data: credentialStatus } = await supabase
+          .from('pos_credentials')
+          .select('consecutive_rotation_failures')
+          .eq('location_id', cred.location_id)
+          .eq('provider', 'fudo')
+          .single();
+
+        if (credentialStatus?.consecutive_rotation_failures >= 3) {
+          try {
+            await alertRotationFailures(
+              'fudo',
+              cred.location_id,
+              credentialStatus.consecutive_rotation_failures,
+              attempt.rotationId,
+              attempt.error
+            );
+            fudoLogger.info('consecutive_failure_alert_sent', {
+              provider: 'fudo',
+              location_id: cred.location_id,
+              consecutive_failures: credentialStatus.consecutive_rotation_failures,
+              rotation_id: attempt.rotationId
+            });
+          } catch (alertError) {
+            fudoLogger.error('consecutive_failure_alert_failed', alertError instanceof Error ? alertError : new Error(String(alertError)), {
+              provider: 'fudo',
+              location_id: cred.location_id
+            });
+          }
+        }
       }
     }
 

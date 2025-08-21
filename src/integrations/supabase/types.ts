@@ -1374,6 +1374,13 @@ export type Database = {
         Args: { p_holder: string; p_name: string; p_ttl_seconds: number }
         Returns: boolean
       }
+      reset_rotation_failures: {
+        Args: {
+          _location_id: string
+          _provider: Database["public"]["Enums"]["app_pos_provider"]
+        }
+        Returns: boolean
+      }
       revoke_invitation: {
         Args: { _invitation_id: string }
         Returns: undefined

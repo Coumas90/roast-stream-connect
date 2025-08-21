@@ -1150,6 +1150,16 @@ export type Database = {
           | { _provider: Database["public"]["Enums"]["app_pos_provider"] }
         Returns: Json
       }
+      check_consecutive_rotation_failures: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          consecutive_failures: number
+          last_error: string
+          last_rotation_id: string
+          location_id: string
+          provider: Database["public"]["Enums"]["app_pos_provider"]
+        }[]
+      }
       claim_job_lock: {
         Args: { p_name: string; p_ttl_seconds: number }
         Returns: {

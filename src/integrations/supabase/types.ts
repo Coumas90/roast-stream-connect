@@ -792,6 +792,30 @@ export type Database = {
         }
         Relationships: []
       }
+      pos_settings: {
+        Row: {
+          description: string | null
+          key: string
+          updated_at: string
+          updated_by: string | null
+          value: number
+        }
+        Insert: {
+          description?: string | null
+          key: string
+          updated_at?: string
+          updated_by?: string | null
+          value: number
+        }
+        Update: {
+          description?: string | null
+          key?: string
+          updated_at?: string
+          updated_by?: string | null
+          value?: number
+        }
+        Relationships: []
+      }
       pos_sync_runs: {
         Row: {
           attempt: number | null
@@ -1309,6 +1333,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: Json
       }
+      get_pos_settings: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -1502,6 +1530,10 @@ export type Database = {
       update_job_heartbeat: {
         Args: { p_job_name: string; p_metadata?: Json; p_status?: string }
         Returns: undefined
+      }
+      update_pos_setting: {
+        Args: { _key: string; _value: number }
+        Returns: boolean
       }
       update_rotation_status: {
         Args: {

@@ -1244,17 +1244,6 @@ export type Database = {
           recovery_count: number
         }[]
       }
-      calculate_pos_mttr_7d_enhanced: {
-        Args: Record<PropertyKey, never>
-        Returns: {
-          avg_mttr_minutes: number
-          failure_count: number
-          location_id: string
-          mttr_status: string
-          provider: Database["public"]["Enums"]["app_pos_provider"]
-          recovery_count: number
-        }[]
-      }
       cb_check_state: {
         Args:
           | {

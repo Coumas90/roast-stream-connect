@@ -14,6 +14,51 @@ export type Database = {
   }
   public: {
     Tables: {
+      alert_rules: {
+        Row: {
+          alert_type: string
+          channels: Json | null
+          cooldown_minutes: number
+          created_at: string
+          enabled: boolean
+          id: string
+          metadata: Json | null
+          name: string
+          severity: string
+          threshold_operator: string | null
+          threshold_value: number | null
+          updated_at: string
+        }
+        Insert: {
+          alert_type: string
+          channels?: Json | null
+          cooldown_minutes?: number
+          created_at?: string
+          enabled?: boolean
+          id: string
+          metadata?: Json | null
+          name: string
+          severity?: string
+          threshold_operator?: string | null
+          threshold_value?: number | null
+          updated_at?: string
+        }
+        Update: {
+          alert_type?: string
+          channels?: Json | null
+          cooldown_minutes?: number
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          metadata?: Json | null
+          name?: string
+          severity?: string
+          threshold_operator?: string | null
+          threshold_value?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       app_settings: {
         Row: {
           created_at: string
@@ -1306,6 +1351,20 @@ export type Database = {
         Args: { _batch_size?: number; _retention_days?: number }
         Returns: Json
       }
+      get_active_alert_rules: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          alert_type: string
+          channels: Json
+          cooldown_minutes: number
+          id: string
+          metadata: Json
+          name: string
+          severity: string
+          threshold_operator: string
+          threshold_value: number
+        }[]
+      }
       get_fudo_credentials_expiring: {
         Args:
           | { _days_ahead?: number }
@@ -1342,6 +1401,10 @@ export type Database = {
           _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
         }
+        Returns: boolean
+      }
+      is_alert_in_cooldown: {
+        Args: { _alert_id: string; _cooldown_minutes: number }
         Returns: boolean
       }
       is_tupa_admin: {

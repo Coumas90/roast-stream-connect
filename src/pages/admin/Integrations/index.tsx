@@ -12,6 +12,7 @@ import { toast } from "@/hooks/use-toast";
 import type { AppPosProvider, EffectivePosRow } from "@/integrations/supabase/pos-types";
 import PosStatus from './PosStatus';
 import ChaosTestDashboard from '@/components/admin/dashboard/ChaosTestDashboard';
+import AlertManagementDashboard from '@/components/admin/dashboard/AlertManagementDashboard';
 
 export default function AdminIntegrations() {
   const { tenantId } = useTenant();
@@ -99,6 +100,7 @@ export default function AdminIntegrations() {
           <TabsTrigger value="pos">POS Systems</TabsTrigger>
           <TabsTrigger value="status">POS Status</TabsTrigger>
           <TabsTrigger value="chaos">Chaos Testing</TabsTrigger>
+          <TabsTrigger value="alerts">Alert Management</TabsTrigger>
         </TabsList>
         
         <TabsContent value="pos">
@@ -137,6 +139,10 @@ export default function AdminIntegrations() {
         
         <TabsContent value="chaos">
           <ChaosTestDashboard />
+        </TabsContent>
+        
+        <TabsContent value="alerts">
+          <AlertManagementDashboard />
         </TabsContent>
       </Tabs>
     </article>

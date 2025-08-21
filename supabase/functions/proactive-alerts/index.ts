@@ -100,6 +100,7 @@ Deno.serve(async (req) => {
           break;
 
         case 'expiration':
+        case 'expiry_critical':
           currentValue = metrics.expirations_critical;
           shouldTrigger = evaluateThreshold(currentValue, rule.threshold_value, rule.threshold_operator);
           if (shouldTrigger) {
@@ -108,6 +109,7 @@ Deno.serve(async (req) => {
           break;
 
         case 'mttr':
+        case 'mttr_high':
           currentValue = metrics.avg_mttr_minutes;
           shouldTrigger = evaluateThreshold(currentValue, rule.threshold_value, rule.threshold_operator);
           if (shouldTrigger) {
@@ -122,30 +124,76 @@ Deno.serve(async (req) => {
             alertMessage = `${currentValue} circuit breakers are open (${rule.threshold_operator} ${rule.threshold_value} threshold)`;
           }
           break;
+
+        case 'chaos_failure_rate':
+          // Get chaos test failure rate from last 24 hours
+          const { data: chaosData } = await supabaseClient
+            .from('chaos_test_runs')
+            .select('status')
+            .gte('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString());
+          
+          const totalTests = chaosData?.length || 0;
+          const failedTests = chaosData?.filter(t => t.status === 'failed').length || 0;
+          currentValue = totalTests > 0 ? (failedTests / totalTests) * 100 : 0;
+          
+          shouldTrigger = evaluateThreshold(currentValue, rule.threshold_value, rule.threshold_operator);
+          if (shouldTrigger) {
+            alertMessage = `Chaos test failure rate is ${currentValue.toFixed(1)}% (${rule.threshold_operator} ${rule.threshold_value}% threshold)`;
+          }
+          break;
+
+        case 'chaos_slo_violations':
+          // Get SLO violations from chaos tests
+          const { data: violationsData } = await supabaseClient
+            .from('chaos_test_runs')
+            .select('violations')
+            .gte('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString());
+          
+          currentValue = violationsData?.reduce((acc, run) => acc + (run.violations?.length || 0), 0) || 0;
+          shouldTrigger = evaluateThreshold(currentValue, rule.threshold_value, rule.threshold_operator);
+          if (shouldTrigger) {
+            alertMessage = `${currentValue} SLO violations detected in chaos tests (${rule.threshold_operator} ${rule.threshold_value} threshold)`;
+          }
+          break;
+
+        case 'consecutive_failures':
+          // Get consecutive POS sync failures
+          const { data: failuresData } = await supabaseClient
+            .rpc('check_consecutive_rotation_failures');
+          
+          currentValue = failuresData?.length || 0;
+          shouldTrigger = evaluateThreshold(currentValue, rule.threshold_value, rule.threshold_operator);
+          if (shouldTrigger) {
+            alertMessage = `${currentValue} locations have consecutive rotation failures (${rule.threshold_operator} ${rule.threshold_value} threshold)`;
+          }
+          break;
       }
 
       if (shouldTrigger) {
         console.log(`🚨 Triggering alert: ${rule.name}`);
         
-        // Log the alert with proper metadata structure
-        await supabaseClient
-          .from('pos_logs')
-          .insert({
-            level: rule.severity === 'critical' ? 'error' : (rule.severity === 'error' ? 'error' : 'warn'),
-            scope: 'proactive_alert',
-            message: alertMessage,
-            meta: {
-              alert_id: rule.id,
-              rule_name: rule.name,
+        // Record alert incident using the new function
+        const { data: incidentId, error: incidentError } = await supabaseClient
+          .rpc('record_alert_incident', {
+            p_alert_rule_id: rule.id,
+            p_severity: rule.severity,
+            p_message: alertMessage,
+            p_metadata: {
               alert_type: rule.alert_type,
               threshold_value: rule.threshold_value,
               threshold_operator: rule.threshold_operator,
               current_value: currentValue,
-              severity: rule.severity,
               health_metrics: metrics,
               timestamp: new Date().toISOString(),
-            }
+            },
+            p_triggered_by: 'proactive-alerts-function'
           });
+
+        if (incidentError) {
+          console.error(`Error recording incident for ${rule.id}:`, incidentError);
+        } else {
+          console.log(`📝 Recorded incident ${incidentId} for alert ${rule.id}`);
+        }
 
         // Send external alert based on channels configured
         try {
@@ -166,6 +214,7 @@ Deno.serve(async (req) => {
           severity: rule.severity,
           current_value: currentValue,
           threshold_value: rule.threshold_value,
+          incident_id: incidentId,
         });
       }
     }

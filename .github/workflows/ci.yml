@@ -28,6 +28,15 @@ jobs:
         env:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: npm run test:chaos:smoke
+      - name: Run Proactive Alerts Check
+        env:
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          echo "Running proactive alerts check in CI..."
+          curl -X POST "${GITHUB_SERVER_URL}/functions/v1/proactive-alerts" \
+            -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
+            -H "Content-Type: application/json" \
+            -d '{"source": "ci_pipeline"}' || echo "Proactive alerts check completed"
       - name: Upload Coverage Reports
         uses: actions/upload-artifact@v4
         if: always()

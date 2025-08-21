@@ -80,6 +80,149 @@ export type Database = {
         }
         Relationships: []
       }
+      chaos_scenarios: {
+        Row: {
+          configuration: Json
+          created_at: string
+          description: string | null
+          enabled: boolean
+          id: string
+          name: string
+          provider: Database["public"]["Enums"]["app_pos_provider"]
+          success_criteria: Json
+          test_type: string
+          updated_at: string
+        }
+        Insert: {
+          configuration?: Json
+          created_at?: string
+          description?: string | null
+          enabled?: boolean
+          id: string
+          name: string
+          provider?: Database["public"]["Enums"]["app_pos_provider"]
+          success_criteria?: Json
+          test_type: string
+          updated_at?: string
+        }
+        Update: {
+          configuration?: Json
+          created_at?: string
+          description?: string | null
+          enabled?: boolean
+          id?: string
+          name?: string
+          provider?: Database["public"]["Enums"]["app_pos_provider"]
+          success_criteria?: Json
+          test_type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      chaos_test_metrics: {
+        Row: {
+          expected_value: number | null
+          id: string
+          metadata: Json | null
+          metric_name: string
+          metric_type: string
+          passed: boolean | null
+          recorded_at: string
+          test_run_id: string
+          threshold_operator: string | null
+          unit: string | null
+          value: number
+        }
+        Insert: {
+          expected_value?: number | null
+          id?: string
+          metadata?: Json | null
+          metric_name: string
+          metric_type: string
+          passed?: boolean | null
+          recorded_at?: string
+          test_run_id: string
+          threshold_operator?: string | null
+          unit?: string | null
+          value: number
+        }
+        Update: {
+          expected_value?: number | null
+          id?: string
+          metadata?: Json | null
+          metric_name?: string
+          metric_type?: string
+          passed?: boolean | null
+          recorded_at?: string
+          test_run_id?: string
+          threshold_operator?: string | null
+          unit?: string | null
+          value?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chaos_test_metrics_test_run_id_fkey"
+            columns: ["test_run_id"]
+            isOneToOne: false
+            referencedRelation: "chaos_test_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      chaos_test_runs: {
+        Row: {
+          configuration: Json
+          created_at: string
+          created_by: string | null
+          duration_ms: number | null
+          finished_at: string | null
+          id: string
+          provider: Database["public"]["Enums"]["app_pos_provider"]
+          results: Json
+          scenario_name: string
+          started_at: string
+          status: string
+          target_location_id: string | null
+          test_type: string
+          updated_at: string
+          violations: Json[] | null
+        }
+        Insert: {
+          configuration?: Json
+          created_at?: string
+          created_by?: string | null
+          duration_ms?: number | null
+          finished_at?: string | null
+          id?: string
+          provider?: Database["public"]["Enums"]["app_pos_provider"]
+          results?: Json
+          scenario_name: string
+          started_at?: string
+          status?: string
+          target_location_id?: string | null
+          test_type: string
+          updated_at?: string
+          violations?: Json[] | null
+        }
+        Update: {
+          configuration?: Json
+          created_at?: string
+          created_by?: string | null
+          duration_ms?: number | null
+          finished_at?: string | null
+          id?: string
+          provider?: Database["public"]["Enums"]["app_pos_provider"]
+          results?: Json
+          scenario_name?: string
+          started_at?: string
+          status?: string
+          target_location_id?: string | null
+          test_type?: string
+          updated_at?: string
+          violations?: Json[] | null
+        }
+        Relationships: []
+      }
       consumption_daily: {
         Row: {
           created_at: string
@@ -1288,6 +1431,15 @@ export type Database = {
           holder: string
         }[]
       }
+      complete_chaos_test: {
+        Args: {
+          p_results?: Json
+          p_status?: string
+          p_test_run_id: string
+          p_violations?: Json[]
+        }
+        Returns: boolean
+      }
       connect_pos_location: {
         Args: {
           _api_key: string
@@ -1501,6 +1653,19 @@ export type Database = {
           unique_users: number
         }[]
       }
+      record_chaos_metric: {
+        Args: {
+          p_expected_value?: number
+          p_metadata?: Json
+          p_metric_name: string
+          p_metric_type: string
+          p_test_run_id: string
+          p_threshold_operator?: string
+          p_unit?: string
+          p_value: number
+        }
+        Returns: boolean
+      }
       record_rotation_metric: {
         Args: {
           p_duration_ms?: number
@@ -1574,6 +1739,14 @@ export type Database = {
           _tenant_id: string
         }
         Returns: undefined
+      }
+      start_chaos_test: {
+        Args: {
+          p_custom_config?: Json
+          p_scenario_id: string
+          p_target_location_id?: string
+        }
+        Returns: string
       }
       trigger_pos_credentials_rotation: {
         Args: Record<PropertyKey, never>

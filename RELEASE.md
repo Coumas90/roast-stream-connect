@@ -199,6 +199,38 @@ npm test -- --testNamePattern="Token Zombie UAT"
 # ✅ circuit breaker remains stable
 ```
 
+## 🔍 Quick Verification Commands
+
+### **One-Liner Health Checks (Copy-Paste Ready)**
+```bash
+# Check for any tokens expiring in next 24 hours
+echo "SELECT provider, location_id, expires_at FROM pos_credentials WHERE expires_at < now() + interval '24 hours';" | psql "$DATABASE_URL"
+
+# Verify no zombie tokens in use (should return 0 rows)
+echo "SELECT * FROM pos_credentials WHERE status = 'zombie' OR (expires_at < now() AND status = 'active');" | psql "$DATABASE_URL"
+
+# Check recent rotation success rate (should be >98%)
+echo "SELECT provider, COUNT(*) as total, COUNT(*) FILTER (WHERE success = true) as succeeded, ROUND(100.0 * COUNT(*) FILTER (WHERE success = true) / COUNT(*), 2) as success_rate FROM pos_rotation_attempts WHERE created_at > now() - interval '24 hours' GROUP BY provider;" | psql "$DATABASE_URL"
+
+# Verify circuit breakers are closed (should return 0 rows)
+echo "SELECT * FROM rotation_cb WHERE state != 'closed';" | psql "$DATABASE_URL"
+
+# Check Token Zombie test results from artifacts
+cat artifacts/uat/token-zombie-*.json | jq '.testResults[] | select(.name | contains("Token Zombie")) | {name, passed, latency_ms, retries}'
+```
+
+### **Sandbox Seeding for Testing**
+```bash
+# Seed sandbox with expiring credential for testing
+echo "UPDATE pos_credentials SET expires_at = now() + interval '5 minutes', status = 'active' WHERE provider = 'fudo' AND location_id LIKE 'sandbox-%';" | psql "$DATABASE_URL"
+
+# Run UAT against seeded sandbox
+node scripts/uat-test-runner.js
+
+# Verify test artifacts generated
+ls -la artifacts/uat/token-zombie-*.json
+```
+
 ### **Production Security Gates**
 - **OWASP Top 10**: Verified
 - **Dependency Scanning**: No critical vulnerabilities

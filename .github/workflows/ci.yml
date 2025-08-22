@@ -28,6 +28,11 @@ jobs:
         env:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: npm run test:chaos:smoke
+      - name: Token Zombie UAT (Production Readiness)
+        env:
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: node scripts/uat-test-runner.js
       - name: Run Proactive Alerts Check
         env:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
@@ -43,6 +48,12 @@ jobs:
         with:
           name: coverage-report
           path: coverage/
+      - name: Upload UAT Token Zombie Results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: uat-token-zombie-results
+          path: artifacts/uat/token-zombie-*.json
       - name: Build
         run: npm run build
       - name: Block wildcard Access-Control-Allow-Origin

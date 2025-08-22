@@ -374,4 +374,115 @@ describe("Fudo Interceptor 401 + Retry", () => {
       didRetry: false
     });
   });
+
+  // ========== CARD #16: TOKEN ZOMBIE UAT TESTS ==========
+  
+  describe("Token Zombie UAT", () => {
+    it("old token returns 401 <100ms with 0 retries", async () => {
+      // Simulate post-rotation scenario where old token is now invalid
+      const mockOperationWithOldToken = vi.fn().mockImplementation(() => {
+        const error: any = new Error('Token is invalid/expired');
+        error.status = 401;
+        error.code = 'INVALID_TOKEN';
+        throw error;
+      });
+
+      const start = Date.now();
+      const callWithRetry = (client as any).callWithRetry.bind(client);
+      
+      // Mock isExpired401 to return false for zombie tokens (not expired, just invalid)
+      const isExpired401Spy = vi.spyOn(client as any, 'isExpired401').mockReturnValue(false);
+      
+      await expect(callWithRetry(mockOperationWithOldToken, { operation: 'fetchSales' }))
+        .rejects.toThrow('Authentication failed');
+      
+      const latency = Date.now() - start;
+
+      // Core UAT assertions
+      expect(latency).toBeLessThan(100); // Response < 100ms
+      expect(mockOperationWithOldToken).toHaveBeenCalledTimes(1); // No retries (0 additional calls)
+      expect(mockSupabaseRpc).not.toHaveBeenCalled(); // No circuit breaker check
+      expect(mockSupabaseFunctions.invoke).not.toHaveBeenCalled(); // No rotation attempt
+      
+      // Verify zombie token metrics
+      expect(mockFudoMetrics.increment).toHaveBeenCalledWith('fudo.401_permission_error', {
+        location_id: 'test-location',
+        operation: 'fetchSales',
+        error_status: 401,
+        error_code: 'INVALID_TOKEN',
+        didRetry: false,
+        reason: 'permission_denied'
+      });
+
+      isExpired401Spy.mockRestore();
+    });
+
+    it("zombie token detection prevents unnecessary rotation attempts", async () => {
+      // Simulate multiple clients using old (zombie) token simultaneously
+      const mockZombieOperation = vi.fn().mockImplementation(() => {
+        const error: any = new Error('Token revoked or invalid');
+        error.status = 401;
+        error.code = 'TOKEN_REVOKED';
+        throw error;
+      });
+
+      const callWithRetry = (client as any).callWithRetry.bind(client);
+      
+      // Mock isExpired401 to correctly identify zombie tokens
+      const isExpired401Spy = vi.spyOn(client as any, 'isExpired401').mockReturnValue(false);
+
+      // Multiple concurrent requests with zombie token
+      const promises = Array(5).fill(null).map(() => 
+        callWithRetry(mockZombieOperation, { operation: 'fetchSales' }).catch(e => e)
+      );
+
+      const results = await Promise.all(promises);
+
+      // All should fail immediately without rotation attempts
+      results.forEach(result => {
+        expect(result.message).toContain('Authentication failed');
+      });
+
+      // Verify no rotation attempts were made despite multiple 401s
+      expect(mockSupabaseRpc).not.toHaveBeenCalled();
+      expect(mockSupabaseFunctions.invoke).not.toHaveBeenCalled();
+      expect(mockZombieOperation).toHaveBeenCalledTimes(5); // Each called once only
+
+      isExpired401Spy.mockRestore();
+    });
+
+    it("performance regression test: 401 response time consistently <100ms", async () => {
+      const trials = 10;
+      const latencies: number[] = [];
+
+      const mockFast401 = vi.fn().mockImplementation(() => {
+        const error: any = new Error('Invalid credentials');
+        error.status = 401;
+        error.code = 'INVALID_CREDENTIALS';
+        throw error;
+      });
+
+      const callWithRetry = (client as any).callWithRetry.bind(client);
+      const isExpired401Spy = vi.spyOn(client as any, 'isExpired401').mockReturnValue(false);
+
+      // Run multiple trials to test consistency
+      for (let i = 0; i < trials; i++) {
+        const start = Date.now();
+        await callWithRetry(mockFast401, { operation: 'fetchSales' }).catch(() => {});
+        const latency = Date.now() - start;
+        latencies.push(latency);
+      }
+
+      // Statistical validation
+      const avgLatency = latencies.reduce((a, b) => a + b, 0) / latencies.length;
+      const maxLatency = Math.max(...latencies);
+      const p95Latency = latencies.sort((a, b) => a - b)[Math.floor(trials * 0.95)];
+
+      expect(avgLatency).toBeLessThan(50); // Average should be very fast
+      expect(maxLatency).toBeLessThan(100); // No outliers > 100ms
+      expect(p95Latency).toBeLessThan(75); // 95th percentile < 75ms
+
+      isExpired401Spy.mockRestore();
+    });
+  });
 });

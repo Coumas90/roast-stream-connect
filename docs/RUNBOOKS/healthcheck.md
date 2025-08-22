@@ -1,5 +1,9 @@
 # Healthcheck System Operations Manual
 
+**Owner**: @devops-team (Slack)  
+**Severity**: P1-P2 (High/Medium)  
+**Target Time**: 10 minutes  
+
 ## Overview
 This manual provides operational procedures for the cron healthcheck system that monitors job heartbeats and sends alerts for stale jobs. All procedures designed for 10-minute execution.
 

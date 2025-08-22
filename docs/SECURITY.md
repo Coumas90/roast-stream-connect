@@ -82,7 +82,28 @@ INSERT INTO vault.secrets (name, secret) VALUES
 
 #### Edge Function CORS
 ```typescript
-// Secure CORS configuration for edge functions
+// Effective CORS headers used in production edge functions
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Access-Control-Max-Age': '86400'
+};
+
+// Always handle preflight requests
+if (req.method === 'OPTIONS') {
+  return new Response(null, { headers: corsHeaders });
+}
+
+// Include CORS headers in all responses
+return new Response(JSON.stringify(result), {
+  headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+});
+```
+
+#### Secure CORS Configuration (Recommended)
+```typescript
+// For production: Restrict origins to known domains
 const corsConfig = {
   origin: [
     'https://ipjidjijilhpblxrnaeg.supabase.co',
@@ -230,6 +251,48 @@ UPDATE pos_credentials SET rotation_status = 'disabled';
 
 -- Audit: Recent security events
 SELECT * FROM security_events WHERE ts > now() - interval '24 hours';
+```
+
+#### Cron Token Rotation Procedures
+
+**Background**: The cron job that triggers POS rotations uses a secure token (`POS_SYNC_JOB_TOKEN`) to authenticate with edge functions.
+
+**Rotation Schedule**: 
+- **Regular**: Every 90 days or on team changes
+- **Emergency**: Immediately if token compromised
+
+**Rotation Steps**:
+```bash
+# 1. Generate new secure token
+NEW_TOKEN=$(openssl rand -hex 32)
+
+# 2. Update Supabase Vault secret
+# Via Supabase Dashboard → Settings → Vault
+# Update: POS_SYNC_JOB_TOKEN = $NEW_TOKEN
+
+# 3. Verify cron job configuration
+SELECT command FROM cron.job WHERE jobname = 'pos-sync-daily';
+# Should include: X-Job-Token: [VAULT_SECRET:POS_SYNC_JOB_TOKEN]
+
+# 4. Test rotation with new token
+curl -X POST [edge-function-url] \
+  -H "X-Job-Token: $NEW_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"test": true}'
+
+# 5. Monitor for successful rotations
+SELECT * FROM pos_rotation_metrics 
+WHERE recorded_at > now() - interval '30 minutes'
+ORDER BY recorded_at DESC;
+```
+
+**Emergency Token Disable**:
+```sql
+-- Immediately disable all cron rotations
+UPDATE cron.job SET active = false WHERE jobname LIKE '%pos-%';
+
+-- Re-enable after token rotation
+UPDATE cron.job SET active = true WHERE jobname LIKE '%pos-%';
 ```
 
 #### Recovery Procedures

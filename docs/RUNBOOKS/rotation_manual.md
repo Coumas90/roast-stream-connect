@@ -1,5 +1,9 @@
 # POS Credentials Rotation Manual Operations
 
+**Owner**: @sre-team (Slack)  
+**Severity**: P0-P1 (Critical/High)  
+**Target Time**: 5-10 minutes  
+
 ## Overview
 This manual covers step-by-step procedures for manual POS credential rotation, emergency rollbacks, and troubleshooting. Designed for 10-minute operator execution during incidents.
 

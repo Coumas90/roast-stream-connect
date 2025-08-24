@@ -2,6 +2,7 @@ import type { POSConfig } from "../../../../sdk/pos";
 import type { FudoClient, FudoFetchSalesParams, FudoFetchSalesResponse } from "./types";
 import { supabase } from "@/integrations/supabase/client";
 import { fudoMetrics } from "./metrics";
+import { loadFudoConfig, DEFAULT_FUDO_CONFIG, type FudoConfig } from "./config";
 
 // Error types for 401 handling
 interface FudoError extends Error {
@@ -18,7 +19,21 @@ interface FudoError extends Error {
 const inFlightRefreshes = new Map<string, Promise<void>>();
 
 export class DefaultFudoClient implements FudoClient {
+  private fudoConfig: FudoConfig | null = null;
+  
   constructor(private readonly cfg: POSConfig) {}
+
+  private async getFudoConfig(): Promise<FudoConfig> {
+    if (!this.fudoConfig) {
+      try {
+        this.fudoConfig = await loadFudoConfig();
+      } catch (error) {
+        console.warn('Failed to load Fudo config, using defaults:', error);
+        this.fudoConfig = DEFAULT_FUDO_CONFIG;
+      }
+    }
+    return this.fudoConfig;
+  }
 
   async validate(): Promise<boolean> {
     return this.callWithRetry(async () => {
@@ -258,9 +273,10 @@ export class DefaultFudoClient implements FudoClient {
    * Call the internal pos-credentials-rotation endpoint with timeout and retry
    */
   private async callRotationEndpoint(locationId: string, rotationId: string, retryCount = 0): Promise<{ data?: any; error?: any }> {
-    const maxRetries = 1;
-    const timeoutMs = 8000; // 8 second timeout
-    const backoffMs = 2000; // 2 second backoff
+    const fudoConfig = await this.getFudoConfig();
+    const maxRetries = fudoConfig.MAX_RETRIES;
+    const timeoutMs = fudoConfig.API_TIMEOUT_MS;
+    const backoffMs = fudoConfig.BACKOFF_MS;
 
     try {
       const controller = new AbortController();

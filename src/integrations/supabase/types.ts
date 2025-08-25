@@ -1378,6 +1378,50 @@ export type Database = {
       }
     }
     Views: {
+      pos_credentials_public: {
+        Row: {
+          created_at: string | null
+          credential_status: string | null
+          id: string | null
+          location_id: string | null
+          provider: Database["public"]["Enums"]["app_pos_provider"] | null
+          rotation_status: string | null
+          rotation_status_display: string | null
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          credential_status?: never
+          id?: string | null
+          location_id?: string | null
+          provider?: Database["public"]["Enums"]["app_pos_provider"] | null
+          rotation_status?: string | null
+          rotation_status_display?: never
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          credential_status?: never
+          id?: string | null
+          location_id?: string | null
+          provider?: Database["public"]["Enums"]["app_pos_provider"] | null
+          rotation_status?: string | null
+          rotation_status_display?: never
+          status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pos_credentials_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pos_dashboard_breakers: {
         Row: {
           failures: number | null
@@ -1811,6 +1855,10 @@ export type Database = {
       run_scheduled_gc: {
         Args: Record<PropertyKey, never>
         Returns: Json
+      }
+      secure_token_rotation: {
+        Args: { _location_id: string; _new_token: string; _provider: string }
+        Returns: boolean
       }
       set_pos_location: {
         Args: {

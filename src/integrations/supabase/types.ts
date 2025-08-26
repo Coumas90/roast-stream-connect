@@ -1378,59 +1378,7 @@ export type Database = {
       }
     }
     Views: {
-      pos_credentials_public: {
-        Row: {
-          created_at: string | null
-          credential_status: string | null
-          id: string | null
-          location_id: string | null
-          provider: Database["public"]["Enums"]["app_pos_provider"] | null
-          rotation_status: string | null
-          rotation_status_display: string | null
-          status: string | null
-          updated_at: string | null
-        }
-        Relationships: []
-      }
-      pos_dashboard_breakers: {
-        Row: {
-          failures: number | null
-          location_id: string | null
-          location_name: string | null
-          provider: Database["public"]["Enums"]["app_pos_provider"] | null
-          resume_at: string | null
-          state: string | null
-          status_color: string | null
-          tenant_name: string | null
-          updated_at: string | null
-          window_start: string | null
-        }
-        Relationships: []
-      }
-      pos_dashboard_expirations: {
-        Row: {
-          consecutive_rotation_failures: number | null
-          days_until_expiry: number | null
-          expires_at: string | null
-          hours_until_expiry: number | null
-          last_rotation_at: string | null
-          location_id: string | null
-          location_name: string | null
-          provider: Database["public"]["Enums"]["app_pos_provider"] | null
-          rotation_status: string | null
-          status: string | null
-          tenant_name: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "pos_credentials_location_id_fkey"
-            columns: ["location_id"]
-            isOneToOne: false
-            referencedRelation: "locations"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
+      [_ in never]: never
     }
     Functions: {
       accept_invitation: {
@@ -1578,6 +1526,37 @@ export type Database = {
           severity: string
           threshold_operator: string
           threshold_value: number
+        }[]
+      }
+      get_dashboard_breakers: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          failures: number
+          location_id: string
+          location_name: string
+          provider: Database["public"]["Enums"]["app_pos_provider"]
+          resume_at: string
+          state: string
+          status_color: string
+          tenant_name: string
+          updated_at: string
+          window_start: string
+        }[]
+      }
+      get_dashboard_expirations: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          consecutive_rotation_failures: number
+          days_until_expiry: number
+          expires_at: string
+          hours_until_expiry: number
+          last_rotation_at: string
+          location_id: string
+          location_name: string
+          provider: Database["public"]["Enums"]["app_pos_provider"]
+          rotation_status: string
+          status: string
+          tenant_name: string
         }[]
       }
       get_fudo_credentials_expiring: {

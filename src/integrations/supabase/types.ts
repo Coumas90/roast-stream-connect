@@ -1390,37 +1390,7 @@ export type Database = {
           status: string | null
           updated_at: string | null
         }
-        Insert: {
-          created_at?: string | null
-          credential_status?: never
-          id?: string | null
-          location_id?: string | null
-          provider?: Database["public"]["Enums"]["app_pos_provider"] | null
-          rotation_status?: string | null
-          rotation_status_display?: never
-          status?: string | null
-          updated_at?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          credential_status?: never
-          id?: string | null
-          location_id?: string | null
-          provider?: Database["public"]["Enums"]["app_pos_provider"] | null
-          rotation_status?: string | null
-          rotation_status_display?: never
-          status?: string | null
-          updated_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "pos_credentials_location_id_fkey"
-            columns: ["location_id"]
-            isOneToOne: false
-            referencedRelation: "locations"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       pos_dashboard_breakers: {
         Row: {
@@ -1620,6 +1590,20 @@ export type Database = {
           last_rotation_attempt_at: string
           location_id: string
           secret_ref: string
+        }[]
+      }
+      get_pos_credentials_public: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          created_at: string
+          credential_status: string
+          id: string
+          location_id: string
+          provider: Database["public"]["Enums"]["app_pos_provider"]
+          rotation_status: string
+          rotation_status_display: string
+          status: string
+          updated_at: string
         }[]
       }
       get_pos_credentials_safe: {

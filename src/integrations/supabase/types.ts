@@ -319,6 +319,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "consumption_daily_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations_public"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "consumption_daily_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
@@ -433,6 +440,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "entitlements_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations_public"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "entitlements_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
@@ -520,6 +534,13 @@ export type Database = {
             columns: ["location_id"]
             isOneToOne: false
             referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invitations_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations_public"
             referencedColumns: ["id"]
           },
           {
@@ -660,6 +681,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "order_proposals_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations_public"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "order_proposals_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
@@ -738,6 +766,13 @@ export type Database = {
             columns: ["location_id"]
             isOneToOne: false
             referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_credentials_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations_public"
             referencedColumns: ["id"]
           },
           {
@@ -1305,6 +1340,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "stock_ledger_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations_public"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "stock_ledger_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
@@ -1368,6 +1410,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "user_roles_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations_public"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "user_roles_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
@@ -1378,6 +1427,33 @@ export type Database = {
       }
     }
     Views: {
+      locations_public: {
+        Row: {
+          code: string | null
+          created_at: string | null
+          id: string | null
+          name: string | null
+          tenant_id: string | null
+          timezone: string | null
+        }
+        Insert: {
+          code?: string | null
+          created_at?: string | null
+          id?: string | null
+          name?: string | null
+          tenant_id?: never
+          timezone?: string | null
+        }
+        Update: {
+          code?: string | null
+          created_at?: string | null
+          id?: string | null
+          name?: string | null
+          tenant_id?: never
+          timezone?: string | null
+        }
+        Relationships: []
+      }
       pos_credentials_public: {
         Row: {
           created_at: string | null
@@ -1420,6 +1496,13 @@ export type Database = {
             referencedRelation: "locations"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "pos_credentials_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations_public"
+            referencedColumns: ["id"]
+          },
         ]
       }
       pos_dashboard_breakers: {
@@ -1457,6 +1540,13 @@ export type Database = {
             columns: ["location_id"]
             isOneToOne: false
             referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_credentials_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations_public"
             referencedColumns: ["id"]
           },
         ]
@@ -1596,6 +1686,17 @@ export type Database = {
         Args: { _batch_size?: number; _retention_days?: number }
         Returns: Json
       }
+      get_accessible_locations: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          code: string
+          created_at: string
+          id: string
+          name: string
+          tenant_id: string
+          timezone: string
+        }[]
+      }
       get_active_alert_rules: {
         Args: Record<PropertyKey, never>
         Returns: {
@@ -1609,6 +1710,10 @@ export type Database = {
           threshold_operator: string
           threshold_value: number
         }[]
+      }
+      get_auth_status: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
       }
       get_fudo_credentials_expiring: {
         Args:

@@ -12,6 +12,8 @@ export type TenantContextType = {
   isLoading: boolean;
   error: string | null;
   retryCount: number;
+  isAuthenticated: boolean;
+  authStatus: any;
 };
 
 const TenantContext = createContext<TenantContextType | undefined>(undefined);
@@ -24,6 +26,8 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [retryCount, setRetryCount] = useState(0);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [authStatus, setAuthStatus] = useState<any>(null);
   const retryTimeoutRef = useRef<number | null>(null);
   const maxRetries = 3;
   
@@ -37,6 +41,36 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
 
   const getLocationIdByName = (name: string) => allLocations.find((l) => l.name === name)?.id;
 
+  const checkAuthStatus = async () => {
+    try {
+      const { data: authData, error: authError } = await supabase.rpc('get_auth_status');
+      
+      if (authError) {
+        logger.warn('[TenantProvider] Auth status check failed', { error: authError.message });
+        setIsAuthenticated(false);
+        setAuthStatus(null);
+        return false;
+      }
+      
+      const parsedAuthData = authData as any;
+      setAuthStatus(parsedAuthData);
+      setIsAuthenticated(parsedAuthData?.authenticated || false);
+      
+      logger.info('[TenantProvider] Auth status checked', {
+        authenticated: parsedAuthData?.authenticated,
+        rolesCount: parsedAuthData?.roles_count,
+        isAdmin: parsedAuthData?.is_admin
+      });
+      
+      return parsedAuthData?.authenticated || false;
+    } catch (error) {
+      logger.error('[TenantProvider] Auth status check error', { error });
+      setIsAuthenticated(false);
+      setAuthStatus(null);
+      return false;
+    }
+  };
+
   const fetchLocations = async (attempt = 0) => {
     const startTime = performance.now();
     
@@ -47,26 +81,16 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
       logger.info('[TenantProvider] Starting location fetch', {
         attempt,
         component: 'TenantProvider',
-        action: 'fetchLocations'
+        action: 'fetchLocations',
+        authenticated: isAuthenticated
       });
 
-      // Add AbortController with timeout
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => {
-        controller.abort();
-        logger.warn('[TenantProvider] Query aborted due to timeout', { 
-          attempt, 
-          duration: performance.now() - startTime 
-        });
-      }, 8000); // 8 second timeout
+      // Check auth status first
+      const authResult = await checkAuthStatus();
+      
+      // Use the optimized function for location loading
+      const { data, error } = await supabase.rpc('get_accessible_locations');
 
-      const { data, error } = await supabase
-        .from("locations")
-        .select("id,name,tenant_id")
-        .order("name", { ascending: true })
-        .abortSignal(controller.signal);
-
-      clearTimeout(timeoutId);
       const duration = performance.now() - startTime;
 
       if (error) {
@@ -86,6 +110,7 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
       logger.info('[TenantProvider] Locations loaded successfully', {
         count: locs.length,
         duration,
+        authenticated: authResult,
         component: 'TenantProvider'
       });
 
@@ -103,7 +128,7 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
       setError(err.message || 'Error al cargar ubicaciones');
 
       // Retry logic with exponential backoff
-      if (attempt < maxRetries && err.name !== 'AbortError') {
+      if (attempt < maxRetries) {
         const retryDelay = Math.min(1000 * Math.pow(2, attempt), 10000); // Max 10s delay
         
         logger.info('[TenantProvider] Scheduling retry', {
@@ -118,10 +143,9 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
           fetchLocations(attempt + 1);
         }, retryDelay);
       } else {
-        logger.error('[TenantProvider] Max retries exceeded or aborted', {
+        logger.error('[TenantProvider] Max retries exceeded', {
           attempt,
           maxRetries,
-          isAborted: err.name === 'AbortError',
           component: 'TenantProvider'
         });
       }
@@ -133,10 +157,27 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     fetchLocations();
     
+    // Set up auth state listener to refresh locations when auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        logger.info('[TenantProvider] Auth state changed', { 
+          event, 
+          authenticated: !!session,
+          component: 'TenantProvider' 
+        });
+        
+        if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
+          // Refresh locations when authentication state changes
+          setTimeout(() => fetchLocations(), 100);
+        }
+      }
+    );
+    
     return () => {
       if (retryTimeoutRef.current) {
         clearTimeout(retryTimeoutRef.current);
       }
+      subscription.unsubscribe();
     };
   }, []);
 
@@ -161,8 +202,10 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
       isLoading,
       error,
       retryCount,
+      isAuthenticated,
+      authStatus,
     }),
-    [tenantId, allLocations, location, locationId, isLoading, error, retryCount]
+    [tenantId, allLocations, location, locationId, isLoading, error, retryCount, isAuthenticated, authStatus]
   );
 
   return <TenantContext.Provider value={value}>{children}</TenantContext.Provider>;

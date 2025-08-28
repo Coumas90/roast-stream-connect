@@ -1761,7 +1761,7 @@ export type Database = {
         Returns: Json
       }
       get_recent_alert_incidents: {
-        Args: { days_back?: number }
+        Args: { _limit?: number }
         Returns: {
           acknowledged_at: string
           alert_rule_id: string

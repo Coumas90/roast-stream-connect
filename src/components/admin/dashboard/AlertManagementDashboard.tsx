@@ -66,7 +66,7 @@ export default function AlertManagementDashboard() {
   const fetchRecentIncidents = async () => {
     try {
       const { data, error } = await supabase
-        .rpc('get_recent_alert_incidents', { days_back: 7 });
+        .rpc('get_recent_alert_incidents', { _limit: 50 });
 
       if (error) throw error;
       // Transform the data to match our interface

@@ -51,19 +51,29 @@ export function RecipeCard({
   const isInteractive = recipe.status !== "archived";
 
   return (
-    <Card className="group hover:shadow-md transition-shadow">
+    <Card className="group hover:shadow-lg hover:border-primary/20 transition-all duration-300 animate-fade-in">
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between gap-3">
           <div className="flex-1 min-w-0">
-            <h3 className="font-semibold text-foreground line-clamp-1">{recipe.name}</h3>
-            <div className="flex flex-wrap gap-1.5 mt-2">
-              <Badge variant="outline" className="text-xs">
+            <div className="flex items-start gap-2 mb-2">
+              <h3 className="font-semibold text-foreground line-clamp-1 flex-1">{recipe.name}</h3>
+              {recipe.isActive && (
+                <div className="h-2 w-2 rounded-full bg-success animate-pulse flex-shrink-0 mt-2" />
+              )}
+            </div>
+            <div className="flex flex-wrap gap-1.5 mb-2">
+              <Badge variant="outline" className="text-xs border-primary/40 text-primary">
                 {recipe.method}
               </Badge>
               <RecipeStatusBadge status={recipe.status} type={recipe.type} />
               {recipe.type === "personal" && (
                 <Badge variant="secondary" className="text-xs">Mi Receta</Badge>
               )}
+            </div>
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <span>Por Juan Pérez</span>
+              <span>•</span>
+              <span>Hace 2 días</span>
             </div>
           </div>
           
@@ -116,15 +126,15 @@ export function RecipeCard({
           </div>
         )}
 
-        <div className="flex items-center justify-between gap-3 pt-2">
+        <div className="flex items-center justify-between gap-3 pt-3 border-t border-border/50">
           <div className="flex items-center gap-2">
             {isInteractive && onToggleActive && (
-              <div className="flex items-center gap-2 px-3 py-2 rounded-md bg-muted/50">
+              <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-gradient-to-r from-primary/10 to-primary/5 border border-primary/20">
                 <Switch
                   checked={recipe.isActive}
                   onCheckedChange={(checked) => onToggleActive(recipe, checked)}
                 />
-                <span className="text-sm font-medium">
+                <span className="text-sm font-medium text-primary">
                   {recipe.isActive ? "Activa" : "Activar"}
                 </span>
               </div>
@@ -135,7 +145,7 @@ export function RecipeCard({
             <Button 
               variant="ghost" 
               size="icon" 
-              className="h-8 w-8"
+              className="h-9 w-9 hover:bg-primary/10 hover:text-primary transition-colors"
               onClick={() => onViewPDF?.(recipe)}
             >
               <FileText className="h-4 w-4" />
@@ -144,7 +154,7 @@ export function RecipeCard({
               <Button 
                 variant="ghost" 
                 size="icon" 
-                className="h-8 w-8"
+                className="h-9 w-9 hover:bg-primary/10 hover:text-primary transition-colors"
                 onClick={() => onView(recipe)}
               >
                 <Eye className="h-4 w-4" />

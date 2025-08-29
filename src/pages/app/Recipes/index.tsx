@@ -7,6 +7,7 @@ import { RecipeFilters, type RecipeFilters as RecipeFiltersType } from "@/compon
 import { RecipeCard, type Recipe } from "@/components/recipes/RecipeCard";
 import { RecipeEmptyState } from "@/components/recipes/RecipeEmptyStates";
 import { CreateRecipeModal } from "@/components/recipes/CreateRecipeModal";
+import { RecipeHeroSection } from "@/components/recipes/RecipeHeroSection";
 
 // Mock data for development
 const MOCK_RECIPES: Recipe[] = [
@@ -130,62 +131,77 @@ export default function Recipes() {
     setFilters({});
   };
 
+  // Get active recipe for hero section
+  const activeRecipe = MOCK_RECIPES.find(recipe => recipe.isActive);
+
   return (
-    <article className="flex flex-col h-full">
+    <div className="min-h-screen bg-background">
       <Helmet>
-        <title>Recetas | TUPÁ Hub</title>
-        <meta name="description" content="Gestiona tus recetas de café y parámetros de preparación" />
+        <title>Mis Recetas | TUPÁ Hub</title>
+        <meta name="description" content="Gestiona y descubre recetas de café únicas. Crea, comparte y perfecciona tus métodos de preparación favoritos." />
         <link rel="canonical" href="/app/recipes" />
       </Helmet>
-      
-      <h1 className="sr-only">Recetas</h1>
 
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-6 border-b border-border">
-        <div>
-          <h1 className="text-2xl font-semibold text-foreground">Recetas</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Parámetros de preparación para cada método
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm">
-            <Download className="h-4 w-4 mr-2" />
-            Descargar Todas
-          </Button>
-          <Button onClick={() => setIsCreateModalOpen(true)}>
-            <Plus className="h-4 w-4 mr-2" />
-            Nueva Receta
-          </Button>
+      <div className="border-b border-border bg-card">
+        <div className="container mx-auto px-6 py-6">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+              <h1 className="text-3xl font-bold text-foreground">Mis Recetas</h1>
+              <p className="text-muted-foreground mt-1">
+                Descubre, crea y comparte recetas únicas de café
+              </p>
+            </div>
+            <div className="flex gap-3">
+              <Button variant="outline" className="hover:bg-primary/10 hover:text-primary hover:border-primary/20">
+                <Download className="h-4 w-4 mr-2" />
+                Descargar Todas
+              </Button>
+              <Button onClick={() => setIsCreateModalOpen(true)} className="shadow-elegant">
+                <Plus className="h-4 w-4 mr-2" />
+                Nueva Receta
+              </Button>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Navigation Tabs */}
+      {/* Hero Section - Active Recipe */}
+      {activeRecipe && (
+        <RecipeHeroSection
+          recipe={activeRecipe}
+          onEdit={(recipe) => handleRecipeAction("edit", recipe)}
+          onDuplicate={(recipe) => handleRecipeAction("duplicate", recipe)}
+          onShare={(recipe) => handleRecipeAction("share", recipe)}
+          onViewPDF={(recipe) => handleRecipeAction("viewPDF", recipe)}
+        />
+      )}
+
+      {/* Tab Navigation */}
       <RecipeTabNavigation
         activeTab={activeTab}
         onTabChange={setActiveTab}
         counts={tabCounts}
-        isAdmin={false} // This would come from user context
       />
 
-      {/* Filters */}
-      <RecipeFilters
-        filters={filters}
-        onFiltersChange={setFilters}
-        onClearFilters={clearFilters}
-      />
+      {/* Main Content */}
+      <div className="container mx-auto px-6 py-6 space-y-6">
+        {/* Filters */}
+        <RecipeFilters
+          filters={filters}
+          onFiltersChange={setFilters}
+          onClearFilters={clearFilters}
+        />
 
-      {/* Content */}
-      <div className="flex-1 p-6">
+        {/* Content */}
         {filteredRecipes.length === 0 ? (
           <RecipeEmptyState
             tab={activeTab}
             onCreateNew={() => setIsCreateModalOpen(true)}
             onViewOficial={() => setActiveTab("oficial")}
-            isAdmin={false}
           />
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
             {filteredRecipes.map((recipe) => (
               <RecipeCard
                 key={recipe.id}
@@ -211,6 +227,6 @@ export default function Recipes() {
         onClose={() => setIsCreateModalOpen(false)}
         onSave={handleCreateRecipe}
       />
-    </article>
+    </div>
   );
 }

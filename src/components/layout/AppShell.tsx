@@ -65,7 +65,7 @@ export function AppShell({ children, section = "Dashboard", variant = "client" }
   // Compute gated items for client variant
   const items = variant === "client" && flags
     ? baseItems.filter((n) => {
-        if (n.to === "/app/replenishment") return flags.auto_order_enabled && posEffective;
+        if (n.to === "/app/replenishment") return flags.auto_order_enabled;
         if (n.to === "/app/academy") return flags.academy_enabled;
         if (n.to === "/app/loyalty") return flags.loyalty_enabled;
         return true;

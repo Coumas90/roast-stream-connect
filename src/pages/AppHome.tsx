@@ -129,7 +129,9 @@ export default function AppHome() {
               <div className="text-4xl font-semibold">25kg</div>
               <div className="text-sm">Finca La Esperanza<br />en 8 días</div>
             </div>
-            <Button className="mt-4" variant="soft">Aplicar Recomendación</Button>
+            <Button className="mt-4" variant="outline" asChild>
+              <a href="/app/replenishment">Ver Reposición</a>
+            </Button>
           </CardContent>
         </Card>
       </section>

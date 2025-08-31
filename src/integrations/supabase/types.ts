@@ -640,10 +640,13 @@ export type Database = {
       }
       order_proposals: {
         Row: {
+          coffee_variety: string | null
           created_by: string | null
+          delivery_type: string | null
           id: string
           items: Json
           location_id: string
+          notes: string | null
           odoo_so_number: string | null
           proposed_at: string
           source: string
@@ -651,10 +654,13 @@ export type Database = {
           tenant_id: string
         }
         Insert: {
+          coffee_variety?: string | null
           created_by?: string | null
+          delivery_type?: string | null
           id?: string
           items: Json
           location_id: string
+          notes?: string | null
           odoo_so_number?: string | null
           proposed_at?: string
           source?: string
@@ -662,10 +668,13 @@ export type Database = {
           tenant_id: string
         }
         Update: {
+          coffee_variety?: string | null
           created_by?: string | null
+          delivery_type?: string | null
           id?: string
           items?: Json
           location_id?: string
+          notes?: string | null
           odoo_so_number?: string | null
           proposed_at?: string
           source?: string

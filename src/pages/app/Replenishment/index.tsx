@@ -1,197 +1,288 @@
 import React, { useState, useEffect } from "react";
-import { Helmet } from "react-helmet-async";
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { useTenant } from "@/lib/tenant";
-import { toast } from "@/hooks/use-toast";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Separator } from "@/components/ui/separator";
+import { EnhancedCoffeeSelector, OrderItem } from "@/components/replenishment/EnhancedCoffeeSelector";
+import LocationSwitcher from "@/components/app/LocationSwitcher";
+import AppLayout from "@/layouts/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { useFeatureFlags } from "@/hooks/useFeatureFlags";
-import { Clock, Package, AlertCircle, TrendingUp } from "lucide-react";
-import type { Enums } from "@/integrations/supabase/types";
+import { useAuth } from "@/lib/auth";
+import { useToast } from "@/hooks/use-toast";
+import { 
+  Coffee, 
+  Package, 
+  TrendingUp, 
+  Calendar, 
+  AlertTriangle,
+  Truck,
+  Bot,
+  ShoppingCart,
+  Clock
+} from "lucide-react";
 
-type OrderStatus = Enums<"order_status">;
-
+// Order proposal interface
 interface OrderProposal {
   id: string;
-  status: OrderStatus;
-  coffee_variety: string;
-  items: { code: string; qty: number }[];
+  status: string;
+  coffee_variety: string | null;
+  items: any;
   source: string;
-  delivery_type: string;
-  notes: string;
+  delivery_type: string | null;
+  notes: string | null;
   proposed_at: string;
 }
 
-export default function Replenishment() {
-  const { tenantId, location, locationId } = useTenant();
-  const { isLoading, error, flags, tenantPos, posEffective, refetch } = useFeatureFlags();
-  
-  // Form state
-  const [formData, setFormData] = useState({
-    coffeeVariety: "",
-    quantity: "",
-    deliveryType: "",
-    notes: ""
-  });
-  
-  // Orders state
+export default function ReplenishmentPage() {
+  const { isAuthenticated } = useAuth();
+  const { toast } = useToast();
+  const [loading, setLoading] = useState(false);
   const [orders, setOrders] = useState<OrderProposal[]>([]);
-  const [loadingOrders, setLoadingOrders] = useState(true);
+  const [selectedLocation, setSelectedLocation] = useState<string>("");
   
-  // Feature flags
-  const manualOrdersEnabled = flags.auto_order_enabled;
-  const aiOrdersEnabled = flags.auto_order_enabled && posEffective;
-  
-  // AI Recommendation data (mock)
+  // Form state for manual orders
+  const [selectedItems, setSelectedItems] = useState<OrderItem[]>([]);
+  const [formData, setFormData] = useState({
+    delivery_type: "standard",
+    notes: "",
+  });
+
+  // Mock feature flags for now
+  const manualOrdersEnabled = true;
+  const aiOrdersEnabled = true;
+
+  // Mock AI recommendation
   const aiRecommendation = {
-    product: "Espresso Blend Premium",
+    product: "TUPÁ Supremo",
     quantity: 15,
     currentStock: "8kg",
     reason: "Basado en tu consumo promedio y stock actual",
     urgency: "media" as const
   };
 
-  // Load existing orders
+  // Load orders when location changes
   useEffect(() => {
-    loadOrders();
-  }, [locationId]);
+    if (selectedLocation) {
+      loadOrders();
+    }
+  }, [selectedLocation]);
 
   const loadOrders = async () => {
-    if (!locationId) return;
+    if (!selectedLocation) return;
     
-    setLoadingOrders(true);
-    const { data, error } = await supabase
-      .from("order_proposals")
-      .select("id, status, coffee_variety, items, source, delivery_type, notes, proposed_at")
-      .eq("location_id", locationId)
-      .order("proposed_at", { ascending: false })
-      .limit(10);
+    try {
+      const { data, error } = await supabase
+        .from('order_proposals')
+        .select('*')
+        .eq('location_id', selectedLocation)
+        .order('proposed_at', { ascending: false })
+        .limit(10);
 
-    if (error) {
-      console.error("Error loading orders:", error);
-    } else {
-      // Transform data to match our interface
-      const transformedOrders: OrderProposal[] = (data || []).map(order => ({
-        id: order.id,
-        status: order.status,
-        coffee_variety: order.coffee_variety || "",
-        items: Array.isArray(order.items) ? order.items as { code: string; qty: number }[] : [],
-        source: order.source,
-        delivery_type: order.delivery_type || "",
-        notes: order.notes || "",
-        proposed_at: order.proposed_at
-      }));
-      setOrders(transformedOrders);
+      if (error) throw error;
+      setOrders(data || []);
+    } catch (error: any) {
+      console.error('Error loading orders:', error);
+      toast({
+        title: "Error",
+        description: "No se pudieron cargar los pedidos",
+        variant: "destructive"
+      });
     }
-    setLoadingOrders(false);
   };
 
   const handleSubmitOrder = async () => {
-    if (!tenantId || !locationId) {
-      toast({ title: "Sin ubicación", description: "Selecciona una sucursal válida", variant: "destructive" });
-      return;
-    }
-    
-    if (!formData.coffeeVariety || !formData.quantity) {
-      toast({ title: "Campos requeridos", description: "Completa variedad y cantidad", variant: "destructive" });
+    if (!selectedLocation) {
+      toast({
+        title: "Error",
+        description: "Selecciona una ubicación",
+        variant: "destructive"
+      });
       return;
     }
 
     if (!manualOrdersEnabled) {
-      toast({ title: "No disponible", description: "Los pedidos manuales están deshabilitados para esta sucursal" });
+      toast({
+        title: "Pedidos manuales deshabilitados",
+        description: "Esta función está temporalmente deshabilitada",
+        variant: "destructive"
+      });
       return;
     }
 
-    const items = [{ code: formData.coffeeVariety, qty: parseInt(formData.quantity) }];
-    const { data, error } = await supabase
-      .from("order_proposals")
-      .insert({ 
-        tenant_id: tenantId, 
-        location_id: locationId, 
-        items, 
-        source: "manual", 
-        status: "draft",
-        coffee_variety: formData.coffeeVariety,
-        delivery_type: formData.deliveryType,
-        notes: formData.notes
-      })
-      .select("id")
-      .maybeSingle();
-
-    if (error) {
-      console.log("[Replenishment] manual order error:", error);
-      toast({ title: "Error", description: "No se pudo crear el pedido manual", variant: "destructive" });
+    if (selectedItems.length === 0) {
+      toast({
+        title: "Error",
+        description: "Selecciona al menos una variedad de café",
+        variant: "destructive"
+      });
       return;
     }
 
-    toast({ title: "Pedido creado", description: `Pedido #${data?.id?.slice(0, 8) ?? ""} para ${location}` });
+    setLoading(true);
     
-    // Reset form and reload orders
-    setFormData({ coffeeVariety: "", quantity: "", deliveryType: "", notes: "" });
-    loadOrders();
+    try {
+      const { data: locationData } = await supabase
+        .from('locations')
+        .select('tenant_id')
+        .eq('id', selectedLocation)
+        .single();
+
+      if (!locationData) {
+        throw new Error('No se pudo obtener información de la ubicación');
+      }
+
+      // Create the order proposal
+      const { data: orderData, error: orderError } = await supabase
+        .from('order_proposals')
+        .insert({
+          tenant_id: locationData.tenant_id,
+          location_id: selectedLocation,
+          coffee_variety: selectedItems.map(item => item.variety_name).join(", "),
+          delivery_type: formData.delivery_type,
+          notes: formData.notes,
+          items: selectedItems.map(item => ({
+            variety: item.variety_name,
+            quantity: item.quantity_kg,
+            unit: "kg"
+          })),
+          created_by: null,
+          source: 'manual'
+        })
+        .select()
+        .single();
+
+      if (orderError) throw orderError;
+
+      // Create the detailed order items
+      const orderItems = selectedItems.map(item => ({
+        order_proposal_id: orderData.id,
+        coffee_variety_id: item.coffee_variety_id,
+        quantity_kg: item.quantity_kg,
+        unit_price: item.price_per_kg,
+        notes: item.notes
+      }));
+
+      const { error: itemsError } = await supabase
+        .from('order_items')
+        .insert(orderItems);
+
+      if (itemsError) throw itemsError;
+
+      toast({
+        title: "Pedido enviado",
+        description: "Tu solicitud de reposición ha sido enviada correctamente"
+      });
+
+      // Reset form
+      setSelectedItems([]);
+      setFormData({
+        delivery_type: "standard", 
+        notes: "",
+      });
+
+      // Reload orders
+      await loadOrders();
+    } catch (error: any) {
+      console.error('Error creating order:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Error al enviar el pedido",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleApplyAiRecommendation = async () => {
-    if (!tenantId || !locationId) {
-      toast({ title: "Sin ubicación", description: "Selecciona una sucursal válida", variant: "destructive" });
+    if (!selectedLocation) {
+      toast({
+        title: "Error",
+        description: "Selecciona una ubicación",
+        variant: "destructive"
+      });
       return;
     }
-    
+
     if (!aiOrdersEnabled) {
-      toast({ title: "No disponible", description: "Las propuestas IA requieren POS conectado", variant: "destructive" });
+      toast({
+        title: "IA no disponible",
+        description: "Las recomendaciones de IA están deshabilitadas",
+        variant: "destructive"
+      });
       return;
     }
 
-    const items = [{ code: "ESP1KG", qty: aiRecommendation.quantity }];
-    const { data, error } = await supabase
-      .from("order_proposals")
-      .insert({ 
-        tenant_id: tenantId, 
-        location_id: locationId, 
-        items, 
-        source: "ai", 
-        status: "draft",
-        coffee_variety: aiRecommendation.product,
-        delivery_type: "standard",
-        notes: `Recomendación IA: ${aiRecommendation.reason}`
-      })
-      .select("id")
-      .maybeSingle();
+    setLoading(true);
+    
+    try {
+      const { data: locationData } = await supabase
+        .from('locations')
+        .select('tenant_id')
+        .eq('id', selectedLocation)
+        .single();
 
-    if (error) {
-      console.log("[Replenishment] AI order error:", error);
-      toast({ title: "Error", description: "No se pudo crear la propuesta IA", variant: "destructive" });
-      return;
+      if (!locationData) {
+        throw new Error('No se pudo obtener información de la ubicación');
+      }
+
+      const { error } = await supabase
+        .from('order_proposals')
+        .insert({
+          tenant_id: locationData.tenant_id,
+          location_id: selectedLocation,
+          coffee_variety: aiRecommendation.product,
+          delivery_type: "standard",
+          notes: `Recomendación IA: ${aiRecommendation.reason}`,
+          items: [{ variety: aiRecommendation.product, quantity: aiRecommendation.quantity, unit: "kg" }],
+          created_by: null,
+          source: 'ai'
+        });
+
+      if (error) throw error;
+
+      toast({
+        title: "Recomendación aplicada",
+        description: "El pedido basado en IA ha sido creado exitosamente"
+      });
+
+      await loadOrders();
+    } catch (error: any) {
+      console.error('Error applying AI recommendation:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Error al aplicar la recomendación",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
     }
-
-    toast({ title: "Recomendación aplicada", description: `Pedido IA #${data?.id?.slice(0, 8) ?? ""} creado` });
-    loadOrders();
   };
 
-  const getStatusBadge = (status: OrderStatus) => {
-    const variants = {
+  const getStatusBadge = (status: string) => {
+    const variants: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
       draft: "secondary",
-      pending: "outline", 
+      pending: "outline",
       approved: "default",
       rejected: "destructive",
       fulfilled: "secondary"
-    } as const;
-    
-    const labels = {
+    };
+
+    const labels: Record<string, string> = {
       draft: "Borrador",
-      pending: "Pendiente", 
-      approved: "Aprobado",
+      pending: "Pendiente",
+      approved: "Aprobado", 
       rejected: "Rechazado",
       fulfilled: "Completado"
     };
-    
+
     return (
       <Badge variant={variants[status] || "secondary"}>
         {labels[status] || status}
@@ -201,228 +292,290 @@ export default function Replenishment() {
 
   return (
     <div className="space-y-6">
-      <Helmet>
-        <title>Reposición | TUPÁ Hub</title>
-        <meta name="description" content="Gestión completa de pedidos y reposición de stock" />
-        <link rel="canonical" href="/app/replenishment" />
-      </Helmet>
-
-      <div className="flex items-center gap-2 mb-6">
-        <Package className="h-6 w-6 text-primary" />
-        <h1 className="text-2xl font-semibold">Reposición</h1>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Main Form - 2 columns */}
-        <div className="lg:col-span-2">
-          <Card>
-            <CardHeader>
-              <CardTitle>Nueva Reposición</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="coffee-variety">Variedad de Café</Label>
-                  <Select 
-                    value={formData.coffeeVariety} 
-                    onValueChange={(value) => setFormData(prev => ({ ...prev, coffeeVariety: value }))}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecciona variedad" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="ESP1KG">Espresso Blend Premium - 1kg</SelectItem>
-                      <SelectItem value="FIL1KG">House Filter Blend - 1kg</SelectItem>
-                      <SelectItem value="CAP500G">Cappuccino Mix - 500g</SelectItem>
-                      <SelectItem value="ORG1KG">Organic Single Origin - 1kg</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="quantity">Cantidad (kg)</Label>
-                  <Input
-                    id="quantity"
-                    type="number"
-                    placeholder="0"
-                    min="1"
-                    max="100"
-                    value={formData.quantity}
-                    onChange={(e) => setFormData(prev => ({ ...prev, quantity: e.target.value }))}
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="delivery-type">Tipo de Entrega</Label>
-                <Select 
-                  value={formData.deliveryType} 
-                  onValueChange={(value) => setFormData(prev => ({ ...prev, deliveryType: value }))}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecciona tipo de entrega" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="standard">Entrega Estándar (3-5 días)</SelectItem>
-                    <SelectItem value="express">Entrega Express (1-2 días)</SelectItem>
-                    <SelectItem value="scheduled">Entrega Programada</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="notes">Observaciones</Label>
-                <Textarea
-                  id="notes"
-                  placeholder="Notas adicionales para el pedido..."
-                  value={formData.notes}
-                  onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
-                  className="min-h-[80px]"
-                />
-              </div>
-
-              {(isLoading || error || !manualOrdersEnabled) && (
-                <Alert variant={error ? "destructive" : "default"}>
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertTitle>
-                    {isLoading ? "Cargando..." : error ? "Error de configuración" : "Función deshabilitada"}
-                  </AlertTitle>
-                  <AlertDescription>
-                    {isLoading ? "Verificando permisos..." : 
-                     error ? <button className="underline" onClick={() => refetch()}>Reintentar</button> :
-                     "Los pedidos manuales están deshabilitados para esta sucursal."
-                    }
-                  </AlertDescription>
-                </Alert>
-              )}
-            </CardContent>
-            <CardFooter className="flex gap-2">
-              <Button 
-                onClick={handleSubmitOrder} 
-                disabled={isLoading || !manualOrdersEnabled || !formData.coffeeVariety || !formData.quantity}
-                className="flex-1"
-              >
-                Solicitar Reposición
-              </Button>
-              <Button variant="outline" disabled>
-                Vista Previa
-              </Button>
-            </CardFooter>
-          </Card>
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold flex items-center">
+              <Package className="mr-3 h-8 w-8" />
+              Reposición de Café
+            </h1>
+            <p className="text-muted-foreground">
+              Gestiona el stock y pedidos de café para tu ubicación
+            </p>
+          </div>
+          <div className="text-sm text-muted-foreground">Selecciona ubicación desde el menú</div>
         </div>
 
-        {/* AI Recommendation Panel - 1 column */}
-        <div className="space-y-4">
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-lg flex items-center gap-2">
-                <TrendingUp className="h-5 w-5" />
-                Recomendación IA
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {aiOrdersEnabled ? (
-                <>
-                  <div className="p-3 bg-muted rounded-lg">
-                    <div className="font-medium text-sm">{aiRecommendation.product}</div>
-                    <div className="text-2xl font-bold text-primary mt-1">{aiRecommendation.quantity}kg</div>
-                    <div className="text-xs text-muted-foreground mt-1">Stock actual: {aiRecommendation.currentStock}</div>
-                  </div>
-                  
-                  <div className="text-sm text-muted-foreground">
-                    {aiRecommendation.reason}
-                  </div>
-                  
-                  <Alert>
-                    <Clock className="h-4 w-4" />
-                    <AlertDescription className="text-sm">
-                      Recomendamos reponereste producto en los próximos días para evitar desabastecimiento.
-                    </AlertDescription>
-                  </Alert>
+        {selectedLocation ? (
+          <>
+            {/* Main Content */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Manual Order Form - 2 columns */}
+              <div className="lg:col-span-2">
+                <Tabs defaultValue="manual" className="space-y-4">
+                  <TabsList className="grid w-full grid-cols-2">
+                    <TabsTrigger value="manual" className="flex items-center">
+                      <ShoppingCart className="mr-2 h-4 w-4" />
+                      Pedido Manual
+                    </TabsTrigger>
+                    <TabsTrigger value="bulk" className="flex items-center">
+                      <Package className="mr-2 h-4 w-4" />
+                      Pedido Masivo
+                    </TabsTrigger>
+                  </TabsList>
 
-                  <Button onClick={handleApplyAiRecommendation} className="w-full">
-                    Aplicar Recomendación
-                  </Button>
-                </>
-              ) : (
-                <Alert>
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertTitle>IA no disponible</AlertTitle>
-                  <AlertDescription className="text-sm">
-                    {!flags.auto_order_enabled ? 
-                      "La función está desactivada." : 
-                      "Requiere POS conectado para generar recomendaciones."
-                    }
-                  </AlertDescription>
-                </Alert>
-              )}
+                  <TabsContent value="manual">
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>Crear Pedido Manual</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-4">
+                          {/* Enhanced Coffee Selection */}
+                          <div>
+                            <Label>Selección de Variedades de Café</Label>
+                            <div className="mt-2">
+                              <EnhancedCoffeeSelector
+                                locationId={selectedLocation}
+                                selectedItems={selectedItems}
+                                onItemsChange={setSelectedItems}
+                              />
+                            </div>
+                          </div>
+
+                          <Separator />
+
+                          {/* Delivery Options */}
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                              <Label htmlFor="delivery_type">Tipo de Entrega</Label>
+                              <Select 
+                                value={formData.delivery_type} 
+                                onValueChange={(value) => setFormData({...formData, delivery_type: value})}
+                              >
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Seleccionar tipo" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="standard">
+                                    <div className="flex items-center">
+                                      <Truck className="mr-2 h-4 w-4" />
+                                      Estándar (3-5 días)
+                                    </div>
+                                  </SelectItem>
+                                  <SelectItem value="express">
+                                    <div className="flex items-center">
+                                      <Clock className="mr-2 h-4 w-4" />
+                                      Express (1-2 días)
+                                    </div>
+                                  </SelectItem>
+                                  <SelectItem value="scheduled">
+                                    <div className="flex items-center">
+                                      <Calendar className="mr-2 h-4 w-4" />
+                                      Programada
+                                    </div>
+                                  </SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          </div>
+
+                          {/* Notes */}
+                          <div>
+                            <Label htmlFor="notes">Observaciones</Label>
+                            <Textarea
+                              id="notes"
+                              placeholder="Notas adicionales para el pedido..."
+                              value={formData.notes}
+                              onChange={(e) => setFormData({...formData, notes: e.target.value})}
+                              className="min-h-[80px]"
+                            />
+                          </div>
+
+                          {/* Actions */}
+                          <div className="flex gap-2">
+                            <Button 
+                              onClick={handleSubmitOrder}
+                              disabled={loading || selectedItems.length === 0}
+                              className="flex-1"
+                            >
+                              {loading ? "Enviando..." : "Enviar Pedido"}
+                            </Button>
+                            <Button 
+                              variant="outline"
+                              onClick={() => {
+                                setSelectedItems([]);
+                                setFormData({ delivery_type: "standard", notes: "" });
+                              }}
+                            >
+                              Limpiar
+                            </Button>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </TabsContent>
+
+                  <TabsContent value="bulk">
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>Pedido Masivo</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-center py-8 text-muted-foreground">
+                          <Package className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                          <p>Función de pedido masivo próximamente...</p>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </TabsContent>
+                </Tabs>
+              </div>
+
+              {/* AI Recommendation Panel - 1 column */}
+              <div className="space-y-4">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center">
+                      <Bot className="mr-2 h-5 w-5" />
+                      Recomendación IA
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {aiOrdersEnabled ? (
+                      <>
+                        <div className="p-4 bg-muted rounded-lg">
+                          <div className="font-medium">{aiRecommendation.product}</div>
+                          <div className="text-2xl font-bold text-primary mt-1">
+                            {aiRecommendation.quantity} kg
+                          </div>
+                          <div className="text-sm text-muted-foreground mt-1">
+                            Stock actual: {aiRecommendation.currentStock}
+                          </div>
+                        </div>
+                        
+                        <div className="text-sm text-muted-foreground">
+                          {aiRecommendation.reason}
+                        </div>
+                        
+                        <Alert>
+                          <AlertTriangle className="h-4 w-4" />
+                          <AlertDescription>
+                            Recomendamos reponer este producto en los próximos días para evitar desabastecimiento.
+                          </AlertDescription>
+                        </Alert>
+
+                        <Button 
+                          onClick={handleApplyAiRecommendation} 
+                          className="w-full"
+                          disabled={loading}
+                        >
+                          Aplicar Recomendación
+                        </Button>
+                      </>
+                    ) : (
+                      <Alert>
+                        <AlertTriangle className="h-4 w-4" />
+                        <AlertDescription>
+                          Las recomendaciones de IA no están disponibles en este momento.
+                        </AlertDescription>
+                      </Alert>
+                    )}
+                  </CardContent>
+                </Card>
+
+                {/* Quick Stats */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center">
+                      <TrendingUp className="mr-2 h-5 w-5" />
+                      Resumen
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-muted-foreground">Pedidos este mes</span>
+                      <Badge variant="outline">{orders.length}</Badge>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-muted-foreground">Stock crítico</span>
+                      <Badge variant="destructive">2 productos</Badge>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-muted-foreground">Próxima entrega</span>
+                      <Badge variant="secondary">Mañana</Badge>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+
+            {/* Order History */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <Clock className="mr-2 h-5 w-5" />
+                  Historial de Pedidos
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {orders.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <Package className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                    <p>No hay pedidos registrados para esta ubicación</p>
+                  </div>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>ID</TableHead>
+                        <TableHead>Producto</TableHead>
+                        <TableHead>Fuente</TableHead>
+                        <TableHead>Estado</TableHead>
+                        <TableHead>Entrega</TableHead>
+                        <TableHead>Fecha</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {orders.map((order) => (
+                        <TableRow key={order.id}>
+                          <TableCell className="font-mono text-sm">
+                            #{order.id.slice(0, 8)}
+                          </TableCell>
+                          <TableCell>
+                            {order.coffee_variety || "N/A"}
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant={order.source === "ai" ? "default" : "secondary"}>
+                              {order.source === "ai" ? "IA" : "Manual"}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>{getStatusBadge(order.status)}</TableCell>
+                          <TableCell>
+                            {order.delivery_type || "Estándar"}
+                          </TableCell>
+                          <TableCell className="text-sm text-muted-foreground">
+                            {new Date(order.proposed_at).toLocaleDateString()}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+              </CardContent>
+            </Card>
+          </>
+        ) : (
+          <Card>
+            <CardContent className="text-center py-12">
+              <Coffee className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+              <h3 className="text-lg font-medium mb-2">Selecciona una ubicación</h3>
+              <p className="text-muted-foreground">
+                Para comenzar a gestionar la reposición de café, selecciona una ubicación desde el selector superior.
+              </p>
             </CardContent>
           </Card>
-        </div>
-      </div>
-
-      {/* Order History */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Historial de Reposiciones</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {loadingOrders ? (
-            <div className="space-y-2">
-              {[...Array(3)].map((_, i) => (
-                <div key={i} className="h-12 bg-muted rounded animate-pulse" />
-              ))}
-            </div>
-          ) : orders.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              <Package className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p>No hay pedidos registrados</p>
-            </div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>ID</TableHead>
-                  <TableHead>Producto</TableHead>
-                  <TableHead>Cantidad</TableHead>
-                  <TableHead>Tipo</TableHead>
-                  <TableHead>Estado</TableHead>
-                  <TableHead>Fecha</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {orders.map((order) => (
-                  <TableRow key={order.id}>
-                    <TableCell className="font-mono text-sm">
-                      #{order.id.slice(0, 8)}
-                    </TableCell>
-                    <TableCell>
-                      {order.coffee_variety || 
-                       (order.items?.[0] ? 
-                        ({ ESP1KG: "Espresso Blend", FIL1KG: "House Filter", CAP500G: "Cappuccino Mix" }[order.items[0].code] || order.items[0].code) :
-                        "N/A"
-                       )
-                      }
-                    </TableCell>
-                    <TableCell>
-                      {order.items?.[0]?.qty || 0}kg
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={order.source === "ai" ? "default" : "secondary"}>
-                        {order.source === "ai" ? "IA" : "Manual"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>{getStatusBadge(order.status)}</TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
-                      {new Date(order.proposed_at).toLocaleDateString()}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
+        )}
     </div>
   );
 }

@@ -279,6 +279,48 @@ export type Database = {
         }
         Relationships: []
       }
+      coffee_varieties: {
+        Row: {
+          active: boolean
+          category: string
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          name: string
+          origin: string | null
+          price_per_kg: number | null
+          specifications: Json | null
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          category?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          name: string
+          origin?: string | null
+          price_per_kg?: number | null
+          specifications?: Json | null
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          category?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          name?: string
+          origin?: string | null
+          price_per_kg?: number | null
+          specifications?: Json | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       consumption_daily: {
         Row: {
           created_at: string
@@ -603,6 +645,64 @@ export type Database = {
         }
         Relationships: []
       }
+      location_stock: {
+        Row: {
+          coffee_variety_id: string
+          created_at: string
+          current_kg: number
+          hopper_number: number
+          id: string
+          last_refill_at: string | null
+          location_id: string
+          notes: string | null
+          updated_at: string
+        }
+        Insert: {
+          coffee_variety_id: string
+          created_at?: string
+          current_kg?: number
+          hopper_number?: number
+          id?: string
+          last_refill_at?: string | null
+          location_id: string
+          notes?: string | null
+          updated_at?: string
+        }
+        Update: {
+          coffee_variety_id?: string
+          created_at?: string
+          current_kg?: number
+          hopper_number?: number
+          id?: string
+          last_refill_at?: string | null
+          location_id?: string
+          notes?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "location_stock_coffee_variety_id_fkey"
+            columns: ["coffee_variety_id"]
+            isOneToOne: false
+            referencedRelation: "coffee_varieties"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "location_stock_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "location_stock_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       locations: {
         Row: {
           code: string | null
@@ -634,6 +734,51 @@ export type Database = {
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      order_items: {
+        Row: {
+          coffee_variety_id: string
+          created_at: string
+          id: string
+          notes: string | null
+          order_proposal_id: string
+          quantity_kg: number
+          unit_price: number | null
+        }
+        Insert: {
+          coffee_variety_id: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          order_proposal_id: string
+          quantity_kg: number
+          unit_price?: number | null
+        }
+        Update: {
+          coffee_variety_id?: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          order_proposal_id?: string
+          quantity_kg?: number
+          unit_price?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_items_coffee_variety_id_fkey"
+            columns: ["coffee_variety_id"]
+            isOneToOne: false
+            referencedRelation: "coffee_varieties"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_items_order_proposal_id_fkey"
+            columns: ["order_proposal_id"]
+            isOneToOne: false
+            referencedRelation: "order_proposals"
             referencedColumns: ["id"]
           },
         ]

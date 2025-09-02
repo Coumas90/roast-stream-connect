@@ -87,7 +87,13 @@ export default function LocationStockAdmin() {
     mutationFn: async (data: StockForm) => {
       const { error } = await supabase
         .from("location_stock")
-        .insert({ ...data, last_refill_at: new Date().toISOString() });
+        .insert({
+          location_id: data.location_id,
+          coffee_variety_id: data.coffee_variety_id,
+          hopper_number: data.hopper_number,
+          current_kg: data.current_kg,
+          notes: data.notes
+        });
       if (error) throw error;
     },
     onSuccess: () => {
@@ -105,7 +111,13 @@ export default function LocationStockAdmin() {
     mutationFn: async ({ id, data }: { id: string; data: StockForm }) => {
       const { error } = await supabase
         .from("location_stock")
-        .update({ ...data, last_refill_at: new Date().toISOString() })
+        .update({
+          location_id: data.location_id,
+          coffee_variety_id: data.coffee_variety_id,
+          hopper_number: data.hopper_number,
+          current_kg: data.current_kg,
+          notes: data.notes
+        })
         .eq("id", id);
       if (error) throw error;
     },

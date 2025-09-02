@@ -32,7 +32,7 @@ const coffeeVarietySchema = z.object({
   }).optional(),
 });
 
-type CoffeeVarietyForm = z.infer<typeof coffeeVarietySchema>;
+type VarietyForm = z.infer<typeof coffeeVarietySchema>;
 
 export default function CoffeeVarietiesAdmin() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -41,7 +41,7 @@ export default function CoffeeVarietiesAdmin() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const form = useForm<CoffeeVarietyForm>({
+  const form = useForm<VarietyForm>({
     resolver: zodResolver(coffeeVarietySchema),
     defaultValues: {
       category: "other",
@@ -69,10 +69,18 @@ export default function CoffeeVarietiesAdmin() {
   });
 
   const createMutation = useMutation({
-    mutationFn: async (data: CoffeeVarietyForm) => {
+    mutationFn: async (data: VarietyForm) => {
       const { error } = await supabase
         .from("coffee_varieties")
-        .insert({ ...data, specifications: data.specifications || {} });
+        .insert({
+          name: data.name,
+          origin: data.origin,
+          description: data.description,
+          category: data.category,
+          price_per_kg: data.price_per_kg,
+          specifications: data.specifications || {},
+          active: data.active ?? true
+        });
       if (error) throw error;
     },
     onSuccess: () => {
@@ -87,10 +95,18 @@ export default function CoffeeVarietiesAdmin() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: CoffeeVarietyForm }) => {
+    mutationFn: async ({ id, data }: { id: string; data: VarietyForm }) => {
       const { error } = await supabase
         .from("coffee_varieties")
-        .update({ ...data, specifications: data.specifications || {} })
+        .update({
+          name: data.name,
+          origin: data.origin,
+          description: data.description,
+          category: data.category,
+          price_per_kg: data.price_per_kg,
+          specifications: data.specifications || {},
+          active: data.active ?? true
+        })
         .eq("id", id);
       if (error) throw error;
     },
@@ -137,7 +153,7 @@ export default function CoffeeVarietiesAdmin() {
     setDialogOpen(true);
   };
 
-  const handleSubmit = (data: CoffeeVarietyForm) => {
+  const handleSubmit = (data: VarietyForm) => {
     if (editingVariety) {
       updateMutation.mutate({ id: editingVariety.id, data });
     } else {

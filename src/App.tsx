@@ -41,6 +41,8 @@ import AdminAudits from "./pages/admin/quality/Audits";
 import AdminMystery from "./pages/admin/quality/Mystery";
 import AdminAnalytics from "./pages/admin/reports/Analytics";
 import AdminClientDetail from "./pages/admin/Clients/Detail";
+import CoffeeVarietiesAdmin from "./pages/admin/CoffeeVarieties";
+import LocationStockAdmin from "./pages/admin/LocationStock";
 import AcceptInvitation from "./pages/AcceptInvitation";
 import ProfilePage from "./pages/app/Profile";
 import ForgotPassword from "./pages/auth/ForgotPassword";
@@ -119,6 +121,8 @@ const App = () => (
                     <Route path="quality/audits" element={<AdminAudits />} />
                     <Route path="quality/mystery" element={<AdminMystery />} />
                     <Route path="reports/analytics" element={<AdminAnalytics />} />
+                    <Route path="coffee-varieties" element={<CoffeeVarietiesAdmin />} />
+                    <Route path="location-stock" element={<LocationStockAdmin />} />
                     <Route path="profile" element={<ProfilePage />} />
                   </Route>
 

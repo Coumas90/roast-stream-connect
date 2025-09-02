@@ -18,6 +18,8 @@ const labels: Record<string, string> = {
   "/admin/quality/audits": "Auditorías",
   "/admin/quality/mystery": "Cliente Oculto",
   "/admin/reports/analytics": "Analytics",
+  "/admin/coffee-varieties": "Variedades de Café",
+  "/admin/location-stock": "Stock de Ubicaciones",
   "/admin/profile": "Perfil",
 };
 

@@ -16,6 +16,7 @@ import AppLayout from "@/layouts/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
+import { useTenant } from "@/lib/tenant";
 import { 
   Coffee, 
   Package, 
@@ -43,9 +44,9 @@ interface OrderProposal {
 export default function ReplenishmentPage() {
   const { isAuthenticated } = useAuth();
   const { toast } = useToast();
+  const { location, locationId } = useTenant();
   const [loading, setLoading] = useState(false);
   const [orders, setOrders] = useState<OrderProposal[]>([]);
-  const [selectedLocation, setSelectedLocation] = useState<string>("");
   
   // Form state for manual orders
   const [selectedItems, setSelectedItems] = useState<OrderItem[]>([]);
@@ -69,19 +70,19 @@ export default function ReplenishmentPage() {
 
   // Load orders when location changes
   useEffect(() => {
-    if (selectedLocation) {
+    if (locationId) {
       loadOrders();
     }
-  }, [selectedLocation]);
+  }, [locationId]);
 
   const loadOrders = async () => {
-    if (!selectedLocation) return;
+    if (!locationId) return;
     
     try {
       const { data, error } = await supabase
         .from('order_proposals')
         .select('*')
-        .eq('location_id', selectedLocation)
+        .eq('location_id', locationId)
         .order('proposed_at', { ascending: false })
         .limit(10);
 
@@ -98,7 +99,7 @@ export default function ReplenishmentPage() {
   };
 
   const handleSubmitOrder = async () => {
-    if (!selectedLocation) {
+    if (!locationId) {
       toast({
         title: "Error",
         description: "Selecciona una ubicación",
@@ -131,7 +132,7 @@ export default function ReplenishmentPage() {
       const { data: locationData } = await supabase
         .from('locations')
         .select('tenant_id')
-        .eq('id', selectedLocation)
+        .eq('id', locationId)
         .single();
 
       if (!locationData) {
@@ -143,7 +144,7 @@ export default function ReplenishmentPage() {
         .from('order_proposals')
         .insert({
           tenant_id: locationData.tenant_id,
-          location_id: selectedLocation,
+          location_id: locationId,
           coffee_variety: selectedItems.map(item => item.variety_name).join(", "),
           delivery_type: formData.delivery_type,
           notes: formData.notes,
@@ -202,7 +203,7 @@ export default function ReplenishmentPage() {
   };
 
   const handleApplyAiRecommendation = async () => {
-    if (!selectedLocation) {
+    if (!locationId) {
       toast({
         title: "Error",
         description: "Selecciona una ubicación",
@@ -226,7 +227,7 @@ export default function ReplenishmentPage() {
       const { data: locationData } = await supabase
         .from('locations')
         .select('tenant_id')
-        .eq('id', selectedLocation)
+        .eq('id', locationId)
         .single();
 
       if (!locationData) {
@@ -237,7 +238,7 @@ export default function ReplenishmentPage() {
         .from('order_proposals')
         .insert({
           tenant_id: locationData.tenant_id,
-          location_id: selectedLocation,
+          location_id: locationId,
           coffee_variety: aiRecommendation.product,
           delivery_type: "standard",
           notes: `Recomendación IA: ${aiRecommendation.reason}`,
@@ -300,13 +301,13 @@ export default function ReplenishmentPage() {
               Reposición de Café
             </h1>
             <p className="text-muted-foreground">
-              Gestiona el stock y pedidos de café para tu ubicación
+              {location ? `Gestiona el stock y pedidos de café para ${location}` : "Gestiona el stock y pedidos de café para tu ubicación"}
             </p>
           </div>
-          <div className="text-sm text-muted-foreground">Selecciona ubicación desde el menú</div>
+          <LocationSwitcher />
         </div>
 
-        {selectedLocation ? (
+        {locationId ? (
           <>
             {/* Main Content */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -336,7 +337,7 @@ export default function ReplenishmentPage() {
                             <Label>Selección de Variedades de Café</Label>
                             <div className="mt-2">
                               <EnhancedCoffeeSelector
-                                locationId={selectedLocation}
+                                locationId={locationId}
                                 selectedItems={selectedItems}
                                 onItemsChange={setSelectedItems}
                               />

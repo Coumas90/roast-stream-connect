@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Plus, Search, Edit, Trash2, Coffee } from "lucide-react";
+import { Plus, Search, Coffee, Grid, List } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import AdminLayout from "@/layouts/AdminLayout";
@@ -13,10 +13,15 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useToast } from "@/hooks/use-toast";
+import { ImageUpload } from "@/components/coffee/ImageUpload";
+import { TastingForm } from "@/components/coffee/TastingForm";
+import { CoffeeCard } from "@/components/coffee/CoffeeCard";
+import { CoffeeDetailModal } from "@/components/coffee/CoffeeDetailModal";
 
 const coffeeVarietySchema = z.object({
   name: z.string().min(1, "El nombre es requerido"),
@@ -25,10 +30,31 @@ const coffeeVarietySchema = z.object({
   category: z.enum(["tupa", "other"]),
   price_per_kg: z.number().positive().optional(),
   active: z.boolean(),
+  image_url: z.string().optional(),
   specifications: z.object({
-    roast_level: z.string().optional(),
-    intensity: z.number().min(1).max(10).optional(),
-    notes: z.array(z.string()).optional(),
+    tasting: z.object({
+      sweetness: z.number().min(0).max(10).optional(),
+      aroma: z.number().min(0).max(10).optional(),
+      flavor: z.number().min(0).max(10).optional(),
+      aftertaste: z.number().min(0).max(10).optional(),
+      acidity: z.number().min(0).max(10).optional(),
+      body: z.number().min(0).max(10).optional(),
+      balance: z.number().min(0).max(10).optional(),
+      overall: z.number().min(0).max(10).optional(),
+      uniformity: z.number().min(0).max(10).optional(),
+      clean_cup: z.number().min(0).max(10).optional(),
+      defects: z.number().min(0).max(10).optional(),
+      notes: z.string().optional(),
+    }).optional(),
+    technical: z.object({
+      region: z.string().optional(),
+      varietal: z.string().optional(),
+      process: z.string().optional(),
+      altitude: z.number().optional(),
+      score: z.number().min(0).max(100).optional(),
+      harvest: z.string().optional(),
+      practices: z.string().optional(),
+    }).optional(),
   }).optional(),
 });
 
@@ -38,6 +64,9 @@ export default function CoffeeVarietiesAdmin() {
   const [searchTerm, setSearchTerm] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingVariety, setEditingVariety] = useState<any>(null);
+  const [detailVariety, setDetailVariety] = useState<any>(null);
+  const [detailModalOpen, setDetailModalOpen] = useState(false);
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -46,7 +75,10 @@ export default function CoffeeVarietiesAdmin() {
     defaultValues: {
       category: "other",
       active: true,
-      specifications: {},
+      specifications: {
+        tasting: {},
+        technical: {},
+      },
     },
   });
 
@@ -78,6 +110,7 @@ export default function CoffeeVarietiesAdmin() {
           description: data.description,
           category: data.category,
           price_per_kg: data.price_per_kg,
+          image_url: data.image_url,
           specifications: data.specifications || {},
           active: data.active ?? true
         });
@@ -104,6 +137,7 @@ export default function CoffeeVarietiesAdmin() {
           description: data.description,
           category: data.category,
           price_per_kg: data.price_per_kg,
+          image_url: data.image_url,
           specifications: data.specifications || {},
           active: data.active ?? true
         })
@@ -141,6 +175,7 @@ export default function CoffeeVarietiesAdmin() {
 
   const handleEdit = (variety: any) => {
     setEditingVariety(variety);
+    const specs = variety.specifications ? (typeof variety.specifications === 'string' ? JSON.parse(variety.specifications) : variety.specifications) : { tasting: {}, technical: {} };
     form.reset({
       name: variety.name,
       description: variety.description || "",
@@ -148,9 +183,15 @@ export default function CoffeeVarietiesAdmin() {
       category: variety.category,
       price_per_kg: variety.price_per_kg || undefined,
       active: variety.active,
-      specifications: variety.specifications || {},
+      image_url: variety.image_url || "",
+      specifications: specs,
     });
     setDialogOpen(true);
+  };
+
+  const handleView = (variety: any) => {
+    setDetailVariety(variety);
+    setDetailModalOpen(true);
   };
 
   const handleSubmit = (data: VarietyForm) => {
@@ -185,117 +226,150 @@ export default function CoffeeVarietiesAdmin() {
                 Nueva Variedad
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>
                   {editingVariety ? "Editar Variedad" : "Nueva Variedad de Café"}
                 </DialogTitle>
               </DialogHeader>
               <Form {...form}>
-                <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <FormField
-                      control={form.control}
-                      name="name"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Nombre</FormLabel>
-                          <FormControl>
-                            <Input placeholder="Ej: Café Supremo" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="category"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Categoría</FormLabel>
-                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
+                  <Tabs defaultValue="basic" className="w-full">
+                    <TabsList className="grid w-full grid-cols-3">
+                      <TabsTrigger value="basic">Información Básica</TabsTrigger>
+                      <TabsTrigger value="image">Imagen</TabsTrigger>
+                      <TabsTrigger value="tasting">Análisis y Cata</TabsTrigger>
+                    </TabsList>
+                    
+                    <TabsContent value="basic" className="space-y-4">
+                      <div className="grid grid-cols-2 gap-4">
+                        <FormField
+                          control={form.control}
+                          name="name"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Nombre</FormLabel>
+                              <FormControl>
+                                <Input placeholder="Ej: Café Supremo" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={form.control}
+                          name="category"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Categoría</FormLabel>
+                              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                <FormControl>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Seleccionar categoría" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  <SelectItem value="tupa">TUPÁ</SelectItem>
+                                  <SelectItem value="other">Otro Proveedor</SelectItem>
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+
+                      <FormField
+                        control={form.control}
+                        name="description"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Descripción</FormLabel>
                             <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Seleccionar categoría" />
-                              </SelectTrigger>
+                              <Textarea placeholder="Descripción de la variedad..." {...field} />
                             </FormControl>
-                            <SelectContent>
-                              <SelectItem value="tupa">TUPÁ</SelectItem>
-                              <SelectItem value="other">Otro Proveedor</SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
 
-                  <FormField
-                    control={form.control}
-                    name="description"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Descripción</FormLabel>
-                        <FormControl>
-                          <Textarea placeholder="Descripción de la variedad..." {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                      <div className="grid grid-cols-2 gap-4">
+                        <FormField
+                          control={form.control}
+                          name="origin"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Origen</FormLabel>
+                              <FormControl>
+                                <Input placeholder="Ej: Colombia" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={form.control}
+                          name="price_per_kg"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Precio por kg (opcional)</FormLabel>
+                              <FormControl>
+                                <Input
+                                  type="number"
+                                  step="0.01"
+                                  placeholder="0.00"
+                                  onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)}
+                                  value={field.value || ""}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
 
-                  <div className="grid grid-cols-2 gap-4">
-                    <FormField
-                      control={form.control}
-                      name="origin"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Origen</FormLabel>
-                          <FormControl>
-                            <Input placeholder="Ej: Colombia" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="price_per_kg"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Precio por kg (opcional)</FormLabel>
-                          <FormControl>
-                            <Input
-                              type="number"
-                              step="0.01"
-                              placeholder="0.00"
-                              onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)}
-                              value={field.value || ""}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
+                      <FormField
+                        control={form.control}
+                        name="active"
+                        render={({ field }) => (
+                          <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                            <div className="space-y-0.5">
+                              <FormLabel className="text-base">Activa</FormLabel>
+                              <div className="text-sm text-muted-foreground">
+                                La variedad estará disponible para pedidos
+                              </div>
+                            </div>
+                            <FormControl>
+                              <Switch checked={field.value} onCheckedChange={field.onChange} />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+                    </TabsContent>
 
-                  <FormField
-                    control={form.control}
-                    name="active"
-                    render={({ field }) => (
-                      <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                        <div className="space-y-0.5">
-                          <FormLabel className="text-base">Activa</FormLabel>
-                          <div className="text-sm text-muted-foreground">
-                            La variedad estará disponible para pedidos
-                          </div>
-                        </div>
-                        <FormControl>
-                          <Switch checked={field.value} onCheckedChange={field.onChange} />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
+                    <TabsContent value="image" className="space-y-4">
+                      <FormField
+                        control={form.control}
+                        name="image_url"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Imagen del Café</FormLabel>
+                            <FormControl>
+                              <ImageUpload
+                                value={field.value}
+                                onChange={field.onChange}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </TabsContent>
+
+                    <TabsContent value="tasting" className="space-y-4">
+                      <TastingForm control={form.control} />
+                    </TabsContent>
+                  </Tabs>
 
                   <div className="flex justify-end space-x-2">
                     <Button type="button" variant="outline" onClick={handleCloseDialog}>
@@ -311,18 +385,36 @@ export default function CoffeeVarietiesAdmin() {
           </Dialog>
         </div>
 
-        {/* Search */}
-        <div className="flex items-center space-x-2">
-          <Search className="h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Buscar variedades..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="max-w-sm"
-          />
+        {/* Search and View Toggle */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-2">
+            <Search className="h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Buscar variedades..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="max-w-sm"
+            />
+          </div>
+          <div className="flex items-center space-x-2">
+            <Button
+              variant={viewMode === "grid" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setViewMode("grid")}
+            >
+              <Grid className="h-4 w-4" />
+            </Button>
+            <Button
+              variant={viewMode === "list" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setViewMode("list")}
+            >
+              <List className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
 
-        {/* Varieties Table */}
+        {/* Varieties Display */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center">
@@ -333,6 +425,23 @@ export default function CoffeeVarietiesAdmin() {
           <CardContent>
             {isLoading ? (
               <div className="text-center py-8">Cargando variedades...</div>
+            ) : viewMode === "grid" ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                {varieties?.map((variety) => (
+                  <CoffeeCard
+                    key={variety.id}
+                    variety={variety}
+                    onEdit={handleEdit}
+                    onView={handleView}
+                    onDelete={(id) => deleteMutation.mutate(id)}
+                  />
+                ))}
+                {varieties?.length === 0 && (
+                  <div className="col-span-full text-center py-8 text-muted-foreground">
+                    No se encontraron variedades
+                  </div>
+                )}
+              </div>
             ) : (
               <Table>
                 <TableHeader>
@@ -341,6 +450,7 @@ export default function CoffeeVarietiesAdmin() {
                     <TableHead>Categoría</TableHead>
                     <TableHead>Origen</TableHead>
                     <TableHead>Precio/kg</TableHead>
+                    <TableHead>Puntaje</TableHead>
                     <TableHead>Estado</TableHead>
                     <TableHead>Acciones</TableHead>
                   </TableRow>
@@ -359,6 +469,12 @@ export default function CoffeeVarietiesAdmin() {
                         {variety.price_per_kg ? `$${variety.price_per_kg}` : "-"}
                       </TableCell>
                       <TableCell>
+                        {(() => {
+                          const specs = variety.specifications ? (typeof variety.specifications === 'string' ? JSON.parse(variety.specifications) : variety.specifications) : {};
+                          return specs?.technical?.score ? `${specs.technical.score}/100` : "-";
+                        })()}
+                      </TableCell>
+                      <TableCell>
                         <Badge variant={variety.active ? "default" : "destructive"}>
                           {variety.active ? "Activa" : "Inactiva"}
                         </Badge>
@@ -368,9 +484,16 @@ export default function CoffeeVarietiesAdmin() {
                           <Button
                             variant="outline"
                             size="sm"
+                            onClick={() => handleView(variety)}
+                          >
+                            <Coffee className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
                             onClick={() => handleEdit(variety)}
                           >
-                            <Edit className="h-4 w-4" />
+                            <Coffee className="h-4 w-4" />
                           </Button>
                           <Button
                             variant="outline"
@@ -378,7 +501,7 @@ export default function CoffeeVarietiesAdmin() {
                             onClick={() => deleteMutation.mutate(variety.id)}
                             disabled={deleteMutation.isPending}
                           >
-                            <Trash2 className="h-4 w-4" />
+                            <Coffee className="h-4 w-4" />
                           </Button>
                         </div>
                       </TableCell>
@@ -386,7 +509,7 @@ export default function CoffeeVarietiesAdmin() {
                   ))}
                   {varieties?.length === 0 && (
                     <TableRow>
-                      <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                      <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                         No se encontraron variedades
                       </TableCell>
                     </TableRow>
@@ -396,6 +519,13 @@ export default function CoffeeVarietiesAdmin() {
             )}
           </CardContent>
         </Card>
+
+        {/* Detail Modal */}
+        <CoffeeDetailModal
+          variety={detailVariety}
+          open={detailModalOpen}
+          onOpenChange={setDetailModalOpen}
+        />
       </div>
     </div>
   );

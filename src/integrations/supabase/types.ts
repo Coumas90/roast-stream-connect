@@ -287,6 +287,7 @@ export type Database = {
           created_by: string | null
           description: string | null
           id: string
+          image_url: string | null
           name: string
           origin: string | null
           price_per_kg: number | null
@@ -300,6 +301,7 @@ export type Database = {
           created_by?: string | null
           description?: string | null
           id?: string
+          image_url?: string | null
           name: string
           origin?: string | null
           price_per_kg?: number | null
@@ -313,6 +315,7 @@ export type Database = {
           created_by?: string | null
           description?: string | null
           id?: string
+          image_url?: string | null
           name?: string
           origin?: string | null
           price_per_kg?: number | null

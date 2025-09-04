@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
 import { EnhancedCoffeeSelector, OrderItem } from "@/components/replenishment/EnhancedCoffeeSelector";
+import { EnhancedCoffeeSelectorV2, GroundCoffeeOrderItem, ProductOrderItem } from "@/components/replenishment/EnhancedCoffeeSelectorV2";
 import LocationSwitcher from "@/components/app/LocationSwitcher";
 import AppLayout from "@/layouts/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
@@ -48,7 +49,11 @@ export default function ReplenishmentPage() {
   const [loading, setLoading] = useState(false);
   const [orders, setOrders] = useState<OrderProposal[]>([]);
   
-  // Form state for manual orders
+  // Form state for manual orders - new enhanced system
+  const [selectedGroundItems, setSelectedGroundItems] = useState<GroundCoffeeOrderItem[]>([]);
+  const [selectedProductItems, setSelectedProductItems] = useState<ProductOrderItem[]>([]);
+  
+  // Legacy form state for backward compatibility
   const [selectedItems, setSelectedItems] = useState<OrderItem[]>([]);
   const [formData, setFormData] = useState({
     delivery_type: "standard",
@@ -332,17 +337,19 @@ export default function ReplenishmentPage() {
                       </CardHeader>
                       <CardContent>
                         <div className="space-y-4">
-                          {/* Enhanced Coffee Selection */}
-                          <div>
-                            <Label>Selección de Variedades de Café</Label>
-                            <div className="mt-2">
-                              <EnhancedCoffeeSelector
-                                locationId={locationId}
-                                selectedItems={selectedItems}
-                                onItemsChange={setSelectedItems}
-                              />
-                            </div>
-                          </div>
+                           {/* Enhanced Coffee Selection V2 */}
+                           <div>
+                             <Label>Sistema de Reposición Mejorado</Label>
+                             <div className="mt-2">
+                               <EnhancedCoffeeSelectorV2
+                                 locationId={locationId}
+                                 selectedGroundItems={selectedGroundItems}
+                                 selectedProductItems={selectedProductItems}
+                                 onGroundItemsChange={setSelectedGroundItems}
+                                 onProductItemsChange={setSelectedProductItems}
+                               />
+                             </div>
+                           </div>
 
                           <Separator />
 

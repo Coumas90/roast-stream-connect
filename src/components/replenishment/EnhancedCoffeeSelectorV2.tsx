@@ -293,129 +293,168 @@ export function EnhancedCoffeeSelectorV2({
                       const stockInfo = getStockForVariety(variety.id);
                       
                       return (
-                        <Card key={variety.id} className="relative group hover:shadow-lg transition-all duration-200 cursor-pointer">
-                          <CardContent className="p-4">
-                            <div className="flex justify-between items-start mb-2">
-                              <div className="flex-1">
-                                <div className="flex items-start space-x-3">
-                                  {variety.image_url && (
-                                    <div className="w-16 h-16 rounded-lg overflow-hidden bg-muted flex-shrink-0">
-                                      <img 
-                                        src={variety.image_url} 
-                                        alt={variety.name}
-                                        className="w-full h-full object-cover"
-                                      />
-                                    </div>
-                                  )}
-                                  <div className="flex-1">
-                                    <h4 className="font-medium group-hover:text-primary transition-colors">
-                                      {variety.name}
-                                    </h4>
-                                    <Badge variant="secondary" className="mb-2">
-                                      {variety.category === "tupa" ? "Café TUPÁ" : "Otros"}
-                                    </Badge>
-                                    {variety.description && (
-                                      <p className="text-sm text-muted-foreground line-clamp-2">{variety.description}</p>
-                                    )}
-                                    {variety.origin && (
-                                      <p className="text-xs text-muted-foreground mt-1">
-                                        <span className="inline-flex items-center">
-                                          <Coffee className="h-3 w-3 mr-1" />
-                                          {variety.origin}
-                                        </span>
-                                      </p>
+                        <Card key={variety.id} className="group transition-all duration-300 hover:shadow-xl hover:border-primary/40 hover:bg-accent/5 border-2">
+                          <CardContent className="p-5">
+                            <div className="flex items-start space-x-4">
+                              {/* Coffee Image - Made More Prominent */}
+                              <div className="flex-shrink-0 relative">
+                                {variety.image_url ? (
+                                  <div className="relative">
+                                    <img
+                                      src={variety.image_url}
+                                      alt={variety.name}
+                                      className="w-20 h-20 rounded-lg object-cover border-2 border-border group-hover:border-primary/50 transition-all duration-300 shadow-sm"
+                                    />
+                                    {/* Rating overlay if available */}
+                                    {variety.specifications?.overall && (
+                                      <div className="absolute -top-2 -right-2 bg-primary text-primary-foreground text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center shadow-md">
+                                        {variety.specifications.overall}
+                                      </div>
                                     )}
                                   </div>
-                                </div>
+                                ) : (
+                                  <div className="w-20 h-20 rounded-lg bg-muted/60 flex items-center justify-center border-2 border-dashed border-border group-hover:border-primary/50 transition-all duration-300">
+                                    <Coffee className="h-8 w-8 text-muted-foreground" />
+                                  </div>
+                                )}
                               </div>
-                              {variety.price_per_kg && (
-                                <Badge variant="outline" className="text-primary">
-                                  ${variety.price_per_kg}/kg
-                                </Badge>
-                              )}
-                            </div>
 
-                            {/* Stock Info */}
-                            {stockInfo.length > 0 && (
-                              <div className="mb-3">
-                                <TooltipProvider>
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <div className="flex items-center space-x-1 text-xs text-muted-foreground cursor-help">
-                                        <Info className="h-3 w-3" />
-                                        <span>Stock actual: {totalStock} kg</span>
-                                      </div>
-                                    </TooltipTrigger>
-                                    <TooltipContent>
-                                      <div className="space-y-1">
-                                        {stockInfo.map((stock, idx) => (
-                                          <div key={idx}>
-                                            Tolva {stock.hopper_number}: {stock.current_kg} kg
+                              {/* Coffee Info - Enhanced Layout */}
+                              <div className="flex-1 min-w-0 space-y-3">
+                                {/* Header Section */}
+                                <div className="flex items-start justify-between">
+                                  <div className="space-y-2">
+                                    <h4 className="font-semibold text-base leading-tight group-hover:text-primary transition-colors">
+                                      {variety.name}
+                                    </h4>
+                                    <div className="flex flex-wrap gap-1.5">
+                                      <Badge variant="default" className="text-xs font-medium">
+                                        {variety.category === "tupa" ? "Café TUPÁ" : "Otros Proveedores"}
+                                      </Badge>
+                                      {variety.specifications?.origin && (
+                                        <Badge variant="secondary" className="text-xs">
+                                          📍 {variety.specifications.origin}
+                                        </Badge>
+                                      )}
+                                      {variety.specifications?.varietal && (
+                                        <Badge variant="outline" className="text-xs">
+                                          🌱 {variety.specifications.varietal}
+                                        </Badge>
+                                      )}
+                                      {variety.price_per_kg && (
+                                        <Badge variant="outline" className="text-primary font-medium">
+                                          ${variety.price_per_kg}/kg
+                                        </Badge>
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
+
+                                {/* Description Preview */}
+                                {variety.description && (
+                                  <p className="text-sm text-muted-foreground line-clamp-2 leading-relaxed">
+                                    {variety.description}
+                                  </p>
+                                )}
+
+                                {/* Stock Info with Visual Indicator */}
+                                {stockInfo.length > 0 && (
+                                  <div className="flex items-center space-x-2">
+                                    <div className={`w-2 h-2 rounded-full ${
+                                      totalStock <= 2 
+                                        ? 'bg-destructive animate-pulse' 
+                                        : totalStock <= 5 
+                                        ? 'bg-warning' 
+                                        : 'bg-success'
+                                    }`} />
+                                    <Coffee className="h-3 w-3 text-muted-foreground" />
+                                    <span className="text-sm text-muted-foreground">Stock actual:</span>
+                                    <Badge 
+                                      variant={totalStock <= 2 ? "destructive" : totalStock <= 5 ? "secondary" : "default"}
+                                      className="text-xs font-medium"
+                                    >
+                                      {totalStock} kg
+                                    </Badge>
+                                    <TooltipProvider>
+                                      <Tooltip>
+                                        <TooltipTrigger asChild>
+                                          <Info className="h-3 w-3 text-muted-foreground cursor-help" />
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                          <div className="space-y-1">
+                                            <div className="font-medium">Distribución por tolvas:</div>
+                                            {stockInfo.map((stock, idx) => (
+                                              <div key={idx} className="text-sm">
+                                                Tolva {stock.hopper_number}: {stock.current_kg} kg
+                                              </div>
+                                            ))}
                                           </div>
-                                        ))}
-                                      </div>
-                                    </TooltipContent>
-                                  </Tooltip>
-                                </TooltipProvider>
-                              </div>
-                            )}
+                                        </TooltipContent>
+                                      </Tooltip>
+                                    </TooltipProvider>
+                                  </div>
+                                )}
 
-                            {/* Quantity Controls */}
-                            {selectedQty > 0 ? (
-                              <div className="flex items-center justify-between">
-                                <div className="flex items-center space-x-2">
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => updateGroundQuantity(variety.id, selectedQty - 1)}
-                                  >
-                                    <Minus className="h-3 w-3" />
-                                  </Button>
-                                  <Input
-                                    type="number"
-                                    min="0"
-                                    step="0.5"
-                                    value={selectedQty}
-                                    onChange={(e) => updateGroundQuantity(variety.id, parseFloat(e.target.value) || 0)}
-                                    className="w-20 text-center"
-                                  />
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => updateGroundQuantity(variety.id, selectedQty + 1)}
-                                  >
-                                    <Plus className="h-3 w-3" />
-                                  </Button>
-                                </div>
-                                <Label className="text-sm">kg</Label>
+                                {/* Quantity Controls - Enhanced */}
+                                {selectedQty > 0 ? (
+                                  <div className="bg-muted/40 rounded-lg p-3 border border-border/50">
+                                    <div className="flex items-center justify-between">
+                                      <div className="flex items-center space-x-2">
+                                        <Button
+                                          variant="outline"
+                                          size="sm"
+                                          onClick={() => updateGroundQuantity(variety.id, selectedQty - 1)}
+                                          className="h-8 w-8 p-0 hover:bg-destructive/10 hover:border-destructive/30"
+                                        >
+                                          <Minus className="h-3 w-3" />
+                                        </Button>
+                                        <Input
+                                          type="number"
+                                          min="0"
+                                          step="0.5"
+                                          value={selectedQty}
+                                          onChange={(e) => updateGroundQuantity(variety.id, parseFloat(e.target.value) || 0)}
+                                          className="w-24 h-8 text-center text-sm font-medium"
+                                        />
+                                        <Button
+                                          variant="outline"
+                                          size="sm"
+                                          onClick={() => updateGroundQuantity(variety.id, selectedQty + 1)}
+                                          className="h-8 w-8 p-0 hover:bg-primary/10 hover:border-primary/30"
+                                        >
+                                          <Plus className="h-3 w-3" />
+                                        </Button>
+                                      </div>
+                                      <span className="text-sm text-muted-foreground font-medium">kg</span>
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <div className="grid grid-cols-2 gap-2">
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => {
+                                        setSelectedCoffeeForDetail(variety);
+                                        setShowCoffeeDetail(true);
+                                      }}
+                                      className="bg-secondary/20 hover:bg-secondary/40 text-sm font-medium"
+                                    >
+                                      <Eye className="mr-2 h-3 w-3" />
+                                      Ver Detalle
+                                    </Button>
+                                    <Button
+                                      variant="default"
+                                      size="sm"
+                                      onClick={() => addGroundItem(variety)}
+                                      className="bg-primary hover:bg-primary/90 text-sm font-medium shadow-sm"
+                                    >
+                                      <Plus className="mr-2 h-4 w-4" />
+                                      Agregar
+                                    </Button>
+                                  </div>
+                                )}
                               </div>
-                            ) : (
-                              <div className="space-y-2">
-                                <div className="flex space-x-2">
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => {
-                                      setSelectedCoffeeForDetail(variety);
-                                      setShowCoffeeDetail(true);
-                                    }}
-                                    className="flex-1"
-                                  >
-                                    <Eye className="mr-2 h-3 w-3" />
-                                    Ver Detalles
-                                  </Button>
-                                  <Button
-                                    variant="default"
-                                    size="sm"
-                                    onClick={() => addGroundItem(variety)}
-                                    className="flex-1"
-                                  >
-                                    <Plus className="mr-2 h-3 w-3" />
-                                    Agregar
-                                  </Button>
-                                </div>
-                              </div>
-                            )}
+                            </div>
                           </CardContent>
                         </Card>
                       );

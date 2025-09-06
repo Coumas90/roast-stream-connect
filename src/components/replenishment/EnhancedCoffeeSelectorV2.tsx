@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Coffee, Info, Package2, Plus, Minus } from "lucide-react";
+import { Coffee, Info, Package2, Plus, Minus, Eye } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { CoffeeDetailModal } from "@/components/coffee/CoffeeDetailModal";
 
 export interface GroundCoffeeOrderItem {
   coffee_variety_id: string;
@@ -45,6 +46,8 @@ export function EnhancedCoffeeSelectorV2({
   onGroundItemsChange,
   onProductItemsChange 
 }: EnhancedCoffeeSelectorV2Props) {
+  const [selectedCoffeeForDetail, setSelectedCoffeeForDetail] = useState<any>(null);
+  const [showCoffeeDetail, setShowCoffeeDetail] = useState(false);
   // Fetch coffee varieties for ground coffee (tolvas)
   const { data: coffeeVarieties, isLoading: loadingVarieties } = useQuery({
     queryKey: ["coffee-varieties-active"],
@@ -290,20 +293,45 @@ export function EnhancedCoffeeSelectorV2({
                       const stockInfo = getStockForVariety(variety.id);
                       
                       return (
-                        <Card key={variety.id} className="relative">
+                        <Card key={variety.id} className="relative group hover:shadow-lg transition-all duration-200 cursor-pointer">
                           <CardContent className="p-4">
                             <div className="flex justify-between items-start mb-2">
                               <div className="flex-1">
-                                <h4 className="font-medium">{variety.name}</h4>
-                                {variety.description && (
-                                  <p className="text-sm text-muted-foreground">{variety.description}</p>
-                                )}
-                                {variety.origin && (
-                                  <p className="text-xs text-muted-foreground">Origen: {variety.origin}</p>
-                                )}
+                                <div className="flex items-start space-x-3">
+                                  {variety.image_url && (
+                                    <div className="w-16 h-16 rounded-lg overflow-hidden bg-muted flex-shrink-0">
+                                      <img 
+                                        src={variety.image_url} 
+                                        alt={variety.name}
+                                        className="w-full h-full object-cover"
+                                      />
+                                    </div>
+                                  )}
+                                  <div className="flex-1">
+                                    <h4 className="font-medium group-hover:text-primary transition-colors">
+                                      {variety.name}
+                                    </h4>
+                                    <Badge variant="secondary" className="mb-2">
+                                      {variety.category === "tupa" ? "Café TUPÁ" : "Otros"}
+                                    </Badge>
+                                    {variety.description && (
+                                      <p className="text-sm text-muted-foreground line-clamp-2">{variety.description}</p>
+                                    )}
+                                    {variety.origin && (
+                                      <p className="text-xs text-muted-foreground mt-1">
+                                        <span className="inline-flex items-center">
+                                          <Coffee className="h-3 w-3 mr-1" />
+                                          {variety.origin}
+                                        </span>
+                                      </p>
+                                    )}
+                                  </div>
+                                </div>
                               </div>
                               {variety.price_per_kg && (
-                                <Badge variant="outline">${variety.price_per_kg}/kg</Badge>
+                                <Badge variant="outline" className="text-primary">
+                                  ${variety.price_per_kg}/kg
+                                </Badge>
                               )}
                             </div>
 
@@ -362,15 +390,31 @@ export function EnhancedCoffeeSelectorV2({
                                 <Label className="text-sm">kg</Label>
                               </div>
                             ) : (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => addGroundItem(variety)}
-                                className="w-full"
-                              >
-                                <Plus className="mr-2 h-3 w-3" />
-                                Agregar
-                              </Button>
+                              <div className="space-y-2">
+                                <div className="flex space-x-2">
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => {
+                                      setSelectedCoffeeForDetail(variety);
+                                      setShowCoffeeDetail(true);
+                                    }}
+                                    className="flex-1"
+                                  >
+                                    <Eye className="mr-2 h-3 w-3" />
+                                    Ver Detalles
+                                  </Button>
+                                  <Button
+                                    variant="default"
+                                    size="sm"
+                                    onClick={() => addGroundItem(variety)}
+                                    className="flex-1"
+                                  >
+                                    <Plus className="mr-2 h-3 w-3" />
+                                    Agregar
+                                  </Button>
+                                </div>
+                              </div>
                             )}
                           </CardContent>
                         </Card>
@@ -487,6 +531,13 @@ export function EnhancedCoffeeSelectorV2({
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Coffee Detail Modal */}
+      <CoffeeDetailModal
+        variety={selectedCoffeeForDetail}
+        open={showCoffeeDetail}
+        onOpenChange={setShowCoffeeDetail}
+      />
 
       {/* Order Summary */}
       {(selectedGroundItems.length > 0 || selectedProductItems.length > 0) && (

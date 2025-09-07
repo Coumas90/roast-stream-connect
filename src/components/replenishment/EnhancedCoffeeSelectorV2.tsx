@@ -48,14 +48,15 @@ export function EnhancedCoffeeSelectorV2({
 }: EnhancedCoffeeSelectorV2Props) {
   const [selectedCoffeeForDetail, setSelectedCoffeeForDetail] = useState<any>(null);
   const [showCoffeeDetail, setShowCoffeeDetail] = useState(false);
-  // Fetch coffee varieties for ground coffee (tolvas)
+  // Fetch coffee varieties for ground coffee (tolvas) - only bulk available
   const { data: coffeeVarieties, isLoading: loadingVarieties } = useQuery({
-    queryKey: ["coffee-varieties-active"],
+    queryKey: ["coffee-varieties-bulk"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("coffee_varieties")
         .select("*")
         .eq("active", true)
+        .eq("available_bulk", true)
         .order("category")
         .order("name");
       if (error) throw error;
@@ -63,12 +64,19 @@ export function EnhancedCoffeeSelectorV2({
     },
   });
 
-  // Fetch coffee products for cuartitos and packages  
+  // Fetch coffee varieties available as packaged products (cuartitos)  
   const { data: coffeeProducts, isLoading: loadingProducts } = useQuery({
-    queryKey: ["coffee-products-active"],
+    queryKey: ["coffee-varieties-packaged"],
     queryFn: async () => {
-      // For now, return empty array since coffee_products table might not exist yet
-      return [];
+      const { data, error } = await supabase
+        .from("coffee_varieties")
+        .select("*")
+        .eq("active", true)
+        .eq("available_packaged", true)
+        .order("category")
+        .order("name");
+      if (error) throw error;
+      return data || [];
     },
   });
 
@@ -138,29 +146,29 @@ export function EnhancedCoffeeSelectorV2({
     return item?.quantity_kg || 0;
   };
 
-  // Helper functions for coffee products
-  const groupedProducts = coffeeProducts?.reduce((acc: any, product: any) => {
-    const productType = product.product_type || 'other';
+  // Helper functions for coffee varieties available as products
+  const groupedProducts = coffeeProducts?.reduce((acc: any, variety: any) => {
+    const productType = variety.category === 'tupa' ? 'cuartito' : 'other';
     if (!acc[productType]) {
       acc[productType] = [];
     }
-    acc[productType].push(product);
+    acc[productType].push(variety);
     return acc;
   }, {} as Record<string, any[]>) || {};
 
-  const addProductItem = (product: any) => {
-    const existingItem = selectedProductItems.find(item => item.coffee_product_id === product.id);
+  const addProductItem = (variety: any) => {
+    const existingItem = selectedProductItems.find(item => item.coffee_product_id === variety.id);
     if (existingItem) {
-      updateProductQuantity(product.id, existingItem.quantity_units + 1);
+      updateProductQuantity(variety.id, existingItem.quantity_units + 1);
     } else {
       const newItem: ProductOrderItem = {
-        coffee_product_id: product.id,
+        coffee_product_id: variety.id,
         quantity_units: 1,
-        product_name: product.name,
-        weight_grams: product.weight_grams,
-        product_type: product.product_type,
-        price_per_unit: product.price,
-        sku: product.sku,
+        product_name: variety.name,
+        weight_grams: 250, // Default cuartito weight
+        product_type: variety.category === 'tupa' ? 'cuartito' : 'other',
+        price_per_unit: variety.price_per_kg ? variety.price_per_kg * 0.25 : undefined, // Estimate price for 250g
+        sku: variety.name.toLowerCase().replace(/\s+/g, '-'),
       };
       onProductItemsChange([...selectedProductItems, newItem]);
     }

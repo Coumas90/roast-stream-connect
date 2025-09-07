@@ -282,6 +282,8 @@ export type Database = {
       coffee_varieties: {
         Row: {
           active: boolean
+          available_bulk: boolean
+          available_packaged: boolean
           category: string
           created_at: string
           created_by: string | null
@@ -296,6 +298,8 @@ export type Database = {
         }
         Insert: {
           active?: boolean
+          available_bulk?: boolean
+          available_packaged?: boolean
           category?: string
           created_at?: string
           created_by?: string | null
@@ -310,6 +314,8 @@ export type Database = {
         }
         Update: {
           active?: boolean
+          available_bulk?: boolean
+          available_packaged?: boolean
           category?: string
           created_at?: string
           created_by?: string | null

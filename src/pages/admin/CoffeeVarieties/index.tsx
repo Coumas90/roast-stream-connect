@@ -30,6 +30,8 @@ const coffeeVarietySchema = z.object({
   category: z.enum(["tupa", "other"]),
   price_per_kg: z.number().positive().optional(),
   active: z.boolean(),
+  available_bulk: z.boolean(),
+  available_packaged: z.boolean(),
   image_url: z.string().optional(),
   specifications: z.object({
     tasting: z.object({
@@ -75,6 +77,8 @@ export default function CoffeeVarietiesAdmin() {
     defaultValues: {
       category: "other",
       active: true,
+      available_bulk: true,
+      available_packaged: true,
       specifications: {
         tasting: {},
         technical: {},
@@ -112,7 +116,9 @@ export default function CoffeeVarietiesAdmin() {
           price_per_kg: data.price_per_kg,
           image_url: data.image_url,
           specifications: data.specifications || {},
-          active: data.active ?? true
+          active: data.active ?? true,
+          available_bulk: data.available_bulk ?? true,
+          available_packaged: data.available_packaged ?? true
         });
       if (error) throw error;
     },
@@ -139,7 +145,9 @@ export default function CoffeeVarietiesAdmin() {
           price_per_kg: data.price_per_kg,
           image_url: data.image_url,
           specifications: data.specifications || {},
-          active: data.active ?? true
+          active: data.active ?? true,
+          available_bulk: data.available_bulk ?? true,
+          available_packaged: data.available_packaged ?? true
         })
         .eq("id", id);
       if (error) throw error;
@@ -183,6 +191,8 @@ export default function CoffeeVarietiesAdmin() {
       category: variety.category,
       price_per_kg: variety.price_per_kg || undefined,
       active: variety.active,
+      available_bulk: variety.available_bulk ?? true,
+      available_packaged: variety.available_packaged ?? true,
       image_url: variety.image_url || "",
       specifications: specs,
     });
@@ -345,6 +355,44 @@ export default function CoffeeVarietiesAdmin() {
                           </FormItem>
                         )}
                       />
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <FormField
+                          control={form.control}
+                          name="available_bulk"
+                          render={({ field }) => (
+                            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                              <div className="space-y-0.5">
+                                <FormLabel className="text-base">Disponible por Kg</FormLabel>
+                                <div className="text-sm text-muted-foreground">
+                                  Para pedidos de café molido a granel
+                                </div>
+                              </div>
+                              <FormControl>
+                                <Switch checked={field.value} onCheckedChange={field.onChange} />
+                              </FormControl>
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={form.control}
+                          name="available_packaged"
+                          render={({ field }) => (
+                            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                              <div className="space-y-0.5">
+                                <FormLabel className="text-base">Disponible en Cuartitos</FormLabel>
+                                <div className="text-sm text-muted-foreground">
+                                  Para productos empacados individuales
+                                </div>
+                              </div>
+                              <FormControl>
+                                <Switch checked={field.value} onCheckedChange={field.onChange} />
+                              </FormControl>
+                            </FormItem>
+                          )}
+                        />
+                      </div>
                     </TabsContent>
 
                     <TabsContent value="image" className="space-y-4">
@@ -451,6 +499,7 @@ export default function CoffeeVarietiesAdmin() {
                     <TableHead>Origen</TableHead>
                     <TableHead>Precio/kg</TableHead>
                     <TableHead>Puntaje</TableHead>
+                    <TableHead>Disponibilidad</TableHead>
                     <TableHead>Estado</TableHead>
                     <TableHead>Acciones</TableHead>
                   </TableRow>
@@ -473,6 +522,25 @@ export default function CoffeeVarietiesAdmin() {
                           const specs = variety.specifications ? (typeof variety.specifications === 'string' ? JSON.parse(variety.specifications) : variety.specifications) : {};
                           return specs?.technical?.score ? `${specs.technical.score}/100` : "-";
                         })()}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex gap-1 flex-wrap">
+                          {variety.available_bulk && (
+                            <Badge variant="outline" className="text-xs">
+                              📦 Por Kg
+                            </Badge>
+                          )}
+                          {variety.available_packaged && (
+                            <Badge variant="outline" className="text-xs">
+                              📄 Cuartitos
+                            </Badge>
+                          )}
+                          {!variety.available_bulk && !variety.available_packaged && (
+                            <Badge variant="destructive" className="text-xs">
+                              Sin disponibilidad
+                            </Badge>
+                          )}
+                        </div>
                       </TableCell>
                       <TableCell>
                         <Badge variant={variety.active ? "default" : "destructive"}>

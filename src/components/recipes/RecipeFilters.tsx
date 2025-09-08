@@ -93,11 +93,12 @@ export function RecipeFilters({ filters, onFiltersChange, onClearFilters }: Reci
           />
         </div>
 
-        <Select value={filters.method || ""} onValueChange={(value) => updateFilter("method", value)}>
+        <Select value={filters.method || "all"} onValueChange={(value) => updateFilter("method", value === "all" ? undefined : value)}>
           <SelectTrigger>
             <SelectValue placeholder="Método" />
           </SelectTrigger>
           <SelectContent>
+            <SelectItem value="all">Todos los métodos</SelectItem>
             {METHODS.map((method) => (
               <SelectItem key={method.value} value={method.value}>
                 {method.label}
@@ -106,11 +107,12 @@ export function RecipeFilters({ filters, onFiltersChange, onClearFilters }: Reci
           </SelectContent>
         </Select>
 
-        <Select value={filters.status || ""} onValueChange={(value) => updateFilter("status", value)}>
+        <Select value={filters.status || "all"} onValueChange={(value) => updateFilter("status", value === "all" ? undefined : value)}>
           <SelectTrigger>
             <SelectValue placeholder="Estado" />
           </SelectTrigger>
           <SelectContent>
+            <SelectItem value="all">Todos los estados</SelectItem>
             {STATUSES.map((status) => (
               <SelectItem key={status.value} value={status.value}>
                 {status.label}
@@ -119,11 +121,12 @@ export function RecipeFilters({ filters, onFiltersChange, onClearFilters }: Reci
           </SelectContent>
         </Select>
 
-        <Select value={filters.coffee || ""} onValueChange={(value) => updateFilter("coffee", value)}>
+        <Select value={filters.coffee || "all"} onValueChange={(value) => updateFilter("coffee", value === "all" ? undefined : value)}>
           <SelectTrigger>
             <SelectValue placeholder="Café" />
           </SelectTrigger>
           <SelectContent>
+            <SelectItem value="all">Todos los cafés</SelectItem>
             {COFFEES.map((coffee) => (
               <SelectItem key={coffee.value} value={coffee.value}>
                 {coffee.label}

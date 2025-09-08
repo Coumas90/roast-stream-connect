@@ -37,7 +37,7 @@ export function OrdersFilters({ tenants, locations, filters, onFiltersChange }: 
   const handleTenantChange = (tenantId: string) => {
     onFiltersChange({
       ...filters,
-      tenantId,
+      tenantId: tenantId === "all" ? "" : tenantId,
       locationId: "", // Reset location when tenant changes
     });
   };
@@ -45,14 +45,14 @@ export function OrdersFilters({ tenants, locations, filters, onFiltersChange }: 
   const handleLocationChange = (locationId: string) => {
     onFiltersChange({
       ...filters,
-      locationId,
+      locationId: locationId === "all" ? "" : locationId,
     });
   };
 
   const handleStatusChange = (status: string) => {
     onFiltersChange({
       ...filters,
-      status,
+      status: status === "all" ? "" : status,
     });
   };
 
@@ -70,12 +70,12 @@ export function OrdersFilters({ tenants, locations, filters, onFiltersChange }: 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
           <div className="space-y-2">
             <Label htmlFor="tenant">Cliente</Label>
-            <Select value={filters.tenantId} onValueChange={handleTenantChange}>
+            <Select value={filters.tenantId || "all"} onValueChange={handleTenantChange}>
               <SelectTrigger>
                 <SelectValue placeholder="Todos los clientes" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Todos los clientes</SelectItem>
+                <SelectItem value="all">Todos los clientes</SelectItem>
                 {tenants.map((tenant) => (
                   <SelectItem key={tenant.id} value={tenant.id}>
                     {tenant.name}
@@ -87,12 +87,12 @@ export function OrdersFilters({ tenants, locations, filters, onFiltersChange }: 
 
           <div className="space-y-2">
             <Label htmlFor="location">Sucursal</Label>
-            <Select value={filters.locationId} onValueChange={handleLocationChange}>
+            <Select value={filters.locationId || "all"} onValueChange={handleLocationChange}>
               <SelectTrigger>
                 <SelectValue placeholder="Todas las sucursales" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Todas las sucursales</SelectItem>
+                <SelectItem value="all">Todas las sucursales</SelectItem>
                 {filteredLocations.map((location) => (
                   <SelectItem key={location.id} value={location.id}>
                     {location.name}
@@ -104,12 +104,12 @@ export function OrdersFilters({ tenants, locations, filters, onFiltersChange }: 
 
           <div className="space-y-2">
             <Label htmlFor="status">Estado</Label>
-            <Select value={filters.status} onValueChange={handleStatusChange}>
+            <Select value={filters.status || "all"} onValueChange={handleStatusChange}>
               <SelectTrigger>
                 <SelectValue placeholder="Todos los estados" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Todos los estados</SelectItem>
+                <SelectItem value="all">Todos los estados</SelectItem>
                 <SelectItem value="draft">Borrador</SelectItem>
                 <SelectItem value="approved">Aprobado</SelectItem>
                 <SelectItem value="sent">Enviado</SelectItem>

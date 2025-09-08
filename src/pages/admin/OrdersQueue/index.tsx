@@ -1,105 +1,228 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { useTenant } from "@/lib/tenant";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import type { Tables, Enums } from "@/integrations/supabase/types";
+import { OrdersKPIDashboard } from "@/components/admin/orders/OrdersKPIDashboard";
+import { OrdersFilters } from "@/components/admin/orders/OrdersFilters";
+import { OrderCard } from "@/components/admin/orders/OrderCard";
+
+interface OrderWithDetails extends Tables<"order_proposals"> {
+  order_items?: Array<{
+    id: string;
+    coffee_variety_id: string;
+    quantity_kg: number;
+    unit_price?: number;
+    notes?: string;
+    coffee_varieties?: {
+      name: string;
+      category: string;
+    };
+  }>;
+  locations?: {
+    name: string;
+    tenant_id: string;
+    tenants?: {
+      name: string;
+    };
+  };
+}
 
 export default function OrdersQueue() {
-  const { tenantId, locationId, locations, getLocationIdByName } = useTenant();
-  const [orders, setOrders] = useState<Array<Pick<Tables<"order_proposals">, "id" | "location_id" | "status">>>([]);
+  const [orders, setOrders] = useState<OrderWithDetails[]>([]);
+  const [tenants, setTenants] = useState<Array<Tables<"tenants">>>([]);
+  const [locations, setLocations] = useState<Array<Tables<"locations">>>([]);
   const [loading, setLoading] = useState(true);
-
-  // Mapeo opcional id->nombre si hiciera falta mostrarlo
-  // (por simplicidad, mostramos location_id)
-  const getLocationNameById = useCallback((id: string) => {
-    const loc = (locations as any[])?.find((l: any) => l.id === id);
-    return (loc?.name as string) ?? id;
-  }, [locations]);
+  const [filters, setFilters] = useState({
+    tenantId: "",
+    locationId: "",
+    status: "",
+  });
   const fetchOrders = useCallback(async () => {
-    if (!tenantId) { setLoading(false); return; }
-    const { data, error } = await supabase
-      .from("order_proposals")
-      .select("id, location_id, status")
-      .eq("tenant_id", tenantId)
-      .order("proposed_at", { ascending: false });
-    if (error) {
-      console.log("[OrdersQueue] list error:", error);
-      toast({ title: "Error", description: "No se pudieron cargar los pedidos", variant: "destructive" });
+    try {
+      setLoading(true);
+      
+      const { data: ordersData, error: ordersError } = await supabase
+        .from("order_proposals")
+        .select(`
+          *,
+          order_items (
+            id,
+            coffee_variety_id,
+            quantity_kg,
+            unit_price,
+            notes,
+            coffee_varieties (
+              name,
+              category
+            )
+          ),
+          locations (
+            name,
+            tenant_id,
+            tenants (
+              name
+            )
+          )
+        `)
+        .order("proposed_at", { ascending: false });
+
+      if (ordersError) throw ordersError;
+      setOrders(ordersData || []);
+    } catch (error) {
+      console.error("[OrdersQueue] fetch error:", error);
+      toast({ 
+        title: "Error", 
+        description: "No se pudieron cargar los pedidos", 
+        variant: "destructive" 
+      });
+    } finally {
+      setLoading(false);
     }
-    setOrders((data ?? []) as any);
-    setLoading(false);
-  }, [tenantId]);
+  }, []);
+
+  const fetchTenants = useCallback(async () => {
+    try {
+      const { data, error } = await supabase
+        .from("tenants")
+        .select("*")
+        .order("name");
+      
+      if (error) throw error;
+      setTenants(data || []);
+    } catch (error) {
+      console.error("[OrdersQueue] fetch tenants error:", error);
+    }
+  }, []);
+
+  const fetchLocations = useCallback(async () => {
+    try {
+      const { data, error } = await supabase
+        .from("locations")
+        .select("*")
+        .order("name");
+      
+      if (error) throw error;
+      setLocations(data || []);
+    } catch (error) {
+      console.error("[OrdersQueue] fetch locations error:", error);
+    }
+  }, []);
 
   useEffect(() => {
     fetchOrders();
-    if (!tenantId) return;
+    fetchTenants();
+    fetchLocations();
+    
     const channel = supabase
       .channel("order_proposals_changes")
       .on(
         "postgres_changes",
-        { event: "INSERT", schema: "public", table: "order_proposals", filter: `tenant_id=eq.${tenantId}` },
+        { event: "INSERT", schema: "public", table: "order_proposals" },
         () => fetchOrders()
       )
       .on(
         "postgres_changes",
-        { event: "UPDATE", schema: "public", table: "order_proposals", filter: `tenant_id=eq.${tenantId}` },
+        { event: "UPDATE", schema: "public", table: "order_proposals" },
         () => fetchOrders()
       )
       .subscribe();
+    
     return () => { supabase.removeChannel(channel); };
-  }, [fetchOrders, tenantId]);
+  }, [fetchOrders, fetchTenants, fetchLocations]);
+
+  const filteredOrders = useMemo(() => {
+    return orders.filter(order => {
+      if (filters.tenantId && order.tenant_id !== filters.tenantId) return false;
+      if (filters.locationId && order.location_id !== filters.locationId) return false;
+      if (filters.status && order.status !== filters.status) return false;
+      return true;
+    });
+  }, [orders, filters]);
 
   const updateOrderStatus = async (id: string, status: Enums<"order_status">) => {
-    const { error } = await supabase
-      .from("order_proposals")
-      .update({ status })
-      .eq("id", id);
-    if (error) {
-      console.log("[OrdersQueue] update error:", error);
-      toast({ title: "Error", description: "No se pudo actualizar el pedido", variant: "destructive" });
-    } else {
-      toast({ title: "Actualizado", description: `#${id} → ${status}` });
+    try {
+      const { error } = await supabase
+        .from("order_proposals")
+        .update({ status })
+        .eq("id", id);
+      
+      if (error) throw error;
+      
+      toast({ 
+        title: "Actualizado", 
+        description: `Pedido #${id.slice(0, 8)} marcado como ${status}` 
+      });
       fetchOrders();
+    } catch (error) {
+      console.error("[OrdersQueue] update error:", error);
+      toast({ 
+        title: "Error", 
+        description: "No se pudo actualizar el pedido", 
+        variant: "destructive" 
+      });
     }
   };
 
   return (
-    <article>
+    <article className="space-y-6">
       <Helmet>
         <title>Cola de Pedidos | TUPÁ Hub</title>
-        <meta name="description" content="Pedidos pendientes hacia Odoo" />
+        <meta name="description" content="Gestión de pedidos de café para todas las sucursales" />
         <link rel="canonical" href="/admin/orders-queue" />
       </Helmet>
-      <h1 className="sr-only">Cola de Pedidos</h1>
-      <Card>
-        <CardHeader><CardTitle>Pedidos</CardTitle></CardHeader>
-        <CardContent className="space-y-3">
-          {loading && <div>Cargando...</div>}
-          {!loading && orders.length === 0 && <div>No hay pedidos.</div>}
-          {orders.map((o) => (
-            <div key={o.id} className="flex items-center justify-between border rounded-md p-3">
-              <div>
-                <div className="font-medium">#{o.id}</div>
-                <div className="text-sm text-muted-foreground">{getLocationNameById(o.location_id)} • {o.status}</div>
-              </div>
-              <div className="flex gap-2">
-                {o.status === "draft" && (
-                  <Button size="sm" onClick={() => updateOrderStatus(o.id, "approved")}>Aprobar</Button>
-                )}
-                {o.status === "approved" && (
-                  <Button size="sm" onClick={() => updateOrderStatus(o.id, "sent")}>Enviar</Button>
-                )}
-                {o.status === "sent" && (
-                  <Button size="sm" onClick={() => updateOrderStatus(o.id, "fulfilled")}>Marcar entregado</Button>
-                )}
-              </div>
-            </div>
+      
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Cola de Pedidos</h1>
+          <p className="text-muted-foreground">
+            Gestiona los pedidos de todas las sucursales desde un solo lugar
+          </p>
+        </div>
+      </div>
+
+      <OrdersKPIDashboard orders={filteredOrders} />
+
+      <OrdersFilters
+        tenants={tenants}
+        locations={locations}
+        filters={filters}
+        onFiltersChange={setFilters}
+      />
+
+      {loading ? (
+        <Card>
+          <CardContent className="flex items-center justify-center py-8">
+            <div className="text-muted-foreground">Cargando pedidos...</div>
+          </CardContent>
+        </Card>
+      ) : filteredOrders.length === 0 ? (
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center py-8 text-center">
+            <div className="text-muted-foreground text-lg mb-2">No hay pedidos</div>
+            <p className="text-sm text-muted-foreground">
+              {filters.tenantId || filters.locationId || filters.status
+                ? "No se encontraron pedidos con los filtros aplicados"
+                : "Aún no hay pedidos registrados"}
+            </p>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid gap-4">
+          {filteredOrders.map((order) => (
+            <OrderCard
+              key={order.id}
+              order={order}
+              location={order.locations}
+              tenant={order.locations?.tenants}
+              items={order.order_items}
+              onUpdateStatus={updateOrderStatus}
+            />
           ))}
-        </CardContent>
-      </Card>
+        </div>
+      )}
     </article>
   );
 }

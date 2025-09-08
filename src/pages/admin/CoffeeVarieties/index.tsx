@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Plus, Search, Coffee, Grid, List } from "lucide-react";
+import { Plus, Search, Coffee, Grid, List, Trash2, Edit } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import AdminLayout from "@/layouts/AdminLayout";
@@ -561,7 +561,8 @@ export default function CoffeeVarietiesAdmin() {
                             size="sm"
                             onClick={() => handleEdit(variety)}
                           >
-                            <Coffee className="h-4 w-4" />
+                            <Edit className="h-4 w-4 mr-2" />
+                            Editar
                           </Button>
                           <Button
                             variant="outline"
@@ -569,7 +570,8 @@ export default function CoffeeVarietiesAdmin() {
                             onClick={() => deleteMutation.mutate(variety.id)}
                             disabled={deleteMutation.isPending}
                           >
-                            <Coffee className="h-4 w-4" />
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Eliminar
                           </Button>
                         </div>
                       </TableCell>

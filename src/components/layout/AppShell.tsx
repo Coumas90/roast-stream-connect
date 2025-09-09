@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
-import { Home, Coffee, LineChart, Package, Users2, GraduationCap, CircleHelp, Settings, Users, Layers, ListChecks, BarChart3, Bean, Warehouse } from "lucide-react";
+import { Home, Coffee, LineChart, Package, Users2, GraduationCap, CircleHelp, Settings, Users, Layers, ListChecks, BarChart3, Bean, Warehouse, PanelLeftClose } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { NavLink, useLocation } from "react-router-dom";
 import { useDataStore } from "@/lib/data-store";
@@ -75,8 +75,8 @@ export function AppShell({ children, section = "Dashboard", variant = "client" }
     : baseItems;
 
   return (
-    <SidebarProvider>
-      <Sidebar variant="inset">
+    <SidebarProvider defaultOpen={true}>
+      <Sidebar variant="inset" collapsible="icon">
         <SidebarHeader>
           <div className="flex items-center gap-2 px-2 py-1">
             <div className={cn("size-8 rounded-md bg-primary/10 flex items-center justify-center font-semibold", variant === "admin" && "bg-primary/20")}>TU</div>
@@ -103,7 +103,7 @@ export function AppShell({ children, section = "Dashboard", variant = "client" }
                     const isActive = n.exact ? pathname === n.to : pathname.startsWith(n.to);
                     return (
                       <SidebarMenuItem key={n.label}>
-                        <SidebarMenuButton isActive={isActive} asChild>
+                        <SidebarMenuButton isActive={isActive} tooltip={n.label} asChild>
                           <NavLink to={n.to} aria-current={isActive ? "page" : undefined}>
                             <n.icon />
                             <span>{n.label}</span>
@@ -126,7 +126,7 @@ export function AppShell({ children, section = "Dashboard", variant = "client" }
               <SidebarMenu>
                 {(variant === "admin" || effectiveRole === 'owner' || effectiveRole === 'manager' || effectiveRole === 'tupa_admin') && (
                   <SidebarMenuItem>
-                    <SidebarMenuButton asChild>
+                    <SidebarMenuButton tooltip="Integraciones" asChild>
                       <NavLink to={variant === "admin" ? "/admin/integrations" : "/app/settings/integrations"}>
                         <Settings />
                         <span>Integraciones</span>

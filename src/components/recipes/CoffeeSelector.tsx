@@ -11,28 +11,8 @@ import {
 } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Coffee } from "lucide-react";
-
-const TUPA_COFFEES = [
-  {
-    id: "tupa-signature",
-    name: "TUPÁ Signature",
-    description: "Blend equilibrado, notas de chocolate y caramelo",
-    image: "/api/placeholder/60/60",
-  },
-  {
-    id: "tupa-finca-x",
-    name: "TUPÁ Finca La Esperanza",
-    description: "Single origin, notas florales y cítricas",
-    image: "/api/placeholder/60/60",
-  },
-  {
-    id: "tupa-especial",
-    name: "TUPÁ Especial",
-    description: "Tueste medio, notas de frutos secos",
-    image: "/api/placeholder/60/60",
-  },
-];
+import { Coffee, Loader2 } from "lucide-react";
+import { useTupaCoffees } from "@/hooks/useCoffeeVarieties";
 
 export interface CoffeeSelection {
   type: "tupa" | "other";
@@ -47,6 +27,8 @@ interface CoffeeSelectorProps {
 }
 
 export function CoffeeSelector({ value, onChange }: CoffeeSelectorProps) {
+  const { data: tupaCoffees, isLoading } = useTupaCoffees();
+  
   const updateSelection = (updates: Partial<CoffeeSelection>) => {
     onChange({ ...value, ...updates });
   };
@@ -71,34 +53,48 @@ export function CoffeeSelector({ value, onChange }: CoffeeSelectorProps) {
               <Select 
                 value={value.tupaId} 
                 onValueChange={(tupaId) => updateSelection({ tupaId })}
+                disabled={isLoading}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Selecciona un café TUPÁ" />
+                  <SelectValue placeholder={isLoading ? "Cargando cafés..." : "Selecciona un café TUPÁ"} />
                 </SelectTrigger>
                 <SelectContent>
-                  {TUPA_COFFEES.map((coffee) => (
-                    <SelectItem key={coffee.id} value={coffee.id}>
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded bg-primary/10 flex items-center justify-center">
-                          <Coffee className="h-4 w-4 text-primary" />
-                        </div>
-                        <div>
-                          <div className="font-medium">{coffee.name}</div>
-                          <div className="text-xs text-muted-foreground">
-                            {coffee.description}
-                          </div>
-                        </div>
+                  {isLoading ? (
+                    <SelectItem value="loading" disabled>
+                      <div className="flex items-center gap-2">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Cargando cafés...
                       </div>
                     </SelectItem>
-                  ))}
+                  ) : tupaCoffees?.length ? (
+                    tupaCoffees.map((coffee) => (
+                      <SelectItem key={coffee.id} value={coffee.id}>
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded bg-primary/10 flex items-center justify-center">
+                            <Coffee className="h-4 w-4 text-primary" />
+                          </div>
+                          <div>
+                            <div className="font-medium">{coffee.name}</div>
+                            <div className="text-xs text-muted-foreground">
+                              {coffee.description || coffee.origin}
+                            </div>
+                          </div>
+                        </div>
+                      </SelectItem>
+                    ))
+                  ) : (
+                    <SelectItem value="empty" disabled>
+                      No hay cafés TUPÁ disponibles
+                    </SelectItem>
+                  )}
                 </SelectContent>
               </Select>
 
-              {value.tupaId && (
+              {value.tupaId && tupaCoffees && (
                 <Card className="bg-primary/5 border-primary/20">
                   <CardContent className="p-4">
                     {(() => {
-                      const coffee = TUPA_COFFEES.find(c => c.id === value.tupaId);
+                      const coffee = tupaCoffees.find(c => c.id === value.tupaId);
                       if (!coffee) return null;
                       
                       return (
@@ -111,13 +107,25 @@ export function CoffeeSelector({ value, onChange }: CoffeeSelectorProps) {
                             <p className="text-xs text-muted-foreground mt-1">
                               {coffee.description}
                             </p>
+                            {coffee.origin && (
+                              <p className="text-xs text-muted-foreground">
+                                Origen: {coffee.origin}
+                              </p>
+                            )}
                             <div className="flex gap-1 mt-2">
                               <Badge variant="secondary" className="text-xs">
-                                Ratio sugerido: 1:2
+                                {coffee.category.toUpperCase()}
                               </Badge>
-                              <Badge variant="secondary" className="text-xs">
-                                94°C
-                              </Badge>
+                              {coffee.available_bulk && (
+                                <Badge variant="secondary" className="text-xs">
+                                  Disponible a granel
+                                </Badge>
+                              )}
+                              {coffee.price_per_kg && (
+                                <Badge variant="secondary" className="text-xs">
+                                  ${coffee.price_per_kg}/kg
+                                </Badge>
+                              )}
                             </div>
                           </div>
                         </div>

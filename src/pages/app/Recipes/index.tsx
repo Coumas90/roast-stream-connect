@@ -4,127 +4,126 @@ import { Button } from "@/components/ui/button";
 import { Download, Plus } from "lucide-react";
 import { RecipeTabNavigation, type RecipeTab } from "@/components/recipes/RecipeTabNavigation";
 import { RecipeFilters, type RecipeFilters as RecipeFiltersType } from "@/components/recipes/RecipeFilters";
-import { RecipeCard, type Recipe } from "@/components/recipes/RecipeCard";
+import { RecipeCard } from "@/components/recipes/RecipeCard";
 import { RecipeEmptyState } from "@/components/recipes/RecipeEmptyStates";
 import { CreateRecipeModal } from "@/components/recipes/CreateRecipeModal";
 import { RecipeHeroSection } from "@/components/recipes/RecipeHeroSection";
-
-// Mock data for development
-const MOCK_RECIPES: Recipe[] = [
-  {
-    id: "1",
-    name: "Espresso TUPÁ Signature",
-    method: "Espresso",
-    status: "active",
-    type: "oficial",
-    ratio: "1:2",
-    coffee: "18g",
-    time: "25-30s",
-    temperature: "94°C",
-    grind: "Fina",
-    description: "Receta oficial para espresso con café TUPÁ Signature",
-    isActive: true,
-  },
-  {
-    id: "2",
-    name: "Mi V60 Personal",
-    method: "V60",
-    status: "draft",
-    type: "personal",
-    ratio: "1:16",
-    coffee: "22g",
-    time: "3:30",
-    temperature: "92°C",
-    grind: "Media-fina",
-    description: "Mi receta personalizada para V60 con notas florales",
-    isActive: false,
-  },
-  {
-    id: "3",
-    name: "Cold Brew Equipo",
-    method: "Cold Brew",
-    status: "review",
-    type: "team",
-    ratio: "1:8",
-    coffee: "100g",
-    time: "12h",
-    temperature: "Ambiente",
-    grind: "Gruesa",
-    description: "Receta compartida por el equipo para cold brew",
-    isActive: false,
-  },
-];
+import { useRecipes, useCreateRecipe, useToggleRecipeActive, useDuplicateRecipe } from "@/hooks/useRecipes";
+import { type Recipe } from "@/components/recipes/RecipeCard";
 
 export default function Recipes() {
   const [activeTab, setActiveTab] = useState<RecipeTab>("active");
   const [filters, setFilters] = useState<RecipeFiltersType>({});
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
+  // Fetch recipes based on current tab
+  const recipesQuery = useRecipes({
+    status: activeTab === "active" ? undefined : filters.status,
+    type: activeTab === "active" ? undefined : activeTab === "templates" ? "template" : activeTab,
+    method: filters.method,
+    search: filters.search,
+  });
+
+  const createRecipeMutation = useCreateRecipe();
+  const toggleActiveMutation = useToggleRecipeActive();
+  const duplicateMutation = useDuplicateRecipe();
+
+  const recipes = recipesQuery.data || [];
+
   // Filter recipes based on active tab and filters
   const filteredRecipes = useMemo(() => {
-    let recipes = [...MOCK_RECIPES];
+    let filteredRecipes = [...recipes];
 
     // Filter by tab
     switch (activeTab) {
       case "active":
-        recipes = recipes.filter(recipe => recipe.isActive);
+        filteredRecipes = filteredRecipes.filter(recipe => recipe.is_active);
         break;
       case "personal":
-        recipes = recipes.filter(recipe => recipe.type === "personal");
+        filteredRecipes = filteredRecipes.filter(recipe => recipe.type === "personal");
         break;
       case "team":
-        recipes = recipes.filter(recipe => recipe.type === "team");
+        filteredRecipes = filteredRecipes.filter(recipe => recipe.type === "team");
         break;
       case "oficial":
-        recipes = recipes.filter(recipe => recipe.type === "oficial");
+        filteredRecipes = filteredRecipes.filter(recipe => recipe.type === "oficial");
         break;
       case "templates":
-        // Admin only - would show template recipes
-        recipes = [];
+        filteredRecipes = filteredRecipes.filter(recipe => recipe.type === "template");
         break;
     }
 
-    // Apply additional filters
-    if (filters.method) {
-      recipes = recipes.filter(recipe => 
-        recipe.method.toLowerCase() === filters.method?.toLowerCase()
-      );
-    }
-
-    if (filters.status) {
-      recipes = recipes.filter(recipe => recipe.status === filters.status);
-    }
-
-    if (filters.search) {
-      const search = filters.search.toLowerCase();
-      recipes = recipes.filter(recipe =>
-        recipe.name.toLowerCase().includes(search) ||
-        recipe.description?.toLowerCase().includes(search)
-      );
-    }
-
-    return recipes;
-  }, [activeTab, filters]);
+    return filteredRecipes;
+  }, [recipes, activeTab]);
 
   // Calculate tab counts
   const tabCounts = useMemo(() => {
     return {
-      active: MOCK_RECIPES.filter(r => r.isActive).length,
-      personal: MOCK_RECIPES.filter(r => r.type === "personal").length,
-      team: MOCK_RECIPES.filter(r => r.type === "team").length,
-      oficial: MOCK_RECIPES.filter(r => r.type === "oficial").length,
-      templates: 0,
+      active: recipes.filter(r => r.is_active).length,
+      personal: recipes.filter(r => r.type === "personal").length,
+      team: recipes.filter(r => r.type === "team").length,
+      oficial: recipes.filter(r => r.type === "oficial").length,
+      templates: recipes.filter(r => r.type === "template").length,
     };
-  }, []);
+  }, [recipes]);
 
-  const handleCreateRecipe = (data: any, isDraft: boolean) => {
-    console.log("Creating recipe:", data, "as draft:", isDraft);
-    // Here you would typically call an API to save the recipe
+  const handleCreateRecipe = (formData: any, isDraft: boolean) => {
+    const recipeData = {
+      name: formData.name,
+      method: formData.method,
+      description: formData.description,
+      status: isDraft ? 'draft' as const : (formData.sendForReview ? 'review' as const : 'active' as const),
+      type: 'personal' as const,
+      ratio: formData.ratio,
+      coffee_amount: formData.coffeeAmount,
+      water_amount: formData.waterAmount,
+      time: formData.time,
+      temperature: formData.temperature,
+      grind: formData.grind,
+      coffee_type: formData.coffee.type,
+      coffee_variety_id: formData.coffee.type === 'tupa' ? formData.coffee.tupaId : undefined,
+      custom_coffee_name: formData.coffee.type === 'other' ? formData.coffee.customName : undefined,
+      custom_coffee_origin: formData.coffee.type === 'other' ? formData.coffee.origin : undefined,
+      notes: formData.notes,
+      steps: formData.steps || [],
+    };
+
+    createRecipeMutation.mutate(recipeData);
   };
 
-  const handleRecipeAction = (action: string, recipe: Recipe) => {
-    console.log(`${action} recipe:`, recipe);
-    // Here you would handle recipe actions (edit, duplicate, share, etc.)
+  const handleRecipeAction = (action: string, recipe: any) => {
+    switch (action) {
+      case "edit":
+        // TODO: Implement edit functionality
+        console.log("Edit recipe:", recipe);
+        break;
+      case "duplicate":
+        duplicateMutation.mutate(recipe.id);
+        break;
+      case "share":
+        // TODO: Implement share functionality
+        console.log("Share recipe:", recipe);
+        break;
+      case "archive":
+        // TODO: Implement archive functionality
+        console.log("Archive recipe:", recipe);
+        break;
+      case "activate":
+      case "deactivate":
+        toggleActiveMutation.mutate({
+          id: recipe.id,
+          isActive: action === "activate"
+        });
+        break;
+      case "viewPDF":
+        // TODO: Implement PDF generation
+        console.log("View PDF:", recipe);
+        break;
+      case "view":
+        // TODO: Implement recipe detail view
+        console.log("View recipe:", recipe);
+        break;
+    }
   };
 
   const clearFilters = () => {
@@ -132,7 +131,7 @@ export default function Recipes() {
   };
 
   // Get active recipe for hero section
-  const activeRecipe = MOCK_RECIPES.find(recipe => recipe.isActive);
+  const activeRecipe = recipes.find(recipe => recipe.is_active) as Recipe | undefined;
 
   return (
     <div className="min-h-screen bg-background">
@@ -194,7 +193,14 @@ export default function Recipes() {
         />
 
         {/* Content */}
-        {filteredRecipes.length === 0 ? (
+        {recipesQuery.isLoading ? (
+          <div className="flex items-center justify-center py-12">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+              <p className="text-muted-foreground">Cargando recetas...</p>
+            </div>
+          </div>
+        ) : filteredRecipes.length === 0 ? (
           <RecipeEmptyState
             tab={activeTab}
             onCreateNew={() => setIsCreateModalOpen(true)}
@@ -205,7 +211,11 @@ export default function Recipes() {
             {filteredRecipes.map((recipe) => (
               <RecipeCard
                 key={recipe.id}
-                recipe={recipe}
+                recipe={{
+                  ...recipe,
+                  status: recipe.status as any,
+                  type: recipe.type as any,
+                } as Recipe}
                 onEdit={(recipe) => handleRecipeAction("edit", recipe)}
                 onDuplicate={(recipe) => handleRecipeAction("duplicate", recipe)}
                 onShare={(recipe) => handleRecipeAction("share", recipe)}

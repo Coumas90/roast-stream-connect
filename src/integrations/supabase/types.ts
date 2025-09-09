@@ -1386,41 +1386,137 @@ export type Database = {
           },
         ]
       }
+      recipe_steps: {
+        Row: {
+          created_at: string
+          description: string
+          id: string
+          recipe_id: string
+          step_order: number
+          time_minutes: number | null
+          title: string
+          updated_at: string
+          water_ml: number | null
+        }
+        Insert: {
+          created_at?: string
+          description: string
+          id?: string
+          recipe_id: string
+          step_order: number
+          time_minutes?: number | null
+          title: string
+          updated_at?: string
+          water_ml?: number | null
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          id?: string
+          recipe_id?: string
+          step_order?: number
+          time_minutes?: number | null
+          title?: string
+          updated_at?: string
+          water_ml?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recipe_steps_recipe_id_fkey"
+            columns: ["recipe_id"]
+            isOneToOne: false
+            referencedRelation: "recipes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       recipes: {
         Row: {
           active: boolean
+          coffee_amount: string | null
+          coffee_type: string | null
+          coffee_variety_id: string | null
           created_at: string
           created_by: string | null
+          custom_coffee_name: string | null
+          custom_coffee_origin: string | null
+          description: string | null
+          grind: string | null
           id: string
+          is_active: boolean
           method: string | null
           name: string
+          notes: string | null
           params: Json | null
+          ratio: string | null
+          status: string
+          temperature: string | null
           tenant_id: string | null
+          time: string | null
+          type: string
           updated_at: string
+          water_amount: string | null
         }
         Insert: {
           active?: boolean
+          coffee_amount?: string | null
+          coffee_type?: string | null
+          coffee_variety_id?: string | null
           created_at?: string
           created_by?: string | null
+          custom_coffee_name?: string | null
+          custom_coffee_origin?: string | null
+          description?: string | null
+          grind?: string | null
           id?: string
+          is_active?: boolean
           method?: string | null
           name: string
+          notes?: string | null
           params?: Json | null
+          ratio?: string | null
+          status?: string
+          temperature?: string | null
           tenant_id?: string | null
+          time?: string | null
+          type?: string
           updated_at?: string
+          water_amount?: string | null
         }
         Update: {
           active?: boolean
+          coffee_amount?: string | null
+          coffee_type?: string | null
+          coffee_variety_id?: string | null
           created_at?: string
           created_by?: string | null
+          custom_coffee_name?: string | null
+          custom_coffee_origin?: string | null
+          description?: string | null
+          grind?: string | null
           id?: string
+          is_active?: boolean
           method?: string | null
           name?: string
+          notes?: string | null
           params?: Json | null
+          ratio?: string | null
+          status?: string
+          temperature?: string | null
           tenant_id?: string | null
+          time?: string | null
+          type?: string
           updated_at?: string
+          water_amount?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "recipes_coffee_variety_id_fkey"
+            columns: ["coffee_variety_id"]
+            isOneToOne: false
+            referencedRelation: "coffee_varieties"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "recipes_tenant_id_fkey"
             columns: ["tenant_id"]

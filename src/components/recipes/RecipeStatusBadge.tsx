@@ -2,7 +2,7 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
 export type RecipeStatus = "draft" | "review" | "active" | "oficial" | "archived";
-export type RecipeType = "personal" | "team" | "oficial";
+export type RecipeType = "personal" | "team" | "oficial" | "template";
 
 interface RecipeStatusBadgeProps {
   status: RecipeStatus;

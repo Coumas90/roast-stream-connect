@@ -18,6 +18,8 @@ export interface CoffeeVariety {
 export function useCoffeeVarieties(options?: {
   activeOnly?: boolean;
   category?: string;
+  availableOnly?: boolean;
+  searchTerm?: string;
 }) {
   return useQuery({
     queryKey: ['coffee_varieties', options],
@@ -25,6 +27,7 @@ export function useCoffeeVarieties(options?: {
       let query = supabase
         .from('coffee_varieties')
         .select('*')
+        .order('category')
         .order('name');
 
       if (options?.activeOnly !== false) {
@@ -35,11 +38,41 @@ export function useCoffeeVarieties(options?: {
         query = query.eq('category', options.category);
       }
 
+      if (options?.availableOnly) {
+        query = query.or('available_bulk.eq.true,available_packaged.eq.true');
+      }
+
+      if (options?.searchTerm) {
+        query = query.or(`name.ilike.%${options.searchTerm}%,description.ilike.%${options.searchTerm}%,origin.ilike.%${options.searchTerm}%`);
+      }
+
       const { data, error } = await query;
       
       if (error) throw error;
       return data as CoffeeVariety[];
     },
+  });
+}
+
+// Hook for location stock info
+export function useLocationStock(locationId?: string) {
+  return useQuery({
+    queryKey: ['location_stock', locationId],
+    queryFn: async () => {
+      if (!locationId) return [];
+      
+      const { data, error } = await supabase
+        .from('location_stock')
+        .select(`
+          *,
+          coffee_varieties(name, category)
+        `)
+        .eq('location_id', locationId);
+      
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!locationId,
   });
 }
 

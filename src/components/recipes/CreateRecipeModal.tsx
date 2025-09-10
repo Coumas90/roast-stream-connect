@@ -28,7 +28,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { MethodSelector } from "./MethodSelector";
-import { CoffeeSelector, type CoffeeSelection } from "./CoffeeSelector";
+import { EnhancedCoffeeSelector, type CoffeeSelection } from "./EnhancedCoffeeSelector";
 import { StepsList, type RecipeStep } from "./StepsList";
 import { useToast } from "@/hooks/use-toast";
 
@@ -234,9 +234,10 @@ export function CreateRecipeModal({
 
               <div className="space-y-2">
                 <Label>Selector de Café *</Label>
-                <CoffeeSelector
+                <EnhancedCoffeeSelector
                   value={formData.coffee}
                   onChange={(coffee) => updateFormData({ coffee })}
+                  showStockInfo={true}
                 />
                 {errors.coffee && (
                   <p className="text-xs text-destructive flex items-center gap-1">

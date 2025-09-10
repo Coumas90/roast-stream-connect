@@ -409,3 +409,85 @@ export function useDuplicateRecipe() {
     },
   });
 }
+
+// Hook to archive/unarchive a recipe
+export function useArchiveRecipe() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async ({ id, archive }: { id: string; archive: boolean }) => {
+      const { data, error } = await supabase
+        .from('recipes')
+        .update({ 
+          status: archive ? 'archived' : 'draft',
+          is_active: archive ? false : false // Archived recipes can't be active
+        })
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (_, { archive }) => {
+      queryClient.invalidateQueries({ queryKey: ['recipes'] });
+      toast({
+        title: archive ? "Receta archivada" : "Receta restaurada",
+        description: archive ? "La receta se ha archivado correctamente" : "La receta se ha restaurado",
+      });
+    },
+  });
+}
+
+// Hook to share a recipe
+export function useShareRecipe() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async ({ 
+      recipeId, 
+      shareType, 
+      emails, 
+      message 
+    }: { 
+      recipeId: string; 
+      shareType: 'link' | 'email' | 'team';
+      emails?: string[];
+      message?: string;
+    }) => {
+      // Simulate sharing logic
+      // In a real app, this would call an API endpoint
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      return { 
+        success: true, 
+        shareType, 
+        recipientCount: emails?.length || 0 
+      };
+    },
+    onSuccess: (data) => {
+      const { shareType, recipientCount } = data;
+      let description = "La receta se ha compartido exitosamente";
+      
+      if (shareType === 'email') {
+        description = `Se ha enviado la receta a ${recipientCount} destinatarios`;
+      } else if (shareType === 'team') {
+        description = "La receta se ha compartido con el equipo";
+      }
+      
+      toast({
+        title: "Receta compartida",
+        description,
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "No se pudo compartir la receta",
+        variant: "destructive",
+      });
+    },
+  });
+}

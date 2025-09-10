@@ -8,13 +8,19 @@ import { RecipeCard } from "@/components/recipes/RecipeCard";
 import { RecipeEmptyState } from "@/components/recipes/RecipeEmptyStates";
 import { CreateRecipeModal } from "@/components/recipes/CreateRecipeModal";
 import { RecipeHeroSection } from "@/components/recipes/RecipeHeroSection";
-import { useRecipes, useCreateRecipe, useToggleRecipeActive, useDuplicateRecipe } from "@/hooks/useRecipes";
+import { useRecipes, useCreateRecipe, useToggleRecipeActive, useDuplicateRecipe, useUpdateRecipe, useArchiveRecipe, useShareRecipe } from "@/hooks/useRecipes";
+import { RecipeDetailModal } from "@/components/recipes/RecipeDetailModal";
+import { ShareRecipeModal } from "@/components/recipes/ShareRecipeModal";
+import { RecipePDFGenerator } from "@/utils/pdfGenerator";
 import { type Recipe } from "@/components/recipes/RecipeCard";
 
 export default function Recipes() {
   const [activeTab, setActiveTab] = useState<RecipeTab>("active");
   const [filters, setFilters] = useState<RecipeFiltersType>({});
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [selectedRecipeForDetail, setSelectedRecipeForDetail] = useState<Recipe | null>(null);
+  const [selectedRecipeForShare, setSelectedRecipeForShare] = useState<Recipe | null>(null);
+  const [selectedRecipeForEdit, setSelectedRecipeForEdit] = useState<Recipe | null>(null);
 
   // Fetch recipes based on current tab
   const recipesQuery = useRecipes({
@@ -25,8 +31,11 @@ export default function Recipes() {
   });
 
   const createRecipeMutation = useCreateRecipe();
+  const updateRecipeMutation = useUpdateRecipe();
   const toggleActiveMutation = useToggleRecipeActive();
   const duplicateMutation = useDuplicateRecipe();
+  const archiveMutation = useArchiveRecipe();
+  const shareMutation = useShareRecipe();
 
   const recipes = recipesQuery.data || [];
 
@@ -88,25 +97,56 @@ export default function Recipes() {
       steps: formData.steps || [],
     };
 
-    createRecipeMutation.mutate(recipeData);
+    if (selectedRecipeForEdit) {
+      updateRecipeMutation.mutate({ id: selectedRecipeForEdit.id, data: recipeData });
+      setSelectedRecipeForEdit(null);
+    } else {
+      createRecipeMutation.mutate(recipeData);
+    }
+  };
+
+  const handleEditRecipe = (formData: any, isDraft: boolean) => {
+    if (!selectedRecipeForEdit) return;
+    
+    const recipeData = {
+      name: formData.name,
+      method: formData.method,
+      description: formData.description,
+      status: isDraft ? 'draft' as const : (formData.sendForReview ? 'review' as const : 'active' as const),
+      ratio: formData.ratio,
+      coffee_amount: formData.coffeeAmount,
+      water_amount: formData.waterAmount,
+      time: formData.time,
+      temperature: formData.temperature,
+      grind: formData.grind,
+      coffee_type: formData.coffee.type,
+      coffee_variety_id: formData.coffee.type === 'tupa' ? formData.coffee.tupaId : undefined,
+      custom_coffee_name: formData.coffee.type === 'other' ? formData.coffee.customName : undefined,
+      custom_coffee_origin: formData.coffee.type === 'other' ? formData.coffee.origin : undefined,
+      notes: formData.notes,
+      steps: formData.steps || [],
+    };
+
+    updateRecipeMutation.mutate({ id: selectedRecipeForEdit.id, data: recipeData });
   };
 
   const handleRecipeAction = (action: string, recipe: any) => {
     switch (action) {
       case "edit":
-        // TODO: Implement edit functionality
-        console.log("Edit recipe:", recipe);
+        setSelectedRecipeForEdit(recipe);
+        setIsCreateModalOpen(true);
         break;
       case "duplicate":
         duplicateMutation.mutate(recipe.id);
         break;
       case "share":
-        // TODO: Implement share functionality
-        console.log("Share recipe:", recipe);
+        setSelectedRecipeForShare(recipe);
         break;
       case "archive":
-        // TODO: Implement archive functionality
-        console.log("Archive recipe:", recipe);
+        archiveMutation.mutate({ 
+          id: recipe.id, 
+          archive: recipe.status !== "archived" 
+        });
         break;
       case "activate":
       case "deactivate":
@@ -116,12 +156,10 @@ export default function Recipes() {
         });
         break;
       case "viewPDF":
-        // TODO: Implement PDF generation
-        console.log("View PDF:", recipe);
+        RecipePDFGenerator.generateRecipePDF(recipe);
         break;
       case "view":
-        // TODO: Implement recipe detail view
-        console.log("View recipe:", recipe);
+        setSelectedRecipeForDetail(recipe);
         break;
     }
   };
@@ -231,11 +269,70 @@ export default function Recipes() {
         )}
       </div>
 
-      {/* Create Recipe Modal */}
+      {/* Modals */}
       <CreateRecipeModal
         open={isCreateModalOpen}
-        onClose={() => setIsCreateModalOpen(false)}
-        onSave={handleCreateRecipe}
+        onClose={() => {
+          setIsCreateModalOpen(false);
+          setSelectedRecipeForEdit(null);
+        }}
+        onSave={selectedRecipeForEdit ? handleEditRecipe : handleCreateRecipe}
+        initialData={selectedRecipeForEdit ? {
+          name: selectedRecipeForEdit.name,
+          method: selectedRecipeForEdit.method || "",
+          description: selectedRecipeForEdit.description || "",
+          ratio: selectedRecipeForEdit.ratio || "",
+          coffeeAmount: selectedRecipeForEdit.coffee || "",
+          waterAmount: selectedRecipeForEdit.water_amount || "",
+          time: selectedRecipeForEdit.time || "",
+          temperature: selectedRecipeForEdit.temperature || "",
+          grind: selectedRecipeForEdit.grind || "",
+          coffee: {
+            type: selectedRecipeForEdit.coffee_type as "tupa" | "other" || "tupa",
+            tupaId: selectedRecipeForEdit.coffee_variety_id,
+            customName: selectedRecipeForEdit.custom_coffee_name,
+            origin: selectedRecipeForEdit.custom_coffee_origin,
+          },
+          steps: selectedRecipeForEdit.steps?.map(step => ({
+            id: step.id,
+            order: step.order,
+            title: step.title,
+            description: step.description,
+            time: step.time,
+            water: step.water,
+          })) || [],
+          notes: selectedRecipeForEdit.notes || "",
+          sendForReview: selectedRecipeForEdit.status === "review",
+        } : undefined}
+        mode={selectedRecipeForEdit ? "edit" : "create"}
+      />
+
+      <RecipeDetailModal
+        recipe={selectedRecipeForDetail}
+        open={!!selectedRecipeForDetail}
+        onClose={() => setSelectedRecipeForDetail(null)}
+        onEdit={(recipe) => {
+          setSelectedRecipeForDetail(null);
+          handleRecipeAction("edit", recipe);
+        }}
+        onDuplicate={(recipe) => {
+          setSelectedRecipeForDetail(null);
+          handleRecipeAction("duplicate", recipe);
+        }}
+        onShare={(recipe) => {
+          setSelectedRecipeForDetail(null);
+          handleRecipeAction("share", recipe);
+        }}
+        onViewPDF={(recipe) => {
+          setSelectedRecipeForDetail(null);
+          handleRecipeAction("viewPDF", recipe);
+        }}
+      />
+
+      <ShareRecipeModal
+        recipe={selectedRecipeForShare}
+        open={!!selectedRecipeForShare}
+        onClose={() => setSelectedRecipeForShare(null)}
       />
     </div>
   );

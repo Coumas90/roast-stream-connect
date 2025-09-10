@@ -29,6 +29,21 @@ export interface Recipe {
   is_active?: boolean;
   created_at?: string;
   updated_at?: string;
+  // Additional fields from database
+  water_amount?: string;
+  coffee_type?: 'tupa' | 'other';
+  coffee_variety_id?: string;
+  custom_coffee_name?: string;
+  custom_coffee_origin?: string;
+  notes?: string;
+  steps?: Array<{
+    id?: string;
+    order: number;
+    title: string;
+    description: string;
+    time?: string;
+    water?: string;
+  }>;
 }
 
 interface RecipeCardProps {

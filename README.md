@@ -50,6 +50,10 @@ npm run dev
 - Click on "New codespace" to launch a new Codespace environment.
 - Edit files directly within the Codespace and commit and push your changes once you're done.
 
+## Documentation
+
+Consulta el [índice de documentación](docs/README.md) para ver los archivos disponibles y las convenciones de nombres.
+
 ## What technologies are used for this project?
 
 This project is built with:

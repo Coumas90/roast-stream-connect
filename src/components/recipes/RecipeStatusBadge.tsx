@@ -1,8 +1,8 @@
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
-export type RecipeStatus = "draft" | "review" | "active" | "oficial" | "archived";
-export type RecipeType = "personal" | "team" | "oficial" | "template";
+export type RecipeStatus = "draft" | "published" | "review" | "archived";
+export type RecipeType = "personal" | "team" | "official" | "template";
 
 interface RecipeStatusBadgeProps {
   status: RecipeStatus;
@@ -14,17 +14,15 @@ export function RecipeStatusBadge({ status, type, className }: RecipeStatusBadge
   const getStatusConfig = () => {
     switch (status) {
       case "draft":
-        return { variant: "secondary" as const, text: "Borrador" };
+        return { variant: "secondary" as const, text: "Draft" };
       case "review":
-        return { variant: "warning" as const, text: "En revisión" };
-      case "active":
-        return { variant: "success" as const, text: "Activa" };
-      case "oficial":
-        return { variant: "default" as const, text: "Oficial TUPÁ" };
+        return { variant: "warning" as const, text: "Under Review" };
+      case "published":
+        return { variant: "success" as const, text: "Published" };
       case "archived":
-        return { variant: "outline" as const, text: "Archivada" };
+        return { variant: "outline" as const, text: "Archived" };
       default:
-        return { variant: "secondary" as const, text: "Borrador" };
+        return { variant: "secondary" as const, text: "Draft" };
     }
   };
 

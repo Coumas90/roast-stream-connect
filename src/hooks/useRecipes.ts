@@ -1,13 +1,15 @@
-import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useTenant } from '@/lib/tenant';
 
 export interface RecipeStep {
   id?: string;
   order: number;
   title: string;
   description: string;
+  time_minutes?: number;
+  water_ml?: number;
   time?: string;
   water?: string;
 }
@@ -17,8 +19,8 @@ export interface DatabaseRecipe {
   name: string;
   method?: string;
   description?: string;
-  status: 'draft' | 'active' | 'review' | 'archived';
-  type: 'personal' | 'team' | 'oficial' | 'template';
+  status: 'draft' | 'published' | 'review' | 'archived';
+  type: 'personal' | 'team' | 'official' | 'template';
   ratio?: string;
   coffee_amount?: string;
   water_amount?: string;
@@ -31,10 +33,12 @@ export interface DatabaseRecipe {
   custom_coffee_origin?: string;
   notes?: string;
   is_active: boolean;
+  active: boolean;
   created_at: string;
   updated_at: string;
   created_by?: string;
   tenant_id?: string;
+  params?: any;
   steps?: RecipeStep[];
 }
 
@@ -43,14 +47,16 @@ export interface Recipe extends DatabaseRecipe {
   // Additional UI fields for compatibility
   coffee?: string; // Computed from coffee_amount
   isActive?: boolean; // Computed from is_active
+  coffee_name?: string;
+  coffee_origin?: string;
 }
 
 export interface CreateRecipeData {
   name: string;
   method?: string;
   description?: string;
-  status?: 'draft' | 'active' | 'review';
-  type?: 'personal' | 'team' | 'oficial';
+  status?: 'draft' | 'published' | 'review';
+  type?: 'personal' | 'team' | 'official';
   ratio?: string;
   coffee_amount?: string;
   water_amount?: string;
@@ -62,33 +68,28 @@ export interface CreateRecipeData {
   custom_coffee_name?: string;
   custom_coffee_origin?: string;
   notes?: string;
+  params?: any;
   steps?: Omit<RecipeStep, 'id'>[];
 }
 
-// Hook to fetch recipes
+// Hook to fetch recipes with optional filters
 export function useRecipes(filters?: {
   status?: string;
   type?: string;
   method?: string;
   search?: string;
 }) {
+  const { tenantId } = useTenant();
+  
   return useQuery({
-    queryKey: ['recipes', filters],
+    queryKey: ['recipes', filters, tenantId],
     queryFn: async () => {
       let query = supabase
         .from('recipes')
         .select(`
           *,
-          recipe_steps (
-            id,
-            step_order,
-            title,
-            description,
-            time_minutes,
-            water_ml
-          )
+          coffee_varieties(name, category, origin)
         `)
-        .eq('active', true)
         .order('updated_at', { ascending: false });
 
       // Apply filters
@@ -102,115 +103,114 @@ export function useRecipes(filters?: {
         query = query.eq('method', filters.method);
       }
       if (filters?.search) {
-        query = query.or(`name.ilike.%${filters.search}%,description.ilike.%${filters.search}%`);
+        query = query.or(`name.ilike.%${filters.search}%,description.ilike.%${filters.search}%,notes.ilike.%${filters.search}%`);
       }
 
       const { data, error } = await query;
       
       if (error) throw error;
-
-      // Transform recipe_steps to match our interface
-      return data?.map(recipe => ({
+      
+      // Transform data to match the Recipe interface
+      return (data || []).map(recipe => ({
         ...recipe,
-        // Add UI compatibility fields
-        coffee: recipe.coffee_amount || "",
+        coffee_name: recipe.coffee_varieties?.name || recipe.custom_coffee_name || 'Custom Coffee',
+        coffee_origin: recipe.coffee_varieties?.origin || recipe.custom_coffee_origin || '',
+        coffee: recipe.coffee_amount || '',
         isActive: recipe.is_active,
-        steps: recipe.recipe_steps?.map(step => ({
-          id: step.id,
-          order: step.step_order,
-          title: step.title,
-          description: step.description,
-          time: step.time_minutes?.toString(),
-          water: step.water_ml?.toString(),
-        })) || []
-      })) || [];
+        created_at: recipe.created_at,
+        updated_at: recipe.updated_at,
+      })) as Recipe[];
     },
   });
 }
 
-// Hook to get a single recipe
+// Hook to fetch a single recipe by ID
 export function useRecipe(id: string) {
   return useQuery({
     queryKey: ['recipe', id],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data: recipe, error } = await supabase
         .from('recipes')
         .select(`
           *,
-          recipe_steps (
-            id,
-            step_order,
-            title,
-            description,
-            time_minutes,
-            water_ml
-          )
+          coffee_varieties(name, category, origin),
+          recipe_steps(*)
         `)
         .eq('id', id)
         .single();
-      
-      if (error) throw error;
 
+      if (error) throw error;
+      if (!recipe) return null;
+
+      // Transform data to match the Recipe interface
       return {
-        ...data,
-        // Add UI compatibility fields
-        coffee: data.coffee_amount || "",
-        isActive: data.is_active,
-        steps: data.recipe_steps?.map(step => ({
+        ...recipe,
+        coffee_name: recipe.coffee_varieties?.name || recipe.custom_coffee_name || 'Custom Coffee',
+        coffee_origin: recipe.coffee_varieties?.origin || recipe.custom_coffee_origin || '',
+        coffee: recipe.coffee_amount || '',
+        isActive: recipe.is_active,
+        steps: recipe.recipe_steps?.sort((a, b) => a.step_order - b.step_order).map(step => ({
           id: step.id,
           order: step.step_order,
           title: step.title,
           description: step.description,
+          time_minutes: step.time_minutes,
+          water_ml: step.water_ml,
           time: step.time_minutes?.toString(),
           water: step.water_ml?.toString(),
-        })) || []
-      };
+        })) || [],
+      } as Recipe;
     },
     enabled: !!id,
   });
 }
 
-// Hook to create a recipe
+// Hook to create a new recipe
 export function useCreateRecipe() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const { tenantId } = useTenant();
 
   return useMutation({
-    mutationFn: async (data: CreateRecipeData) => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('User not authenticated');
-
-      // Get user's default tenant
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('default_tenant_id')
-        .eq('id', user.id)
-        .single();
-
-      const { steps, ...recipeData } = data;
-
+    mutationFn: async (recipeData: CreateRecipeData) => {
       // Create the recipe
       const { data: recipe, error: recipeError } = await supabase
         .from('recipes')
         .insert({
-          ...recipeData,
-          created_by: user.id,
-          tenant_id: data.type === 'personal' ? null : profile?.default_tenant_id,
+          name: recipeData.name,
+          description: recipeData.description,
+          method: recipeData.method,
+          status: recipeData.status || 'draft',
+          type: recipeData.type || 'personal',
+          coffee_type: recipeData.coffee_type || 'tupa',
+          coffee_variety_id: recipeData.coffee_variety_id,
+          custom_coffee_name: recipeData.custom_coffee_name,
+          custom_coffee_origin: recipeData.custom_coffee_origin,
+          coffee_amount: recipeData.coffee_amount,
+          water_amount: recipeData.water_amount,
+          ratio: recipeData.ratio,
+          temperature: recipeData.temperature,
+          grind: recipeData.grind,
+          time: recipeData.time,
+          notes: recipeData.notes,
+          params: recipeData.params || {},
+          tenant_id: tenantId,
+          created_by: (await supabase.auth.getUser()).data.user?.id,
         })
         .select()
         .single();
 
       if (recipeError) throw recipeError;
 
-      // Create recipe steps if any
-      if (steps && steps.length > 0) {
-        const stepsToInsert = steps.map((step, index) => ({
+      // Create recipe steps if provided
+      if (recipeData.steps && recipeData.steps.length > 0) {
+        const stepsToInsert = recipeData.steps.map((step, index) => ({
           recipe_id: recipe.id,
-          step_order: index + 1,
           title: step.title,
           description: step.description,
-          time_minutes: step.time ? parseInt(step.time) : null,
-          water_ml: step.water ? parseInt(step.water) : null,
+          step_order: index + 1,
+          time_minutes: step.time_minutes || (step.time ? parseInt(step.time) : null),
+          water_ml: step.water_ml || (step.water ? parseInt(step.water) : null),
         }));
 
         const { error: stepsError } = await supabase
@@ -224,43 +224,66 @@ export function useCreateRecipe() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['recipes'] });
+      
       toast({
-        title: "Receta creada",
-        description: "Tu receta ha sido guardada exitosamente",
+        title: "Recipe created",
+        description: "Your recipe has been created successfully",
       });
     },
     onError: (error) => {
       console.error('Error creating recipe:', error);
       toast({
-        title: "Error",
-        description: "No se pudo crear la receta. Intenta de nuevo.",
+        title: "Error creating recipe",
+        description: error.message || "There was an error creating your recipe",
         variant: "destructive",
       });
     },
   });
 }
 
-// Hook to update a recipe
+// Hook to update an existing recipe
 export function useUpdateRecipe() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
   return useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: Partial<CreateRecipeData> }) => {
-      const { steps, ...recipeData } = data;
-
+    mutationFn: async ({ 
+      id, 
+      updates 
+    }: { 
+      id: string; 
+      updates: Partial<CreateRecipeData>;
+    }) => {
       // Update the recipe
       const { data: recipe, error: recipeError } = await supabase
         .from('recipes')
-        .update(recipeData)
+        .update({
+          name: updates.name,
+          description: updates.description,
+          method: updates.method,
+          status: updates.status,
+          type: updates.type,
+          coffee_type: updates.coffee_type,
+          coffee_variety_id: updates.coffee_variety_id,
+          custom_coffee_name: updates.custom_coffee_name,
+          custom_coffee_origin: updates.custom_coffee_origin,
+          coffee_amount: updates.coffee_amount,
+          water_amount: updates.water_amount,
+          ratio: updates.ratio,
+          temperature: updates.temperature,
+          grind: updates.grind,
+          time: updates.time,
+          notes: updates.notes,
+          params: updates.params,
+        })
         .eq('id', id)
         .select()
         .single();
 
       if (recipeError) throw recipeError;
 
-      // Update steps if provided
-      if (steps) {
+      // Update recipe steps if provided
+      if (updates.steps) {
         // Delete existing steps
         await supabase
           .from('recipe_steps')
@@ -268,14 +291,14 @@ export function useUpdateRecipe() {
           .eq('recipe_id', id);
 
         // Insert new steps
-        if (steps.length > 0) {
-          const stepsToInsert = steps.map((step, index) => ({
+        if (updates.steps.length > 0) {
+          const stepsToInsert = updates.steps.map((step, index) => ({
             recipe_id: id,
-            step_order: index + 1,
             title: step.title,
             description: step.description,
-            time_minutes: step.time ? parseInt(step.time) : null,
-            water_ml: step.water ? parseInt(step.water) : null,
+            step_order: index + 1,
+            time_minutes: step.time_minutes || (step.time ? parseInt(step.time) : null),
+            water_ml: step.water_ml || (step.water ? parseInt(step.water) : null),
           }));
 
           const { error: stepsError } = await supabase
@@ -290,30 +313,32 @@ export function useUpdateRecipe() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['recipes'] });
+      queryClient.invalidateQueries({ queryKey: ['recipe'] });
+      
       toast({
-        title: "Receta actualizada",
-        description: "Los cambios han sido guardados",
+        title: "Recipe updated",
+        description: "Your recipe has been updated successfully",
       });
     },
     onError: (error) => {
       console.error('Error updating recipe:', error);
       toast({
-        title: "Error",
-        description: "No se pudo actualizar la receta",
+        title: "Error updating recipe",
+        description: error.message || "There was an error updating your recipe",
         variant: "destructive",
       });
     },
   });
 }
 
-// Hook to toggle recipe active status
+// Hook to toggle the active status of a recipe
 export function useToggleRecipeActive() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
   return useMutation({
     mutationFn: async ({ id, isActive }: { id: string; isActive: boolean }) => {
-      // If activating this recipe, deactivate all others first
+      // If activating this recipe, first deactivate all others
       if (isActive) {
         await supabase
           .from('recipes')
@@ -321,6 +346,7 @@ export function useToggleRecipeActive() {
           .neq('id', id);
       }
 
+      // Update the target recipe
       const { data, error } = await supabase
         .from('recipes')
         .update({ is_active: isActive })
@@ -333,9 +359,20 @@ export function useToggleRecipeActive() {
     },
     onSuccess: (_, { isActive }) => {
       queryClient.invalidateQueries({ queryKey: ['recipes'] });
+      
       toast({
-        title: isActive ? "Receta activada" : "Receta desactivada",
-        description: isActive ? "Esta receta ahora está activa" : "La receta ha sido desactivada",
+        title: isActive ? "Recipe activated" : "Recipe deactivated",
+        description: isActive 
+          ? "Recipe is now the active recipe" 
+          : "Recipe has been deactivated",
+      });
+    },
+    onError: (error) => {
+      console.error('Error toggling recipe:', error);
+      toast({
+        title: "Error",
+        description: error.message || "There was an error updating the recipe",
+        variant: "destructive",
       });
     },
   });
@@ -347,48 +384,43 @@ export function useDuplicateRecipe() {
   const { toast } = useToast();
 
   return useMutation({
-    mutationFn: async (originalId: string) => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('User not authenticated');
-
+    mutationFn: async (recipeId: string) => {
       // Get the original recipe with steps
-      const { data: original, error: fetchError } = await supabase
+      const { data: originalRecipe, error: fetchError } = await supabase
         .from('recipes')
         .select(`
           *,
-          recipe_steps (*)
+          recipe_steps(*)
         `)
-        .eq('id', originalId)
+        .eq('id', recipeId)
         .single();
 
       if (fetchError) throw fetchError;
 
-      // Create duplicate recipe
-      const { data: duplicate, error: createError } = await supabase
+      // Create the duplicated recipe
+      const { data: newRecipe, error: recipeError } = await supabase
         .from('recipes')
         .insert({
-          ...original,
-          id: undefined,
-          name: `${original.name} (Copia)`,
-          created_by: user.id,
-          is_active: false,
-          status: 'draft',
-          type: 'personal',
+          ...originalRecipe,
+          id: undefined, // Let Supabase generate a new ID
+          name: `${originalRecipe.name} (Copy)`,
+          is_active: false, // Don't activate the copy
+          created_at: undefined,
+          updated_at: undefined,
         })
         .select()
         .single();
 
-      if (createError) throw createError;
+      if (recipeError) throw recipeError;
 
-      // Duplicate steps
-      if (original.recipe_steps && original.recipe_steps.length > 0) {
-        const stepsToInsert = original.recipe_steps.map(step => ({
-          recipe_id: duplicate.id,
-          step_order: step.step_order,
-          title: step.title,
-          description: step.description,
-          time_minutes: step.time_minutes,
-          water_ml: step.water_ml,
+      // Duplicate the steps
+      if (originalRecipe.recipe_steps && originalRecipe.recipe_steps.length > 0) {
+        const stepsToInsert = originalRecipe.recipe_steps.map(step => ({
+          ...step,
+          id: undefined, // Let Supabase generate a new ID
+          recipe_id: newRecipe.id,
+          created_at: undefined,
+          updated_at: undefined,
         }));
 
         const { error: stepsError } = await supabase
@@ -398,30 +430,45 @@ export function useDuplicateRecipe() {
         if (stepsError) throw stepsError;
       }
 
-      return duplicate;
+      return newRecipe;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['recipes'] });
+      
       toast({
-        title: "Receta duplicada",
-        description: "Se ha creado una copia de la receta",
+        title: "Recipe duplicated",
+        description: "Recipe has been duplicated successfully",
+      });
+    },
+    onError: (error) => {
+      console.error('Error duplicating recipe:', error);
+      toast({
+        title: "Error duplicating recipe",
+        description: error.message || "There was an error duplicating the recipe",
+        variant: "destructive",
       });
     },
   });
 }
 
-// Hook to archive/unarchive a recipe
+// Hook to archive or unarchive a recipe
 export function useArchiveRecipe() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
   return useMutation({
-    mutationFn: async ({ id, archive }: { id: string; archive: boolean }) => {
+    mutationFn: async ({ 
+      id, 
+      archive 
+    }: { 
+      id: string; 
+      archive: boolean;
+    }) => {
       const { data, error } = await supabase
         .from('recipes')
         .update({ 
           status: archive ? 'archived' : 'draft',
-          is_active: archive ? false : false // Archived recipes can't be active
+          active: !archive 
         })
         .eq('id', id)
         .select()
@@ -432,15 +479,26 @@ export function useArchiveRecipe() {
     },
     onSuccess: (_, { archive }) => {
       queryClient.invalidateQueries({ queryKey: ['recipes'] });
+      
       toast({
-        title: archive ? "Receta archivada" : "Receta restaurada",
-        description: archive ? "La receta se ha archivado correctamente" : "La receta se ha restaurado",
+        title: archive ? "Recipe archived" : "Recipe restored",
+        description: archive 
+          ? "Recipe has been archived" 
+          : "Recipe has been restored from archive",
+      });
+    },
+    onError: (error) => {
+      console.error('Error archiving recipe:', error);
+      toast({
+        title: "Error",
+        description: error.message || "There was an error updating the recipe",
+        variant: "destructive",
       });
     },
   });
 }
 
-// Hook to share a recipe
+// Hook to share a recipe (simulated)
 export function useShareRecipe() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -469,23 +527,23 @@ export function useShareRecipe() {
     },
     onSuccess: (data) => {
       const { shareType, recipientCount } = data;
-      let description = "La receta se ha compartido exitosamente";
+      let description = "Recipe has been shared successfully";
       
       if (shareType === 'email') {
-        description = `Se ha enviado la receta a ${recipientCount} destinatarios`;
+        description = `Recipe sent to ${recipientCount} recipients`;
       } else if (shareType === 'team') {
-        description = "La receta se ha compartido con el equipo";
+        description = "Recipe has been shared with the team";
       }
       
       toast({
-        title: "Receta compartida",
+        title: "Recipe shared",
         description,
       });
     },
     onError: () => {
       toast({
         title: "Error",
-        description: "No se pudo compartir la receta",
+        description: "Could not share the recipe",
         variant: "destructive",
       });
     },

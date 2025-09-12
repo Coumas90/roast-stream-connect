@@ -8,240 +8,154 @@ import { RecipeFilters, type RecipeFilters as RecipeFiltersType } from "@/compon
 import { RecipeCard, type Recipe } from "@/components/recipes/RecipeCard";
 import { RecipeEmptyState } from "@/components/recipes/RecipeEmptyStates";
 import { CreateRecipeModal } from "@/components/recipes/CreateRecipeModal";
-
-// Mock data for admin view
-const ADMIN_MOCK_RECIPES: Recipe[] = [
-  {
-    id: "1",
-    name: "TUPÁ Signature Espresso",
-    method: "Espresso",
-    status: "oficial",
-    type: "oficial",
-    ratio: "1:2",
-    coffee: "18g",
-    time: "25-30s",
-    temperature: "94°C",
-    grind: "Fina",
-    description: "Receta oficial para espresso con café TUPÁ Signature",
-    isActive: true,
-  },
-  {
-    id: "2",
-    name: "TUPÁ V60 Standard",
-    method: "V60",
-    status: "oficial",
-    type: "oficial",
-    ratio: "1:16",
-    coffee: "22g",
-    time: "3:30",
-    temperature: "92°C",
-    grind: "Media-fina",
-    description: "Receta estándar V60 para todas las ubicaciones",
-    isActive: false,
-  },
-  {
-    id: "3",
-    name: "Plantilla Cold Brew",
-    method: "Cold Brew",
-    status: "draft",
-    type: "oficial",
-    ratio: "1:8",
-    coffee: "100g",
-    time: "12h",
-    temperature: "Ambiente",
-    grind: "Gruesa",
-    description: "Plantilla en desarrollo para cold brew",
-    isActive: false,
-  },
-];
+import { useRecipes } from "@/hooks/useRecipes";
 
 export default function AdminRecipes() {
-  const [activeTab, setActiveTab] = useState<RecipeTab>("oficial");
+  const [activeTab, setActiveTab] = useState<RecipeTab>("all");
   const [filters, setFilters] = useState<RecipeFiltersType>({});
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
+  // Fetch recipes data - admin sees all recipes
+  const { data: allRecipes = [], isLoading } = useRecipes(filters);
+
   // Filter recipes based on active tab and filters
   const filteredRecipes = useMemo(() => {
-    let recipes = [...ADMIN_MOCK_RECIPES];
+    return allRecipes.filter(recipe => {
+      // Tab filtering
+      switch (activeTab) {
+        case "active":
+          return recipe.status === 'published' && recipe.is_active;
+        case "personal":
+          return recipe.type === "personal";
+        case "team":
+          return recipe.type === "team";
+        case "official":
+          return recipe.type === "official";
+        case "templates":
+          return recipe.type === "template";
+        default:
+          return true;
+      }
+    });
+  }, [allRecipes, activeTab]);
 
-    // Filter by tab
-    switch (activeTab) {
-      case "active":
-        recipes = recipes.filter(recipe => recipe.isActive);
-        break;
-      case "personal":
-        recipes = recipes.filter(recipe => recipe.type === "personal");
-        break;
-      case "team":
-        recipes = recipes.filter(recipe => recipe.type === "team");
-        break;
-      case "oficial":
-        recipes = recipes.filter(recipe => recipe.type === "oficial");
-        break;
-      case "templates":
-        recipes = recipes.filter(recipe => recipe.status === "draft" && recipe.type === "oficial");
-        break;
-    }
-
-    // Apply additional filters
-    if (filters.method) {
-      recipes = recipes.filter(recipe => 
-        recipe.method.toLowerCase() === filters.method?.toLowerCase()
-      );
-    }
-
-    if (filters.status) {
-      recipes = recipes.filter(recipe => recipe.status === filters.status);
-    }
-
-    if (filters.search) {
-      const search = filters.search.toLowerCase();
-      recipes = recipes.filter(recipe =>
-        recipe.name.toLowerCase().includes(search) ||
-        recipe.description?.toLowerCase().includes(search)
-      );
-    }
-
-    return recipes;
-  }, [activeTab, filters]);
-
-  // Calculate tab counts for admin
+  // Calculate counts for tabs
   const tabCounts = useMemo(() => {
     return {
-      active: ADMIN_MOCK_RECIPES.filter(r => r.isActive).length,
-      personal: 0, // Admins typically don't have personal recipes in this view
-      team: 0, // Team recipes would come from all locations
-      oficial: ADMIN_MOCK_RECIPES.filter(r => r.type === "oficial" && r.status === "oficial").length,
-      templates: ADMIN_MOCK_RECIPES.filter(r => r.status === "draft" && r.type === "oficial").length,
+      all: allRecipes.length,
+      active: allRecipes.filter(r => r.status === 'published' && r.is_active).length,
+      personal: allRecipes.filter(r => r.type === "personal").length,
+      team: allRecipes.filter(r => r.type === "team").length,
+      official: allRecipes.filter(r => r.type === "official").length,
+      templates: allRecipes.filter(r => r.type === "template").length,
     };
-  }, []);
-
-  const handleCreateRecipe = (data: any, isDraft: boolean) => {
-    console.log("Creating admin recipe:", data, "as draft:", isDraft);
-    // Here you would typically call an API to save the recipe
-  };
+  }, [allRecipes]);
 
   const handleRecipeAction = (action: string, recipe: Recipe) => {
-    console.log(`Admin ${action} recipe:`, recipe);
-    // Here you would handle admin recipe actions
-  };
-
-  const clearFilters = () => {
-    setFilters({});
-  };
-
-  const getCreateButtonText = () => {
-    switch (activeTab) {
-      case "templates":
-        return "Nueva Plantilla";
-      case "oficial":
-        return "Nueva Receta Oficial";
-      default:
-        return "Nueva Receta";
-    }
+    console.log("Recipe action:", action, recipe);
+    // TODO: Implement admin-specific recipe actions
   };
 
   return (
-    <article className="flex flex-col h-full">
+    <>
       <Helmet>
-        <title>Recetas Globales | TUPÁ Hub</title>
-        <meta name="description" content="Gestión de recetas oficiales y plantillas TUPÁ" />
-        <link rel="canonical" href="/admin/recipes" />
+        <title>Admin - Global Recipes | TUPÁ Hub</title>
+        <meta name="description" content="Manage global TUPÁ recipes and templates for all locations" />
       </Helmet>
-      
-      <h1 className="sr-only">Recetas Globales</h1>
 
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-6 border-b border-border">
-        <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-semibold text-foreground">Recetas Globales</h1>
-            <Badge variant="default" className="text-xs">Admin</Badge>
+      <div className="min-h-screen bg-background">
+        <div className="container mx-auto px-4 py-8">
+          {/* Header */}
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center gap-3">
+                <h1 className="text-3xl font-bold text-foreground">Global Recipes</h1>
+                <Badge variant="secondary" className="text-xs">
+                  Admin
+                </Badge>
+              </div>
+              <p className="text-muted-foreground">
+                Manage official TUPÁ recipes and templates
+              </p>
+            </div>
+            
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm">
+                <Settings className="w-4 h-4 mr-2" />
+                Settings
+              </Button>
+              <Button variant="outline" size="sm">
+                <Download className="w-4 h-4 mr-2" />
+                Export
+              </Button>
+              <Button 
+                size="sm"
+                onClick={() => setIsCreateModalOpen(true)}
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Create Recipe
+              </Button>
+            </div>
           </div>
-          <p className="text-sm text-muted-foreground mt-1">
-            Gestión de recetas oficiales y plantillas a nivel TUPÁ
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm">
-            <Settings className="h-4 w-4 mr-2" />
-            Configuración
-          </Button>
-          <Button variant="outline" size="sm">
-            <Download className="h-4 w-4 mr-2" />
-            Exportar Todas
-          </Button>
-          <Button onClick={() => setIsCreateModalOpen(true)}>
-            <Plus className="h-4 w-4 mr-2" />
-            {getCreateButtonText()}
-          </Button>
-        </div>
-      </div>
 
-      {/* Navigation Tabs */}
-      <RecipeTabNavigation
-        activeTab={activeTab}
-        onTabChange={setActiveTab}
-        counts={tabCounts}
-        isAdmin={true}
-      />
-
-      {/* Filters */}
-      <RecipeFilters
-        filters={filters}
-        onFiltersChange={setFilters}
-        onClearFilters={clearFilters}
-      />
-
-      {/* Content */}
-      <div className="flex-1 p-6">
-        {filteredRecipes.length === 0 ? (
-          <RecipeEmptyState
-            tab={activeTab}
-            onCreateNew={() => setIsCreateModalOpen(true)}
-            onViewOficial={() => setActiveTab("oficial")}
-            isAdmin={true}
+          {/* Tab Navigation */}
+          <RecipeTabNavigation
+            activeTab={activeTab}
+            onTabChange={setActiveTab}
+            counts={tabCounts}
           />
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredRecipes.map((recipe) => (
-              <RecipeCard
-                key={recipe.id}
-                recipe={recipe}
-                onEdit={(recipe) => handleRecipeAction("edit", recipe)}
-                onDuplicate={(recipe) => handleRecipeAction("duplicate", recipe)}
-                onShare={(recipe) => handleRecipeAction("share", recipe)}
-                onArchive={(recipe) => handleRecipeAction("archive", recipe)}
-                onToggleActive={(recipe, isActive) => 
-                  handleRecipeAction(`${isActive ? "activate" : "deactivate"}`, recipe)
-                }
-                onViewPDF={(recipe) => handleRecipeAction("viewPDF", recipe)}
-                onView={(recipe) => handleRecipeAction("view", recipe)}
-              />
-            ))}
+
+          {/* Filters */}
+          <div className="mb-6">
+            <RecipeFilters
+              filters={filters}
+              onFiltersChange={setFilters}
+            />
           </div>
-        )}
-      </div>
 
-      {/* Admin notification */}
-      {activeTab === "templates" && (
-        <div className="mx-6 mb-6 bg-primary/5 border border-primary/20 rounded-lg p-4">
-          <h4 className="text-sm font-medium text-primary mb-1">
-            Gestión de Plantillas
-          </h4>
-          <p className="text-xs text-muted-foreground">
-            Las plantillas creadas aquí estarán disponibles como "Recetas Oficiales TUPÁ" 
-            para todas las ubicaciones una vez que las publiques.
-          </p>
+          {/* Recipes Grid */}
+          <div className="space-y-6">
+            {isLoading ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {[...Array(6)].map((_, i) => (
+                  <div key={i} className="h-64 bg-muted rounded-lg animate-pulse" />
+                ))}
+              </div>
+            ) : filteredRecipes.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {filteredRecipes.map((recipe) => (
+                  <RecipeCard
+                    key={recipe.id}
+                    recipe={recipe}
+                    onAction={(action) => handleRecipeAction(action, recipe)}
+                    showAdminActions={true}
+                  />
+                ))}
+              </div>
+            ) : (
+              <RecipeEmptyState 
+                tab={activeTab}
+              />
+            )}
+
+            {/* Admin Notice for Templates */}
+            {activeTab === "templates" && (
+              <div className="mt-8 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <p className="text-blue-800 text-sm">
+                  <strong>Admin Note:</strong> Templates are recipe blueprints that can be used by locations to create their own customized recipes. 
+                  Manage template availability and permissions through the settings panel.
+                </p>
+              </div>
+            )}
+          </div>
         </div>
-      )}
 
-      {/* Create Recipe Modal */}
-      <CreateRecipeModal
-        open={isCreateModalOpen}
-        onClose={() => setIsCreateModalOpen(false)}
-        onSave={handleCreateRecipe}
-      />
-    </article>
+        {/* Create Recipe Modal */}
+        <CreateRecipeModal
+          open={isCreateModalOpen}
+          onOpenChange={setIsCreateModalOpen}
+        />
+      </div>
+    </>
   );
 }

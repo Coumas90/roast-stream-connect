@@ -3,6 +3,7 @@ import { type Recipe } from "./RecipeCard";
 
 interface RecipeHeroSectionProps {
   recipe?: Recipe;
+  onAction?: (action: string) => void;
   onEdit?: (recipe: Recipe) => void;
   onDuplicate?: (recipe: Recipe) => void;
   onShare?: (recipe: Recipe) => void;

@@ -45,7 +45,7 @@ export interface DatabaseRecipe {
 // UI compatible Recipe interface
 export interface Recipe extends DatabaseRecipe {
   // Additional UI fields for compatibility
-  coffee?: string; // Computed from coffee_amount
+  coffee: string; // Required for UI - computed from coffee_amount
   isActive?: boolean; // Computed from is_active
   coffee_name?: string;
   coffee_origin?: string;
@@ -115,7 +115,7 @@ export function useRecipes(filters?: {
         ...recipe,
         coffee_name: recipe.coffee_varieties?.name || recipe.custom_coffee_name || 'Custom Coffee',
         coffee_origin: recipe.coffee_varieties?.origin || recipe.custom_coffee_origin || '',
-        coffee: recipe.coffee_amount || '',
+        coffee: recipe.coffee_amount || '', // Always provide a default value
         isActive: recipe.is_active,
         created_at: recipe.created_at,
         updated_at: recipe.updated_at,
@@ -147,7 +147,7 @@ export function useRecipe(id: string) {
         ...recipe,
         coffee_name: recipe.coffee_varieties?.name || recipe.custom_coffee_name || 'Custom Coffee',
         coffee_origin: recipe.coffee_varieties?.origin || recipe.custom_coffee_origin || '',
-        coffee: recipe.coffee_amount || '',
+        coffee: recipe.coffee_amount || '', // Always provide a default value
         isActive: recipe.is_active,
         steps: recipe.recipe_steps?.sort((a, b) => a.step_order - b.step_order).map(step => ({
           id: step.id,

@@ -22,28 +22,28 @@ import { RecipeStatusBadge } from "./RecipeStatusBadge";
 interface RecipeDetailModalProps {
   recipe: Recipe | null;
   open: boolean;
-  onClose: () => void;
+  onOpenChange: (open: boolean) => void;
   onEdit?: (recipe: Recipe) => void;
   onDuplicate?: (recipe: Recipe) => void;
   onShare?: (recipe: Recipe) => void;
   onViewPDF?: (recipe: Recipe) => void;
 }
 
-export function RecipeDetailModal({
-  recipe,
-  open,
-  onClose,
-  onEdit,
-  onDuplicate,
-  onShare,
-  onViewPDF
+export function RecipeDetailModal({ 
+  recipe, 
+  open, 
+  onOpenChange,
+  onEdit, 
+  onDuplicate, 
+  onShare, 
+  onViewPDF 
 }: RecipeDetailModalProps) {
   if (!recipe) return null;
 
   const isActive = recipe.isActive ?? recipe.is_active ?? false;
 
   return (
-    <Dialog open={open} onOpenChange={onClose}>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
         <DialogHeader className="pb-4">
           <div className="flex items-start justify-between gap-4">

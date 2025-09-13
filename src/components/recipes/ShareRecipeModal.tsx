@@ -22,10 +22,11 @@ import { useToast } from "@/hooks/use-toast";
 interface ShareRecipeModalProps {
   recipe: Recipe | null;
   open: boolean;
-  onClose: () => void;
+  onOpenChange: (open: boolean) => void;
+  onShare?: (data: any) => void;
 }
 
-export function ShareRecipeModal({ recipe, open, onClose }: ShareRecipeModalProps) {
+export function ShareRecipeModal({ recipe, open, onOpenChange, onShare }: ShareRecipeModalProps) {
   const { toast } = useToast();
   const [shareMethod, setShareMethod] = useState("link");
   const [emailList, setEmailList] = useState("");
@@ -65,7 +66,7 @@ export function ShareRecipeModal({ recipe, open, onClose }: ShareRecipeModalProp
       
       setEmailList("");
       setShareMessage("");
-      onClose();
+      onOpenChange?.(false);
     } catch (error) {
       toast({
         title: "Error",
@@ -88,7 +89,7 @@ export function ShareRecipeModal({ recipe, open, onClose }: ShareRecipeModalProp
         description: "La receta se ha compartido con tu equipo",
       });
       
-      onClose();
+      onOpenChange?.(false);
     } catch (error) {
       toast({
         title: "Error",
@@ -103,7 +104,7 @@ export function ShareRecipeModal({ recipe, open, onClose }: ShareRecipeModalProp
   const defaultMessage = `¡Hola! Quiero compartir contigo esta receta de café: "${recipe.name}". Es un método ${recipe.method} que me ha dado excelentes resultados. ¡Espero que la disfrutes!`;
 
   return (
-    <Dialog open={open} onOpenChange={onClose}>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">

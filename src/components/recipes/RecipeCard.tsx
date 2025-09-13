@@ -27,6 +27,7 @@ export interface Recipe {
   isActive?: boolean;
   // For backwards compatibility with the database
   is_active?: boolean;
+  active?: boolean; // Required by hooks
   created_at?: string;
   updated_at?: string;
   // Additional fields from database
@@ -36,6 +37,9 @@ export interface Recipe {
   custom_coffee_name?: string;
   custom_coffee_origin?: string;
   notes?: string;
+  tenant_id?: string;
+  created_by?: string;
+  params?: any;
   steps?: Array<{
     id?: string;
     order: number;

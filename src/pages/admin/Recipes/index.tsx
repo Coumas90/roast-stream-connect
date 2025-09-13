@@ -8,7 +8,7 @@ import { RecipeFilters, type RecipeFilters as RecipeFiltersType } from "@/compon
 import { RecipeCard, type Recipe } from "@/components/recipes/RecipeCard";
 import { RecipeEmptyState } from "@/components/recipes/RecipeEmptyStates";
 import { CreateRecipeModal } from "@/components/recipes/CreateRecipeModal";
-import { useRecipes } from "@/hooks/useRecipes";
+import { useRecipes, useCreateRecipe } from "@/hooks/useRecipes";
 
 export default function AdminRecipes() {
   const [activeTab, setActiveTab] = useState<RecipeTab>("all");
@@ -50,6 +50,8 @@ export default function AdminRecipes() {
       templates: allRecipes.filter(r => r.type === "template").length,
     };
   }, [allRecipes]);
+
+  const { mutate: createRecipe } = useCreateRecipe();
 
   const handleRecipeAction = (action: string, recipe: Recipe) => {
     console.log("Recipe action:", action, recipe);
@@ -160,8 +162,36 @@ export default function AdminRecipes() {
         <CreateRecipeModal
           open={isCreateModalOpen}
           onClose={() => setIsCreateModalOpen(false)}
-          onSave={(data, isDraft) => {
-            console.log("Admin recipe save:", data, isDraft);
+          onSave={(formData, isDraft) => {
+            // Determine recipe type based on active tab
+            let recipeType = "official";
+            if (activeTab === "templates") {
+              recipeType = "template";
+            }
+
+            // Convert form data to CreateRecipeData format
+            const recipeData = {
+              name: formData.name,
+              method: formData.method,
+              description: formData.description,
+              status: isDraft ? "draft" as const : (formData.sendForReview ? "review" as const : "published" as const),
+              type: recipeType as "official" | "template",
+              ratio: formData.ratio,
+              coffee_amount: formData.coffeeAmount,
+              water_amount: formData.waterAmount,
+              time: formData.time,
+              temperature: formData.temperature,
+              grind: formData.grind,
+              coffee_type: formData.coffee.type,
+              coffee_variety_id: formData.coffee.type === "tupa" ? formData.coffee.tupaId : undefined,
+              custom_coffee_name: formData.coffee.type === "other" ? formData.coffee.customName : undefined,
+              custom_coffee_origin: formData.coffee.type === "other" ? formData.coffee.origin : undefined,
+              notes: formData.notes,
+              steps: formData.steps,
+              isAdminGlobal: true, // Flag to indicate this is a global admin recipe
+            };
+
+            createRecipe(recipeData);
             setIsCreateModalOpen(false);
           }}
         />

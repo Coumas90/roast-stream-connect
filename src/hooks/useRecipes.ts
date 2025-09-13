@@ -56,7 +56,7 @@ export interface CreateRecipeData {
   method?: string;
   description?: string;
   status?: 'draft' | 'published' | 'review';
-  type?: 'personal' | 'team' | 'official';
+  type?: 'personal' | 'team' | 'official' | 'template';
   ratio?: string;
   coffee_amount?: string;
   water_amount?: string;
@@ -172,7 +172,10 @@ export function useCreateRecipe() {
   const { tenantId } = useTenant();
 
   return useMutation({
-    mutationFn: async (recipeData: CreateRecipeData) => {
+    mutationFn: async (recipeData: CreateRecipeData & { isAdminGlobal?: boolean }) => {
+      // Determine if this is a global admin recipe (no tenant_id)
+      const finalTenantId = recipeData.isAdminGlobal ? null : tenantId;
+      
       // Create the recipe
       const { data: recipe, error: recipeError } = await supabase
         .from('recipes')
@@ -194,7 +197,7 @@ export function useCreateRecipe() {
           time: recipeData.time,
           notes: recipeData.notes,
           params: recipeData.params || {},
-          tenant_id: tenantId,
+          tenant_id: finalTenantId,
           created_by: (await supabase.auth.getUser()).data.user?.id,
         })
         .select()

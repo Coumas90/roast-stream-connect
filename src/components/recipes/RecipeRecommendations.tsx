@@ -35,7 +35,7 @@ export function RecipeRecommendations({
 
     // Get recipes user hasn't created
     const availableRecipes = allRecipes.filter(
-      recipe => !userRecipes.some(ur => ur.id === recipe.id) && recipe.status === 'active'
+      recipe => !userRecipes.some(ur => ur.id === recipe.id) && recipe.status === 'published' && recipe.is_active
     );
 
     // Trending recipes (most recent or popular)

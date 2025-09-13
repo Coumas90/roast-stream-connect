@@ -103,6 +103,7 @@ export default function AdminRecipes() {
             activeTab={activeTab}
             onTabChange={setActiveTab}
             counts={tabCounts}
+            isAdmin={true}
           />
 
           {/* Filters */}
@@ -110,6 +111,7 @@ export default function AdminRecipes() {
             <RecipeFilters
               filters={filters}
               onFiltersChange={setFilters}
+              onClearFilters={() => setFilters({})}
             />
           </div>
 
@@ -126,7 +128,10 @@ export default function AdminRecipes() {
                 {filteredRecipes.map((recipe) => (
                   <RecipeCard
                     key={recipe.id}
-                    recipe={recipe}
+                    recipe={{
+                      ...recipe,
+                      coffee: recipe.coffee || recipe.coffee_amount || ''
+                    }}
                     onAction={(action) => handleRecipeAction(action, recipe)}
                     showAdminActions={true}
                   />
@@ -135,6 +140,7 @@ export default function AdminRecipes() {
             ) : (
               <RecipeEmptyState 
                 tab={activeTab}
+                isAdmin={true}
               />
             )}
 
@@ -153,7 +159,11 @@ export default function AdminRecipes() {
         {/* Create Recipe Modal */}
         <CreateRecipeModal
           open={isCreateModalOpen}
-          onOpenChange={setIsCreateModalOpen}
+          onClose={() => setIsCreateModalOpen(false)}
+          onSave={(data, isDraft) => {
+            console.log("Admin recipe save:", data, isDraft);
+            setIsCreateModalOpen(false);
+          }}
         />
       </div>
     </>

@@ -57,7 +57,7 @@ export function RecipeEmptyState({
           ]
         };
         
-      case "oficial":
+      case "official":
         return {
           icon: Wifi,
           title: "Aún no hay plantillas oficiales",

@@ -55,6 +55,8 @@ interface RecipeCardProps {
   onToggleActive?: (recipe: Recipe, isActive: boolean) => void;
   onViewPDF?: (recipe: Recipe) => void;
   onView?: (recipe: Recipe) => void;
+  onAction?: (action: string, recipe?: Recipe) => void;
+  showAdminActions?: boolean;
 }
 
 export function RecipeCard({ 

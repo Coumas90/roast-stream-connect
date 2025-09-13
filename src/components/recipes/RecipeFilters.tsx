@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/select";
 import { Search, Filter, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { useCoffeeVarieties } from "@/hooks/useCoffeeVarieties";
 
 export interface RecipeFilters {
   method?: string;
@@ -39,14 +40,8 @@ const STATUSES = [
   { value: "archived", label: "Archivada" },
 ];
 
-const COFFEES = [
-  { value: "tupa-signature", label: "TUPÁ Signature" },
-  { value: "tupa-finca-x", label: "TUPÁ Finca X" },
-  { value: "tupa-especial", label: "TUPÁ Especial" },
-  { value: "otro", label: "Otro" },
-];
-
 export function RecipeFilters({ filters, onFiltersChange, onClearFilters }: RecipeFiltersProps) {
+  const { data: coffeeVarieties = [] } = useCoffeeVarieties();
   const hasActiveFilters = Object.values(filters).some(value => value && value.length > 0);
   const activeFilterCount = Object.values(filters).filter(value => value && value.length > 0).length;
 
@@ -127,11 +122,12 @@ export function RecipeFilters({ filters, onFiltersChange, onClearFilters }: Reci
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Todos los cafés</SelectItem>
-            {COFFEES.map((coffee) => (
-              <SelectItem key={coffee.value} value={coffee.value}>
-                {coffee.label}
+            {coffeeVarieties.map((coffee) => (
+              <SelectItem key={coffee.id} value={coffee.id}>
+                {coffee.name} {coffee.origin && `- ${coffee.origin}`}
               </SelectItem>
             ))}
+            <SelectItem value="other">Café personalizado</SelectItem>
           </SelectContent>
         </Select>
       </div>

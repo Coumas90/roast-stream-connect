@@ -8,7 +8,7 @@ import { RecipeFilters, type RecipeFilters as RecipeFiltersType } from "@/compon
 import { RecipeCard, type Recipe } from "@/components/recipes/RecipeCard";
 import { RecipeEmptyState } from "@/components/recipes/RecipeEmptyStates";
 import { CreateRecipeModal } from "@/components/recipes/CreateRecipeModal";
-import { useRecipes, useCreateRecipe } from "@/hooks/useRecipes";
+import { useRecipes, useCreateRecipe, useToggleRecipeActive } from "@/hooks/useRecipes";
 
 export default function AdminRecipes() {
   const [activeTab, setActiveTab] = useState<RecipeTab>("all");
@@ -52,10 +52,19 @@ export default function AdminRecipes() {
   }, [allRecipes]);
 
   const { mutate: createRecipe } = useCreateRecipe();
+  const { mutate: toggleActive } = useToggleRecipeActive();
 
   const handleRecipeAction = (action: string, recipe: Recipe) => {
-    console.log("Recipe action:", action, recipe);
-    // TODO: Implement admin-specific recipe actions
+    switch (action) {
+      case "activate":
+        toggleActive({ id: recipe.id, isActive: true });
+        break;
+      case "deactivate":
+        toggleActive({ id: recipe.id, isActive: false });
+        break;
+      default:
+        console.log("Recipe action:", action, recipe);
+    }
   };
 
   return (
@@ -134,6 +143,7 @@ export default function AdminRecipes() {
                       ...recipe,
                       coffee: recipe.coffee || recipe.coffee_amount || ''
                     }}
+                    onToggleActive={(recipe, isActive) => toggleActive({ id: recipe.id, isActive })}
                     onAction={(action) => handleRecipeAction(action, recipe)}
                     showAdminActions={true}
                   />

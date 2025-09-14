@@ -58,7 +58,7 @@ export default function Recipes() {
         case "team":
           return recipe.type === "team";
         case "official":
-          return recipe.type === "official";
+          return recipe.type === "official" || recipe.type === "template";
         case "templates":
           return recipe.type === "template";
         default:
@@ -74,7 +74,7 @@ export default function Recipes() {
       active: allRecipes.filter(r => r.status === 'published' && r.is_active).length,
       personal: allRecipes.filter(r => r.type === "personal").length,
       team: allRecipes.filter(r => r.type === "team").length,
-      official: allRecipes.filter(r => r.type === "official").length,
+      official: allRecipes.filter(r => r.type === "official" || r.type === "template").length,
       templates: allRecipes.filter(r => r.type === "template").length,
     };
   }, [allRecipes]);

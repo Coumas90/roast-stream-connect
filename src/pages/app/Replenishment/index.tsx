@@ -49,12 +49,9 @@ export default function ReplenishmentPage() {
   const [loading, setLoading] = useState(false);
   const [orders, setOrders] = useState<OrderProposal[]>([]);
   
-  // Form state for manual orders - new enhanced system
+  // Form state for new enhanced system
   const [selectedGroundItems, setSelectedGroundItems] = useState<GroundCoffeeOrderItem[]>([]);
   const [selectedProductItems, setSelectedProductItems] = useState<ProductOrderItem[]>([]);
-  
-  // Legacy form state for backward compatibility
-  const [selectedItems, setSelectedItems] = useState<OrderItem[]>([]);
   const [formData, setFormData] = useState({
     delivery_type: "standard",
     notes: "",
@@ -122,10 +119,10 @@ export default function ReplenishmentPage() {
       return;
     }
 
-    if (selectedItems.length === 0) {
+    if (selectedGroundItems.length === 0 && selectedProductItems.length === 0) {
       toast({
         title: "Error",
-        description: "Selecciona al menos una variedad de café",
+        description: "Selecciona al menos un producto para pedir",
         variant: "destructive"
       });
       return;
@@ -144,20 +141,32 @@ export default function ReplenishmentPage() {
         throw new Error('No se pudo obtener información de la ubicación');
       }
 
+      // Combine all items for the order
+      const allItems = [
+        ...selectedGroundItems.map(item => ({
+          variety: item.variety_name,
+          quantity: item.quantity_kg,
+          unit: "kg",
+          type: "ground"
+        })),
+        ...selectedProductItems.map(item => ({
+          variety: item.product_name,
+          quantity: item.quantity_units,
+          unit: "units",
+          type: "product"
+        }))
+      ];
+
       // Create the order proposal
       const { data: orderData, error: orderError } = await supabase
         .from('order_proposals')
         .insert({
           tenant_id: locationData.tenant_id,
           location_id: locationId,
-          coffee_variety: selectedItems.map(item => item.variety_name).join(", "),
+          coffee_variety: allItems.map(item => `${item.variety} (${item.quantity}${item.unit})`).join(", "),
           delivery_type: formData.delivery_type,
           notes: formData.notes,
-          items: selectedItems.map(item => ({
-            variety: item.variety_name,
-            quantity: item.quantity_kg,
-            unit: "kg"
-          })),
+          items: allItems,
           created_by: null,
           source: 'manual'
         })
@@ -166,20 +175,22 @@ export default function ReplenishmentPage() {
 
       if (orderError) throw orderError;
 
-      // Create the detailed order items
-      const orderItems = selectedItems.map(item => ({
-        order_proposal_id: orderData.id,
-        coffee_variety_id: item.coffee_variety_id,
-        quantity_kg: item.quantity_kg,
-        unit_price: item.price_per_kg,
-        notes: item.notes
-      }));
+      // Create the detailed order items for ground coffee
+      if (selectedGroundItems.length > 0) {
+        const groundOrderItems = selectedGroundItems.map(item => ({
+          order_proposal_id: orderData.id,
+          coffee_variety_id: item.coffee_variety_id,
+          quantity_kg: item.quantity_kg,
+          unit_price: item.price_per_kg,
+          notes: item.notes
+        }));
 
-      const { error: itemsError } = await supabase
-        .from('order_items')
-        .insert(orderItems);
+        const { error: groundItemsError } = await supabase
+          .from('order_items')
+          .insert(groundOrderItems);
 
-      if (itemsError) throw itemsError;
+        if (groundItemsError) throw groundItemsError;
+      }
 
       toast({
         title: "Pedido enviado",
@@ -187,7 +198,8 @@ export default function ReplenishmentPage() {
       });
 
       // Reset form
-      setSelectedItems([]);
+      setSelectedGroundItems([]);
+      setSelectedProductItems([]);
       setFormData({
         delivery_type: "standard", 
         notes: "",
@@ -314,130 +326,27 @@ export default function ReplenishmentPage() {
 
         {locationId ? (
           <>
-            {/* Main Content */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {/* Manual Order Form - 2 columns */}
-              <div className="lg:col-span-2">
-                <Tabs defaultValue="manual" className="space-y-4">
-                  <TabsList className="grid w-full grid-cols-2">
-                    <TabsTrigger value="manual" className="flex items-center">
-                      <ShoppingCart className="mr-2 h-4 w-4" />
-                      Pedido Manual
-                    </TabsTrigger>
-                    <TabsTrigger value="bulk" className="flex items-center">
-                      <Package className="mr-2 h-4 w-4" />
-                      Pedido Masivo
-                    </TabsTrigger>
-                  </TabsList>
-
-                  <TabsContent value="manual">
-                    <Card>
-                      <CardHeader>
-                        <CardTitle>Crear Pedido Manual</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="space-y-4">
-                           {/* Enhanced Coffee Selection V2 */}
-                           <div>
-                             <Label>Sistema de Reposición Mejorado</Label>
-                             <div className="mt-2">
-                               <EnhancedCoffeeSelectorV2
-                                 locationId={locationId}
-                                 selectedGroundItems={selectedGroundItems}
-                                 selectedProductItems={selectedProductItems}
-                                 onGroundItemsChange={setSelectedGroundItems}
-                                 onProductItemsChange={setSelectedProductItems}
-                               />
-                             </div>
-                           </div>
-
-                          <Separator />
-
-                          {/* Delivery Options */}
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                              <Label htmlFor="delivery_type">Tipo de Entrega</Label>
-                              <Select 
-                                value={formData.delivery_type} 
-                                onValueChange={(value) => setFormData({...formData, delivery_type: value})}
-                              >
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Seleccionar tipo" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="standard">
-                                    <div className="flex items-center">
-                                      <Truck className="mr-2 h-4 w-4" />
-                                      Estándar (3-5 días)
-                                    </div>
-                                  </SelectItem>
-                                  <SelectItem value="express">
-                                    <div className="flex items-center">
-                                      <Clock className="mr-2 h-4 w-4" />
-                                      Express (1-2 días)
-                                    </div>
-                                  </SelectItem>
-                                  <SelectItem value="scheduled">
-                                    <div className="flex items-center">
-                                      <Calendar className="mr-2 h-4 w-4" />
-                                      Programada
-                                    </div>
-                                  </SelectItem>
-                                </SelectContent>
-                              </Select>
-                            </div>
-                          </div>
-
-                          {/* Notes */}
-                          <div>
-                            <Label htmlFor="notes">Observaciones</Label>
-                            <Textarea
-                              id="notes"
-                              placeholder="Notas adicionales para el pedido..."
-                              value={formData.notes}
-                              onChange={(e) => setFormData({...formData, notes: e.target.value})}
-                              className="min-h-[80px]"
-                            />
-                          </div>
-
-                          {/* Actions */}
-                          <div className="flex gap-2">
-                            <Button 
-                              onClick={handleSubmitOrder}
-                              disabled={loading || selectedItems.length === 0}
-                              className="flex-1"
-                            >
-                              {loading ? "Enviando..." : "Enviar Pedido"}
-                            </Button>
-                            <Button 
-                              variant="outline"
-                              onClick={() => {
-                                setSelectedItems([]);
-                                setFormData({ delivery_type: "standard", notes: "" });
-                              }}
-                            >
-                              Limpiar
-                            </Button>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </TabsContent>
-
-                  <TabsContent value="bulk">
-                    <Card>
-                      <CardHeader>
-                        <CardTitle>Pedido Masivo</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="text-center py-8 text-muted-foreground">
-                          <Package className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                          <p>Función de pedido masivo próximamente...</p>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </TabsContent>
-                </Tabs>
+            {/* Main Content - Simplified Layout */}
+            <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
+              {/* Coffee Selection - 3 columns */}
+              <div className="xl:col-span-3">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center">
+                      <ShoppingCart className="mr-2 h-5 w-5" />
+                      Seleccionar Productos para Pedido
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <EnhancedCoffeeSelectorV2
+                      locationId={locationId}
+                      selectedGroundItems={selectedGroundItems}
+                      selectedProductItems={selectedProductItems}
+                      onGroundItemsChange={setSelectedGroundItems}
+                      onProductItemsChange={setSelectedProductItems}
+                    />
+                  </CardContent>
+                </Card>
               </div>
 
               {/* AI Recommendation Panel - 1 column */}

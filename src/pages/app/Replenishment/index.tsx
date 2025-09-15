@@ -12,6 +12,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
 import { EnhancedCoffeeSelector, OrderItem } from "@/components/replenishment/EnhancedCoffeeSelector";
 import { EnhancedCoffeeSelectorV2, GroundCoffeeOrderItem, ProductOrderItem } from "@/components/replenishment/EnhancedCoffeeSelectorV2";
+import OrderCart from "@/components/replenishment/OrderCart";
 import LocationSwitcher from "@/components/app/LocationSwitcher";
 import AppLayout from "@/layouts/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
@@ -326,14 +327,14 @@ export default function ReplenishmentPage() {
 
         {locationId ? (
           <>
-            {/* Main Content - Simplified Layout */}
-            <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
-              {/* Coffee Selection - 3 columns */}
-              <div className="xl:col-span-3">
+            {/* Main Content - New Layout with Cart */}
+            <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+              {/* Coffee Selection - 2 columns */}
+              <div className="xl:col-span-2">
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center">
-                      <ShoppingCart className="mr-2 h-5 w-5" />
+                      <Coffee className="mr-2 h-5 w-5" />
                       Seleccionar Productos para Pedido
                     </CardTitle>
                   </CardHeader>
@@ -349,8 +350,23 @@ export default function ReplenishmentPage() {
                 </Card>
               </div>
 
-              {/* AI Recommendation Panel - 1 column */}
+              {/* Cart and AI Panel - 1 column */}
               <div className="space-y-4">
+                {/* Order Cart */}
+                <div className="sticky top-4">
+                  <OrderCart
+                    selectedGroundItems={selectedGroundItems}
+                    selectedProductItems={selectedProductItems}
+                    formData={formData}
+                    loading={loading}
+                    onGroundItemsChange={setSelectedGroundItems}
+                    onProductItemsChange={setSelectedProductItems}
+                    onFormDataChange={setFormData}
+                    onSubmitOrder={handleSubmitOrder}
+                  />
+                </div>
+
+                {/* AI Recommendation Panel */}
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center">

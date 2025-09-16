@@ -17,6 +17,7 @@ import { ConsumptionTrends } from "@/components/app/dashboard/ConsumptionTrends"
 import { QuickActions } from "@/components/app/dashboard/QuickActions";
 import { StockAlerts } from "@/components/app/dashboard/StockAlerts";
 import { TrainingWidget } from "@/components/app/dashboard/TrainingWidget";
+import { useTrainingEnabled } from "@/hooks/useTrainingRequests";
 import { useStockMetrics } from "@/hooks/useLocationStock";
 import { useOrderMetrics } from "@/hooks/useOrderHistory";
 import { useConsumptionMetrics } from "@/hooks/useConsumptionMetrics";
@@ -30,6 +31,9 @@ export default function AppHome() {
   const { data: userRole } = useUserRole();
   const { flags, posEffective } = useFeatureFlags();
   const { locationId } = useTenant();
+  
+  // Check if training is enabled for this location
+  const { data: trainingEnabled = false } = useTrainingEnabled(locationId);
   
   // Get real data for the dashboard
   const { totalStock, inventoryValue, lowStockItems, lastRefillDate } = useStockMetrics(locationId);
@@ -56,55 +60,67 @@ export default function AppHome() {
           offers: { "@type": "Offer", price: "0" }
         })}</script>
       </Helmet>
-      {/* POS Status & Alerts */}
+      {/* Header with Status & Training */}
       <section className="grid gap-4 mt-2">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Zap className="h-5 w-5" />
-              Estado del Sistema
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="flex flex-wrap items-center gap-4 justify-between">
-            <div className="flex items-center gap-3">
-              <div className="text-sm">
-                <div className="flex items-center gap-2">
-                  <Badge variant={connected ? "default" : "secondary"}>
-                    POS {isLoading ? "Cargando…" : connected ? "Conectado" : "Desconectado"}
-                  </Badge>
-                  {lowStockItems.length > 0 && (
-                    <Badge variant="destructive">
-                      {lowStockItems.length} stock bajo
+        <div className={`grid gap-4 ${trainingEnabled ? 'md:grid-cols-3' : 'grid-cols-1'}`}>
+          {/* System Status - Compact when training enabled */}
+          <Card className={trainingEnabled ? 'md:col-span-2' : ''}>
+            <CardHeader className={trainingEnabled ? 'pb-3' : ''}>
+              <CardTitle className="flex items-center gap-2 text-base">
+                <Zap className="h-4 w-4" />
+                Estado del Sistema
+              </CardTitle>
+            </CardHeader>
+            <CardContent className={`${trainingEnabled ? 'py-3' : ''} flex flex-wrap items-center gap-4 justify-between`}>
+              <div className="flex items-center gap-3">
+                <div className="text-sm">
+                  <div className="flex items-center gap-2">
+                    <Badge variant={connected ? "default" : "secondary"}>
+                      POS {isLoading ? "Cargando…" : connected ? "Conectado" : "Desconectado"}
                     </Badge>
-                  )}
-                  {pendingOrders > 0 && (
-                    <Badge variant="outline">
-                      {pendingOrders} pedidos pendientes
-                    </Badge>
+                    {lowStockItems.length > 0 && (
+                      <Badge variant="destructive">
+                        {lowStockItems.length} stock bajo
+                      </Badge>
+                    )}
+                    {pendingOrders > 0 && (
+                      <Badge variant="outline">
+                        {pendingOrders} pedidos pendientes
+                      </Badge>
+                    )}
+                  </div>
+                  {!posEffective && !isLoading && !trainingEnabled && (
+                    <div className="text-muted-foreground text-xs mt-1">
+                      {flags.auto_order_enabled ? (!connected ? "Tu POS no está conectado en esta sucursal." : null) : "Auto‑orden deshabilitado"}
+                    </div>
                   )}
                 </div>
-                {!posEffective && !isLoading && (
-                  <div className="text-muted-foreground text-xs mt-1">
-                    {flags.auto_order_enabled ? (!connected ? "Tu POS no está conectado en esta sucursal." : null) : "Auto‑orden deshabilitado"}
-                  </div>
-                )}
               </div>
-            </div>
-            <div className="text-sm text-muted-foreground">
-              {!isLoading && (
-                <>
-                  <span className="mr-4">Proveedor: {provider ? ({ fudo: "Fudo", maxirest: "Maxirest", bistrosoft: "Bistrosoft", other: "ERP/Otro" } as Record<AppPosProvider, string>)[provider] : "—"}</span>
-                  <span>Origen: {source ? (source === "location" ? "Sucursal" : "Tenant") : "—"}</span>
-                </>
+              {!trainingEnabled && (
+                <div className="text-sm text-muted-foreground">
+                  {!isLoading && (
+                    <>
+                      <span className="mr-4">Proveedor: {provider ? ({ fudo: "Fudo", maxirest: "Maxirest", bistrosoft: "Bistrosoft", other: "ERP/Otro" } as Record<AppPosProvider, string>)[provider] : "—"}</span>
+                      <span>Origen: {source ? (source === "location" ? "Sucursal" : "Tenant") : "—"}</span>
+                    </>
+                  )}
+                </div>
               )}
+              {canManage && !isLoading && !connected && (
+                <Button onClick={() => { setDefaultProvider(undefined); setOpen(true); }} size={trainingEnabled ? "sm" : "default"}>
+                  Conectar ahora
+                </Button>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Training Widget - Top Right Position */}
+          {trainingEnabled && (
+            <div className="md:col-span-1">
+              <TrainingWidget locationId={locationId || ""} />
             </div>
-            {canManage && !isLoading && !connected && (
-              <Button onClick={() => { setDefaultProvider(undefined); setOpen(true); }}>
-                Conectar ahora
-              </Button>
-            )}
-          </CardContent>
-        </Card>
+          )}
+        </div>
       </section>
 
       {/* Enhanced KPI Grid */}
@@ -142,7 +158,6 @@ export default function AppHome() {
         {/* Right Column - Actions and Alerts */}
         <div className="space-y-6">
           <StockAlerts locationId={locationId} />
-          <TrainingWidget locationId={locationId || ""} />
           <QuickActions locationId={locationId} />
           <OrdersTimeline locationId={locationId} />
         </div>

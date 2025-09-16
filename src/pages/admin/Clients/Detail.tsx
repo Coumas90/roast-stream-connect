@@ -26,6 +26,7 @@ type Entitlements = {
   loyalty_enabled: boolean;
   raffles_enabled: boolean;
   academy_enabled: boolean;
+  training_enabled: boolean;
   barista_tool_enabled: boolean;
   barista_pool_enabled: boolean;
   qa_franchise_enabled: boolean;
@@ -148,6 +149,7 @@ export default function AdminClientDetail() {
             barista_pool_enabled: false,
             qa_franchise_enabled: false,
             mystery_enabled: false,
+            training_enabled: false,
             [key]: value,
           } as any);
         } else {
@@ -277,6 +279,7 @@ export default function AdminClientDetail() {
                       <TableHead>Loyalty</TableHead>
                       <TableHead>Raffles</TableHead>
                       <TableHead>Academy</TableHead>
+                      <TableHead>Training</TableHead>
                       <TableHead>Barista Tool</TableHead>
                       <TableHead>Barista Pool</TableHead>
                       <TableHead>QA</TableHead>
@@ -298,6 +301,7 @@ export default function AdminClientDetail() {
                           <TableCell><Switch checked={get("loyalty_enabled")} onCheckedChange={(v) => toggle("loyalty_enabled", v)} /></TableCell>
                           <TableCell><Switch checked={get("raffles_enabled")} onCheckedChange={(v) => toggle("raffles_enabled", v)} /></TableCell>
                           <TableCell><Switch checked={get("academy_enabled")} onCheckedChange={(v) => toggle("academy_enabled", v)} /></TableCell>
+                          <TableCell><Switch checked={get("training_enabled")} onCheckedChange={(v) => toggle("training_enabled", v)} /></TableCell>
                           <TableCell><Switch checked={get("barista_tool_enabled")} onCheckedChange={(v) => toggle("barista_tool_enabled", v)} /></TableCell>
                           <TableCell><Switch checked={get("barista_pool_enabled")} onCheckedChange={(v) => toggle("barista_pool_enabled", v)} /></TableCell>
                           <TableCell><Switch checked={get("qa_franchise_enabled")} onCheckedChange={(v) => toggle("qa_franchise_enabled", v)} /></TableCell>
@@ -306,7 +310,7 @@ export default function AdminClientDetail() {
                       );
                     })}
                     {(locations ?? []).length === 0 && (
-                      <TableRow><TableCell colSpan={10}>Sin sucursales</TableCell></TableRow>
+                      <TableRow><TableCell colSpan={11}>Sin sucursales</TableCell></TableRow>
                     )}
                   </TableBody>
                 </Table>

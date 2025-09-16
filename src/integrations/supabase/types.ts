@@ -448,6 +448,7 @@ export type Database = {
           qa_franchise_enabled: boolean
           raffles_enabled: boolean
           tenant_id: string
+          training_enabled: boolean
           updated_at: string
         }
         Insert: {
@@ -464,6 +465,7 @@ export type Database = {
           qa_franchise_enabled?: boolean
           raffles_enabled?: boolean
           tenant_id: string
+          training_enabled?: boolean
           updated_at?: string
         }
         Update: {
@@ -480,6 +482,7 @@ export type Database = {
           qa_franchise_enabled?: boolean
           raffles_enabled?: boolean
           tenant_id?: string
+          training_enabled?: boolean
           updated_at?: string
         }
         Relationships: [
@@ -1635,6 +1638,85 @@ export type Database = {
         }
         Relationships: []
       }
+      training_requests: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          estimated_days: number | null
+          estimated_duration_hours: number | null
+          id: string
+          location_id: string
+          notes: string | null
+          preferred_date: string | null
+          priority: string
+          requested_by: string
+          scheduled_at: string | null
+          specific_topics: Json | null
+          status: string
+          tenant_id: string
+          training_type: string
+          updated_at: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          estimated_days?: number | null
+          estimated_duration_hours?: number | null
+          id?: string
+          location_id: string
+          notes?: string | null
+          preferred_date?: string | null
+          priority?: string
+          requested_by: string
+          scheduled_at?: string | null
+          specific_topics?: Json | null
+          status?: string
+          tenant_id: string
+          training_type?: string
+          updated_at?: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          estimated_days?: number | null
+          estimated_duration_hours?: number | null
+          id?: string
+          location_id?: string
+          notes?: string | null
+          preferred_date?: string | null
+          priority?: string
+          requested_by?: string
+          scheduled_at?: string | null
+          specific_topics?: Json | null
+          status?: string
+          tenant_id?: string
+          training_type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "training_requests_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "training_requests_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "training_requests_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -1981,7 +2063,6 @@ export type Database = {
         Returns: {
           days_until_expiry: number
           expires_at: string
-          last_rotation_attempt_at: string
           location_id: string
           secret_ref: string
         }[]

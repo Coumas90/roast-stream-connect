@@ -16,6 +16,7 @@ import { OrdersTimeline } from "@/components/app/dashboard/OrdersTimeline";
 import { ConsumptionTrends } from "@/components/app/dashboard/ConsumptionTrends";
 import { QuickActions } from "@/components/app/dashboard/QuickActions";
 import { StockAlerts } from "@/components/app/dashboard/StockAlerts";
+import { TrainingWidget } from "@/components/app/dashboard/TrainingWidget";
 import { useStockMetrics } from "@/hooks/useLocationStock";
 import { useOrderMetrics } from "@/hooks/useOrderHistory";
 import { useConsumptionMetrics } from "@/hooks/useConsumptionMetrics";
@@ -141,6 +142,7 @@ export default function AppHome() {
         {/* Right Column - Actions and Alerts */}
         <div className="space-y-6">
           <StockAlerts locationId={locationId} />
+          <TrainingWidget locationId={locationId || ""} />
           <QuickActions locationId={locationId} />
           <OrdersTimeline locationId={locationId} />
         </div>

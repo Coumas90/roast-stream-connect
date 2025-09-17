@@ -83,7 +83,18 @@ export function TrainingRequestsTable({ requests, onStatusChange, onSchedule }: 
                   <TableCell className="font-medium">
                     {trainingTypeLabels[request.training_type]}
                   </TableCell>
-                  <TableCell>{request.location_id}</TableCell>
+                  <TableCell>
+                    <div className="flex flex-col">
+                      <span className="font-medium">
+                        {request.locations?.name || 'Sin nombre'}
+                      </span>
+                      {request.locations?.code && (
+                        <span className="text-sm text-muted-foreground">
+                          {request.locations.code}
+                        </span>
+                      )}
+                    </div>
+                  </TableCell>
                   <TableCell>
                     <Badge variant={status.variant} className="flex items-center gap-1 w-fit">
                       <StatusIcon className="h-3 w-3" />

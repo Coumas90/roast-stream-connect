@@ -22,10 +22,6 @@ export interface TrainingRequest {
   created_at: string;
   scheduled_at?: string;
   completed_at?: string;
-  locations?: {
-    name: string;
-    code?: string;
-  };
 }
 
 export interface CreateTrainingRequest {
@@ -45,10 +41,7 @@ export function useTrainingRequests(locationId?: string) {
     queryFn: async () => {
       let query = supabase
         .from("training_requests")
-        .select(`
-          *,
-          locations(name, code)
-        `)
+        .select("*")
         .order("created_at", { ascending: false });
 
       if (locationId) {

@@ -60,7 +60,8 @@ export function useTrainingRequests(locationId?: string) {
       if (error) throw error;
       return data as TrainingRequest[];
     },
-    enabled: !!locationId,
+    // Always enable for admins (no locationId) and when locationId is provided
+    enabled: true,
   });
 }
 

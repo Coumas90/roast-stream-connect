@@ -4,7 +4,7 @@ import { TrainingKPIGrid } from "@/components/admin/advisory/TrainingKPIGrid";
 import { TrainingFilters } from "@/components/admin/advisory/TrainingFilters";
 import { TrainingRequestsTable } from "@/components/admin/advisory/TrainingRequestsTable";
 import { ScheduleTrainingModal } from "@/components/admin/advisory/ScheduleTrainingModal";
-import { useTrainingRequests, TrainingRequest } from "@/hooks/useTrainingRequests";
+import { useTrainingRequests, useUpdateTrainingRequestStatus, TrainingRequest } from "@/hooks/useTrainingRequests";
 import { toast } from "@/hooks/use-toast";
 
 export default function AdminAdvisory() {
@@ -16,6 +16,7 @@ export default function AdminAdvisory() {
   const [selectedRequest, setSelectedRequest] = React.useState<TrainingRequest | null>(null);
 
   const { data: requests = [], refetch, isLoading } = useTrainingRequests();
+  const updateStatusMutation = useUpdateTrainingRequestStatus();
 
   const filteredRequests = React.useMemo(() => {
     return requests.filter((request) => {
@@ -32,20 +33,7 @@ export default function AdminAdvisory() {
   }, [requests, searchValue, statusFilter, typeFilter, priorityFilter]);
 
   const handleStatusChange = async (id: string, status: string) => {
-    try {
-      // TODO: Implement status update mutation
-      toast({
-        title: "Estado actualizado",
-        description: `El estado de la solicitud ha sido actualizado a ${status}.`,
-      });
-      refetch();
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "No se pudo actualizar el estado de la solicitud.",
-        variant: "destructive",
-      });
-    }
+    updateStatusMutation.mutate({ id, status: status as any });
   };
 
   const handleSchedule = (request: TrainingRequest) => {

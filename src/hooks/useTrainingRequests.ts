@@ -120,6 +120,44 @@ export function useCreateTrainingRequest() {
   });
 }
 
+export function useUpdateTrainingRequestStatus() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, status }: { id: string; status: TrainingStatus }) => {
+      const { data, error } = await supabase
+        .from("training_requests")
+        .update({ 
+          status,
+          updated_at: new Date().toISOString(),
+          ...(status === 'completed' && { completed_at: new Date().toISOString() }),
+          ...(status === 'scheduled' && { scheduled_at: new Date().toISOString() })
+        })
+        .eq("id", id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["training-requests"] });
+      toast({
+        title: "Estado actualizado",
+        description: "El estado de la solicitud ha sido actualizado exitosamente.",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "No se pudo actualizar el estado de la solicitud.",
+        variant: "destructive",
+      });
+      console.error("Error updating training request status:", error);
+    },
+  });
+}
+
 export function useTrainingEnabled(locationId?: string) {
   return useQuery({
     queryKey: ["training-enabled", locationId],

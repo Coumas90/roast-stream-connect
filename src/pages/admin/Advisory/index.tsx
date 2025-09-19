@@ -6,7 +6,7 @@ import { TrainingFilters } from "@/components/admin/advisory/TrainingFilters";
 import { TrainingRequestsTable } from "@/components/admin/advisory/TrainingRequestsTable";
 import { ScheduleTrainingModal } from "@/components/admin/advisory/ScheduleTrainingModal";
 import { FeedbackTab } from "@/components/admin/advisory/FeedbackTab";
-import { useTrainingRequests, useUpdateTrainingRequestStatus, TrainingRequest } from "@/hooks/useTrainingRequests";
+import { useTrainingRequests, useUpdateTrainingRequestStatus, useScheduleTrainingRequest, TrainingRequest } from "@/hooks/useTrainingRequests";
 import { toast } from "@/hooks/use-toast";
 
 export default function AdminAdvisory() {
@@ -19,6 +19,7 @@ export default function AdminAdvisory() {
 
   const { data: requests = [], refetch, isLoading } = useTrainingRequests();
   const updateStatusMutation = useUpdateTrainingRequestStatus();
+  const scheduleTrainingMutation = useScheduleTrainingRequest();
 
   const filteredRequests = React.useMemo(() => {
     return requests.filter((request) => {
@@ -44,20 +45,18 @@ export default function AdminAdvisory() {
   };
 
   const handleScheduleSubmit = async (id: string, data: any) => {
-    try {
-      // TODO: Implement schedule mutation
-      toast({
-        title: "Capacitación programada",
-        description: "La capacitación ha sido programada exitosamente.",
-      });
-      refetch();
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "No se pudo programar la capacitación.",
-        variant: "destructive",
-      });
-    }
+    if (!selectedRequest) return;
+    
+    scheduleTrainingMutation.mutate({
+      id: selectedRequest.id,
+      scheduled_at: data.scheduled_at,
+      notes: data.notes
+    }, {
+      onSuccess: () => {
+        setScheduleModalOpen(false);
+        setSelectedRequest(null);
+      }
+    });
   };
 
   return (

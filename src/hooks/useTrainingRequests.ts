@@ -158,6 +158,44 @@ export function useUpdateTrainingRequestStatus() {
   });
 }
 
+export function useScheduleTrainingRequest() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, scheduled_at, notes }: { id: string; scheduled_at: string; notes?: string }) => {
+      const { data, error } = await supabase
+        .from("training_requests")
+        .update({ 
+          status: 'scheduled' as TrainingStatus,
+          scheduled_at,
+          notes,
+          updated_at: new Date().toISOString()
+        })
+        .eq("id", id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["training-requests"] });
+      toast({
+        title: "Capacitación programada",
+        description: "La capacitación ha sido programada exitosamente.",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "No se pudo programar la capacitación.",
+        variant: "destructive",
+      });
+      console.error("Error scheduling training request:", error);
+    },
+  });
+}
+
 export function useTrainingEnabled(locationId?: string) {
   return useQuery({
     queryKey: ["training-enabled", locationId],

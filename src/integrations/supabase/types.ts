@@ -1638,6 +1638,60 @@ export type Database = {
         }
         Relationships: []
       }
+      training_feedback: {
+        Row: {
+          additional_comments: string | null
+          completion_time_minutes: number | null
+          content_rating: number | null
+          created_at: string
+          id: string
+          instructor_id: string | null
+          instructor_rating: number | null
+          overall_rating: number | null
+          participant_id: string
+          submitted_at: string
+          suggestions: string | null
+          training_request_id: string
+          updated_at: string
+          venue_rating: number | null
+          what_learned: string | null
+        }
+        Insert: {
+          additional_comments?: string | null
+          completion_time_minutes?: number | null
+          content_rating?: number | null
+          created_at?: string
+          id?: string
+          instructor_id?: string | null
+          instructor_rating?: number | null
+          overall_rating?: number | null
+          participant_id: string
+          submitted_at?: string
+          suggestions?: string | null
+          training_request_id: string
+          updated_at?: string
+          venue_rating?: number | null
+          what_learned?: string | null
+        }
+        Update: {
+          additional_comments?: string | null
+          completion_time_minutes?: number | null
+          content_rating?: number | null
+          created_at?: string
+          id?: string
+          instructor_id?: string | null
+          instructor_rating?: number | null
+          overall_rating?: number | null
+          participant_id?: string
+          submitted_at?: string
+          suggestions?: string | null
+          training_request_id?: string
+          updated_at?: string
+          venue_rating?: number | null
+          what_learned?: string | null
+        }
+        Relationships: []
+      }
       training_requests: {
         Row: {
           completed_at: string | null

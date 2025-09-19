@@ -1,9 +1,11 @@
 import React from "react";
 import { Helmet } from "react-helmet-async";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TrainingKPIGrid } from "@/components/admin/advisory/TrainingKPIGrid";
 import { TrainingFilters } from "@/components/admin/advisory/TrainingFilters";
 import { TrainingRequestsTable } from "@/components/admin/advisory/TrainingRequestsTable";
 import { ScheduleTrainingModal } from "@/components/admin/advisory/ScheduleTrainingModal";
+import { FeedbackTab } from "@/components/admin/advisory/FeedbackTab";
 import { useTrainingRequests, useUpdateTrainingRequestStatus, TrainingRequest } from "@/hooks/useTrainingRequests";
 import { toast } from "@/hooks/use-toast";
 
@@ -73,27 +75,40 @@ export default function AdminAdvisory() {
         </p>
       </div>
 
-      <TrainingKPIGrid requests={requests} />
+      <Tabs defaultValue="requests" className="space-y-6">
+        <TabsList>
+          <TabsTrigger value="requests">Solicitudes</TabsTrigger>
+          <TabsTrigger value="feedback">Feedback & Analytics</TabsTrigger>
+        </TabsList>
 
-      <div className="space-y-4">
-        <TrainingFilters
-          onSearchChange={setSearchValue}
-          onStatusFilter={setStatusFilter}
-          onTypeFilter={setTypeFilter}
-          onPriorityFilter={setPriorityFilter}
-          onRefresh={refetch}
-          searchValue={searchValue}
-          statusFilter={statusFilter}
-          typeFilter={typeFilter}
-          priorityFilter={priorityFilter}
-        />
+        <TabsContent value="requests" className="space-y-6">
+          <TrainingKPIGrid requests={filteredRequests} />
 
-        <TrainingRequestsTable
-          requests={filteredRequests}
-          onStatusChange={handleStatusChange}
-          onSchedule={handleSchedule}
-        />
-      </div>
+          <div className="space-y-4">
+            <TrainingFilters
+              searchValue={searchValue}
+              onSearchChange={setSearchValue}
+              statusFilter={statusFilter}
+              onStatusFilter={setStatusFilter}
+              typeFilter={typeFilter}
+              onTypeFilter={setTypeFilter}
+              priorityFilter={priorityFilter}
+              onPriorityFilter={setPriorityFilter}
+              onRefresh={refetch}
+            />
+
+            <TrainingRequestsTable
+              requests={filteredRequests}
+              onStatusChange={handleStatusChange}
+              onSchedule={handleSchedule}
+            />
+          </div>
+        </TabsContent>
+
+        <TabsContent value="feedback">
+          <FeedbackTab />
+        </TabsContent>
+      </Tabs>
 
       <ScheduleTrainingModal
         open={scheduleModalOpen}

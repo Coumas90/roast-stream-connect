@@ -39,6 +39,7 @@ export interface Recipe {
   notes?: string;
   tenant_id?: string;
   created_by?: string;
+  creator_name?: string;
   params?: any;
   steps?: Array<{
     id?: string;

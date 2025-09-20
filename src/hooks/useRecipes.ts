@@ -142,6 +142,18 @@ export function useRecipe(id: string) {
       if (error) throw error;
       if (!recipe) return null;
 
+      // Fetch creator profile separately if created_by exists
+      let creatorProfile = null;
+      if (recipe.created_by) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('full_name')
+          .eq('id', recipe.created_by)
+          .single();
+
+        creatorProfile = profile;
+      }
+
       // Transform data to match the Recipe interface
       return {
         ...recipe,
@@ -149,6 +161,7 @@ export function useRecipe(id: string) {
         coffee_origin: recipe.coffee_varieties?.origin || recipe.custom_coffee_origin || '',
         coffee: recipe.coffee_amount || '', // Always provide a default value
         isActive: recipe.is_active,
+        creator_name: creatorProfile?.full_name || null,
         steps: recipe.recipe_steps?.sort((a, b) => a.step_order - b.step_order).map(step => ({
           id: step.id,
           order: step.step_order,

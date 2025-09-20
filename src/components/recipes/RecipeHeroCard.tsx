@@ -14,6 +14,7 @@ import {
 import { RecipeStatusBadge, type RecipeStatus, type RecipeType } from "./RecipeStatusBadge";
 import { RecipeKPIGrid } from "./RecipeKPIGrid";
 import { type Recipe } from "./RecipeCard";
+import { getInitials, formatTimeAgo } from "@/lib/utils";
 
 interface RecipeHeroCardProps {
   recipe: Recipe;
@@ -51,15 +52,15 @@ export function RecipeHeroCard({
               <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
                 <div className="flex items-center gap-1.5">
                   <User className="h-4 w-4" />
-                  <span>Por Juan Pérez</span>
+                  <span>Por {recipe.creator_name || 'Usuario Anónimo'}</span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <Calendar className="h-4 w-4" />
-                  <span>Creada hace 2 días</span>
+                  <span>Creada {formatTimeAgo(recipe.created_at)}</span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <Clock className="h-4 w-4" />
-                  <span>Última actualización: hoy</span>
+                  <span>Actualizada {formatTimeAgo(recipe.updated_at)}</span>
                 </div>
               </div>
             </div>
@@ -152,11 +153,17 @@ export function RecipeHeroCard({
         {/* Creator Info */}
         <div className="flex items-center gap-3 pt-4 border-t border-border/50">
           <Avatar className="h-10 w-10">
-            <AvatarFallback className="bg-primary text-primary-foreground">JP</AvatarFallback>
+            <AvatarFallback className="bg-primary text-primary-foreground">
+              {getInitials(recipe.creator_name)}
+            </AvatarFallback>
           </Avatar>
           <div>
-            <p className="text-sm font-medium text-foreground">Juan Pérez</p>
-            <p className="text-xs text-muted-foreground">Barista Senior • 5 años de experiencia</p>
+            <p className="text-sm font-medium text-foreground">
+              {recipe.creator_name || 'Usuario Anónimo'}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {recipe.creator_name ? 'Miembro del equipo' : 'Creador no disponible'}
+            </p>
           </div>
         </div>
       </CardContent>

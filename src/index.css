@@ -55,7 +55,11 @@ All colors MUST be HSL.
 
     /* Brand extras */
     --gradient-brand: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(24 70% 50%) 100%);
+    --gradient-soft: linear-gradient(135deg, hsl(var(--background)) 0%, hsl(32 45% 96%) 100%);
+    --gradient-card: linear-gradient(145deg, hsl(var(--card)) 0%, hsl(28 45% 98%) 100%);
     --shadow-elegant: 0 12px 34px -12px hsl(var(--primary) / 0.25);
+    --shadow-soft: 0 4px 20px -4px hsl(var(--primary) / 0.15);
+    --shadow-glow: 0 0 40px hsl(var(--primary) / 0.1);
   }
 
   .dark {
@@ -117,7 +121,35 @@ All colors MUST be HSL.
   .bg-gradient-brand {
     background-image: var(--gradient-brand);
   }
+  .bg-gradient-soft {
+    background-image: var(--gradient-soft);
+  }
+  .bg-gradient-card {
+    background-image: var(--gradient-card);
+  }
   .shadow-elegant {
+    box-shadow: var(--shadow-elegant);
+  }
+  .shadow-soft {
+    box-shadow: var(--shadow-soft);
+  }
+  .shadow-glow {
+    box-shadow: var(--shadow-glow);
+  }
+  
+  /* Glass effect */
+  .glass {
+    backdrop-filter: blur(10px);
+    background: hsla(var(--card), 0.8);
+    border: 1px solid hsla(var(--border), 0.5);
+  }
+  
+  /* Hover effects */
+  .hover-lift {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .hover-lift:hover {
+    transform: translateY(-2px);
     box-shadow: var(--shadow-elegant);
   }
 }

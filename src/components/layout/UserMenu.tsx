@@ -18,6 +18,7 @@ import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/sonner";
 import { useUserRole } from "@/hooks/useTeam";
+import { Sun, Moon, Monitor } from "lucide-react";
 
 type Props = { variant?: "client" | "admin" };
 
@@ -79,9 +80,18 @@ export default function UserMenu({ variant = "client" }: Props) {
 
         <DropdownMenuLabel>Tema</DropdownMenuLabel>
         <DropdownMenuRadioGroup value={currentTheme} onValueChange={(v) => setTheme(v as any)}>
-          <DropdownMenuRadioItem value="light">Claro</DropdownMenuRadioItem>
-          <DropdownMenuRadioItem value="dark">Oscuro</DropdownMenuRadioItem>
-          <DropdownMenuRadioItem value="system">Sistema</DropdownMenuRadioItem>
+          <DropdownMenuRadioItem value="light" className="flex items-center gap-2">
+            <Sun className="h-4 w-4" />
+            Claro
+          </DropdownMenuRadioItem>
+          <DropdownMenuRadioItem value="dark" className="flex items-center gap-2">
+            <Moon className="h-4 w-4" />
+            Oscuro
+          </DropdownMenuRadioItem>
+          <DropdownMenuRadioItem value="system" className="flex items-center gap-2">
+            <Monitor className="h-4 w-4" />
+            Sistema
+          </DropdownMenuRadioItem>
         </DropdownMenuRadioGroup>
 
         <DropdownMenuSeparator />

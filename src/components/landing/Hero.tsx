@@ -56,7 +56,7 @@ const Hero = () => {
               <img
                 src="/assets/colombia.png"
                 alt="Personaje representativo del café colombiano"
-                className="relative w-80 h-80 lg:w-96 lg:h-96 object-contain"
+                className="relative w-96 h-96 lg:w-[500px] lg:h-[500px] object-contain drop-shadow-2xl filter brightness-110 contrast-110"
               />
             </div>
           </div>

@@ -1586,6 +1586,33 @@ export type Database = {
         }
         Relationships: []
       }
+      security_definer_audit: {
+        Row: {
+          called_at: string
+          function_name: string
+          id: string
+          parameters: Json | null
+          success: boolean | null
+          user_id: string | null
+        }
+        Insert: {
+          called_at?: string
+          function_name: string
+          id?: string
+          parameters?: Json | null
+          success?: boolean | null
+          user_id?: string | null
+        }
+        Update: {
+          called_at?: string
+          function_name?: string
+          id?: string
+          parameters?: Json | null
+          success?: boolean | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       stock_ledger: {
         Row: {
           id: string
@@ -1987,6 +2014,15 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      security_definer_functions: {
+        Row: {
+          documentation: string | null
+          function_name: unknown | null
+          function_type: string | null
+          return_type: string | null
+        }
+        Relationships: []
       }
     }
     Functions: {

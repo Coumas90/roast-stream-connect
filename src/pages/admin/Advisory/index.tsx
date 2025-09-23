@@ -4,6 +4,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TrainingKPIGrid } from "@/components/admin/advisory/TrainingKPIGrid";
 import { TrainingFilters } from "@/components/admin/advisory/TrainingFilters";
 import { TrainingRequestsTable } from "@/components/admin/advisory/TrainingRequestsTable";
+import { TrainingKanbanBoard } from "@/components/admin/advisory/TrainingKanbanBoard";
+import { TrainingViewToggle } from "@/components/admin/advisory/TrainingViewToggle";
 import { ScheduleTrainingModal } from "@/components/admin/advisory/ScheduleTrainingModal";
 import { FeedbackTab } from "@/components/admin/advisory/FeedbackTab";
 import { useTrainingRequests, useUpdateTrainingRequestStatus, useScheduleTrainingRequest, TrainingRequest } from "@/hooks/useTrainingRequests";
@@ -16,6 +18,7 @@ export default function AdminAdvisory() {
   const [priorityFilter, setPriorityFilter] = React.useState("all");
   const [scheduleModalOpen, setScheduleModalOpen] = React.useState(false);
   const [selectedRequest, setSelectedRequest] = React.useState<TrainingRequest | null>(null);
+  const [view, setView] = React.useState<"list" | "kanban">("list");
 
   const { data: requests = [], refetch, isLoading } = useTrainingRequests();
   const updateStatusMutation = useUpdateTrainingRequestStatus();
@@ -84,23 +87,34 @@ export default function AdminAdvisory() {
           <TrainingKPIGrid requests={filteredRequests} />
 
           <div className="space-y-4">
-            <TrainingFilters
-              searchValue={searchValue}
-              onSearchChange={setSearchValue}
-              statusFilter={statusFilter}
-              onStatusFilter={setStatusFilter}
-              typeFilter={typeFilter}
-              onTypeFilter={setTypeFilter}
-              priorityFilter={priorityFilter}
-              onPriorityFilter={setPriorityFilter}
-              onRefresh={refetch}
-            />
+            <div className="flex justify-between items-center">
+              <TrainingFilters
+                searchValue={searchValue}
+                onSearchChange={setSearchValue}
+                statusFilter={statusFilter}
+                onStatusFilter={setStatusFilter}
+                typeFilter={typeFilter}
+                onTypeFilter={setTypeFilter}
+                priorityFilter={priorityFilter}
+                onPriorityFilter={setPriorityFilter}
+                onRefresh={refetch}
+              />
+              <TrainingViewToggle view={view} onViewChange={setView} />
+            </div>
 
-            <TrainingRequestsTable
-              requests={filteredRequests}
-              onStatusChange={handleStatusChange}
-              onSchedule={handleSchedule}
-            />
+            {view === "list" ? (
+              <TrainingRequestsTable
+                requests={filteredRequests}
+                onStatusChange={handleStatusChange}
+                onSchedule={handleSchedule}
+              />
+            ) : (
+              <TrainingKanbanBoard
+                requests={filteredRequests}
+                onStatusChange={handleStatusChange}
+                onSchedule={handleSchedule}
+              />
+            )}
           </div>
         </TabsContent>
 

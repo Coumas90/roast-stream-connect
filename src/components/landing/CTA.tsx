@@ -6,6 +6,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Check, Coffee, Truck, Users } from "lucide-react";
 import { useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 const CTA = () => {
   const [formData, setFormData] = useState({
@@ -16,6 +18,7 @@ const CTA = () => {
     type: "",
     message: ""
   });
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const benefits = [
     { icon: Coffee, text: "Primer envío gratis" },
@@ -24,10 +27,45 @@ const CTA = () => {
     { icon: Check, text: "Probá TUPÁ Gratis" }
   ];
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Handle form submission
-    console.log("Form submitted:", formData);
+    
+    if (isSubmitting) return;
+    
+    // Validate required fields
+    if (!formData.name || !formData.email || !formData.phone || !formData.business || !formData.type) {
+      toast.error("Por favor completa todos los campos requeridos");
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      const { error } = await supabase.functions.invoke('send-contact-form', {
+        body: formData
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      toast.success("¡Formulario enviado exitosamente! Te contactaremos pronto.");
+      
+      // Reset form
+      setFormData({
+        name: "",
+        email: "",
+        phone: "",
+        business: "",
+        type: "",
+        message: ""
+      });
+    } catch (error) {
+      console.error("Error sending form:", error);
+      toast.error("Error al enviar el formulario. Por favor intenta nuevamente.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -153,8 +191,13 @@ const CTA = () => {
                 </div>
 
                 <div className="flex gap-3">
-                  <Button type="submit" size="lg" className="flex-1">
-                    Probá TUPÁ Gratis
+                  <Button 
+                    type="submit" 
+                    size="lg" 
+                    className="flex-1" 
+                    disabled={isSubmitting}
+                  >
+                    {isSubmitting ? "Enviando..." : "Probá TUPÁ Gratis"}
                   </Button>
                   <Button 
                     variant="outline" 

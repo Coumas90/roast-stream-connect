@@ -10,13 +10,13 @@ const WhatsAppWidget = () => {
       href={whatsappUrl}
       target="_blank"
       rel="noopener noreferrer"
-      className="fixed bottom-6 left-6 z-50 flex h-16 w-16 items-center justify-center rounded-2xl bg-white shadow-lg transition-all duration-300 hover:scale-110 hover:shadow-xl animate-pulse-soft"
+      className="fixed bottom-6 right-6 z-50 flex h-20 w-20 items-center justify-center rounded-2xl bg-white shadow-lg transition-all duration-300 hover:scale-110 hover:shadow-xl animate-pulse-soft"
       aria-label="Contactar por WhatsApp"
     >
       <img 
         src={whatsappLogo} 
         alt="WhatsApp" 
-        className="h-12 w-12 object-contain"
+        className="h-16 w-16 object-contain"
       />
     </a>
   );

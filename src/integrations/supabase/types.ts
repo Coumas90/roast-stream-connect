@@ -2105,12 +2105,7 @@ export type Database = {
           p_provider: Database["public"]["Enums"]["app_pos_provider"]
           p_rotation_id: string
         }
-        Returns: {
-          is_idempotent: boolean
-          operation_result: string
-          rows_affected: number
-          token_id: string
-        }[]
+        Returns: Json
       }
       gc_pos_rotation_metrics_batched: {
         Args: { _batch_size?: number; _retention_days?: number }
@@ -2284,6 +2279,10 @@ export type Database = {
         }
         Returns: undefined
       }
+      log_security_definer_call: {
+        Args: { _function_name: string; _params?: Json }
+        Returns: undefined
+      }
       mark_credential_for_rotation: {
         Args: {
           _location_id: string
@@ -2399,7 +2398,9 @@ export type Database = {
         Returns: undefined
       }
       rotate_invitation_token: {
-        Args: { _expires_in_minutes?: number; _invitation_id: string }
+        Args:
+          | { _expires_in_minutes?: number; _invitation_id: string }
+          | { _invitation_id: string }
         Returns: {
           expires_at: string
           id: string

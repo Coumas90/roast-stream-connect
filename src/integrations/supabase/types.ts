@@ -1565,6 +1565,27 @@ export type Database = {
         }
         Relationships: []
       }
+      security_definer_approved: {
+        Row: {
+          approved_at: string | null
+          approved_by: string
+          function_name: string
+          justification: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by: string
+          function_name: string
+          justification: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string
+          function_name?: string
+          justification?: string
+        }
+        Relationships: []
+      }
       stock_ledger: {
         Row: {
           id: string
@@ -2032,13 +2053,6 @@ export type Database = {
           last_rotation_id: string
           location_id: string
           provider: Database["public"]["Enums"]["app_pos_provider"]
-        }[]
-      }
-      claim_job_lock: {
-        Args: { p_name: string; p_ttl_seconds: number }
-        Returns: {
-          acquired: boolean
-          holder: string
         }[]
       }
       complete_chaos_test: {

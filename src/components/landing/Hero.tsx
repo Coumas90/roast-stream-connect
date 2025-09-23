@@ -16,9 +16,8 @@ const Hero = () => {
                 tu negocio
               </h1>
               <p className="text-xl text-muted-foreground leading-relaxed">
-                Conectamos tostadores y cafeterías con tecnología inteligente. 
-                Desde el origen hasta la taza perfecta, gestionamos tu stock, 
-                optimizamos tu consumo y garantizamos la calidad.
+                Proveemos café de especialidad en grano con tecnología integrada. 
+                Reposición automática, dashboard inteligente y asesoría personalizada.
               </p>
             </div>
 
@@ -36,15 +35,15 @@ const Hero = () => {
             <div className="flex flex-wrap gap-3">
               <Badge variant="secondary" className="flex items-center gap-2 py-2 px-4">
                 <Star className="h-4 w-4 text-yellow-500" />
-                98% Satisfacción
+                +200 clientes satisfechos
               </Badge>
               <Badge variant="secondary" className="flex items-center gap-2 py-2 px-4">
                 <Shield className="h-4 w-4 text-green-500" />
-                100% Trazable
+                Trazabilidad 100%
               </Badge>
               <Badge variant="secondary" className="flex items-center gap-2 py-2 px-4">
                 <Zap className="h-4 w-4 text-blue-500" />
-                IA Integrada
+                Maestro Cafetero TUPÁ
               </Badge>
             </div>
           </div>

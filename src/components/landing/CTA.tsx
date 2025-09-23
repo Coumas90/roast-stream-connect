@@ -18,10 +18,10 @@ const CTA = () => {
   });
 
   const benefits = [
-    { icon: Coffee, text: "Primer envío completamente gratis" },
-    { icon: Truck, text: "Setup y configuración incluida" },
-    { icon: Users, text: "Soporte dedicado 24/7" },
-    { icon: Check, text: "Sin permanencia ni compromisos" }
+    { icon: Coffee, text: "Primer envío gratis" },
+    { icon: Truck, text: "Setup incluido" },
+    { icon: Users, text: "Sin permanencia" },
+    { icon: Check, text: "Probá TUPÁ Gratis" }
   ];
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -35,13 +35,11 @@ const CTA = () => {
       <div className="container mx-auto px-6">
         <div className="text-center space-y-6 mb-16">
           <h2 className="text-3xl lg:text-5xl font-bold text-foreground">
-            ¿Listo para{" "}
-            <span className="text-primary">transformar</span>{" "}
-            tu experiencia de café?
+            ¿Listo para transformar{" "}
+            <span className="text-primary">tu experiencia de café?</span>
           </h2>
           <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-            Únete a más de 500 negocios que ya confían en TUPÁ para gestionar su café. 
-            Comienza tu prueba gratuita hoy mismo.
+            Primer envío gratis. Sin compromisos. Sin letra chica. Solo café extraordinario que eleva tu negocio.
           </p>
         </div>
 
@@ -154,9 +152,14 @@ const CTA = () => {
                   />
                 </div>
 
-                <Button type="submit" size="lg" className="w-full">
-                  Comenzar Prueba Gratuita
-                </Button>
+                <div className="flex gap-3">
+                  <Button type="submit" size="lg" className="flex-1">
+                    Probá TUPÁ Gratis
+                  </Button>
+                  <Button variant="outline" size="lg" className="flex-1">
+                    Hablemos por WhatsApp
+                  </Button>
+                </div>
 
                 <p className="text-xs text-muted-foreground text-center">
                   Al enviar este formulario aceptas nuestros{" "}

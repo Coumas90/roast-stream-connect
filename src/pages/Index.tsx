@@ -6,6 +6,7 @@ import CoffeeOrigins from "@/components/landing/CoffeeOrigins";
 import BusinessSegments from "@/components/landing/BusinessSegments";
 import Products from "@/components/landing/Products";
 import Technology from "@/components/landing/Technology";
+import Testimonials from "@/components/landing/Testimonials";
 import CTA from "@/components/landing/CTA";
 import Footer from "@/components/landing/Footer";
 
@@ -30,6 +31,7 @@ const Index = () => {
       <BusinessSegments />
       <Products />
       <Technology />
+      <Testimonials />
       <CTA />
       <Footer />
     </div>

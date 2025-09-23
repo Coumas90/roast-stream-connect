@@ -6,34 +6,38 @@ const BusinessSegments = () => {
     {
       icon: Coffee,
       title: "Cafeterías",
-      description: "Gestión completa del café en tu cafetería",
+      description: "Diferenciá tu propuesta",
       features: [
-        "Stock automático por sucursal",
-        "Recetas y maridajes",
-        "Academy para baristas",
-        "Análisis de consumo por horarios"
+        "Mezclas exclusivas para tu marca",
+        "Fichas técnicas para tu equipo",
+        "Reposición automática",
+        "Capacitación incluida"
       ]
     },
     {
       icon: Building2,
       title: "Oficinas",
-      description: "Experiencia corporativa premium",
+      description: "Café premium que impulsa la productividad",
       features: [
-        "Suministro automático",
-        "Máquinas en comodato",
-        "Reportes de consumo",
-        "Gestión de múltiples ubicaciones"
+        "Dashboard de consumo y métricas de equipo",
+        "Variedad rotativa mensual con perfiles únicos",
+        "Setup completo: máquinas + capacitación",
+        "Reposición automática sin interrupciones",
+        "Servicio técnico incluido 24/7",
+        "Reportes de satisfacción y uso",
+        "Blends energizantes para diferentes momentos",
+        "Opciones descafeinadas y alternativas plant-based"
       ]
     },
     {
       icon: UtensilsCrossed,
       title: "Restaurantes",
-      description: "Café perfecto para tu carta",
+      description: "Complementá tu carta",
       features: [
-        "Perfiles de sabor personalizados",
-        "Integración con menú",
-        "Control de costos",
-        "Capacitación especializada"
+        "Blends diseñados para tu cocina",
+        "Café de sobremesa excepcional",
+        "Presentación premium",
+        "Asesoría en maridajes"
       ]
     }
   ];
@@ -43,13 +47,10 @@ const BusinessSegments = () => {
       <div className="container mx-auto px-6">
         <div className="text-center space-y-6 mb-16">
           <h2 className="text-3xl lg:text-5xl font-bold text-foreground">
+            Soluciones por Segmento<br />
             Tu negocio es único.{" "}
             <span className="text-primary">Tu café también.</span>
           </h2>
-          <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-            Adaptamos nuestra tecnología y productos a las necesidades específicas 
-            de tu tipo de negocio para maximizar tu éxito.
-          </p>
         </div>
 
         <div className="grid md:grid-cols-3 gap-8">

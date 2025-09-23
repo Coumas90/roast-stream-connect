@@ -5,17 +5,17 @@ const ValueProposition = () => {
     {
       icon: MapPin,
       title: "Origen Trazable",
-      description: "Cada grano tiene una historia. Conoce la finca, el proceso y la calidad que llega a tu taza."
+      description: "Cada lote con coordenadas exactas, altitud y perfil de taza detallado."
     },
     {
       icon: Cpu,
       title: "Tecnología Integrada",
-      description: "IA que aprende de tu consumo, optimiza tu stock y predice tus necesidades."
+      description: "Dashboard en tiempo real, reposición automática y asesoría personalizada."
     },
     {
       icon: RotateCcw,
       title: "Recurrencia Inteligente",
-      description: "Reposición automática basada en datos reales. Nunca te quedes sin café."
+      description: "Nunca más te quedés sin café. Algoritmo que aprende tu consumo."
     }
   ];
 

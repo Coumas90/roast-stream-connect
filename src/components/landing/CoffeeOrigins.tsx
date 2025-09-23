@@ -1,29 +1,34 @@
 const CoffeeOrigins = () => {
   const origins = [
     {
-      name: "Colombia",
+      name: "Colombia Huila",
       image: "/assets/colombia.png",
-      description: "Montañas de los Andes, suelos volcánicos"
+      description: "Cítrico, Chocolate",
+      altitude: "1,800m"
     },
     {
-      name: "Colombia Bruselas",
-      image: "/assets/colombia-bruselas.png",
-      description: "Región de Huila, proceso especial"
-    },
-    {
-      name: "Guatemala",
+      name: "Guatemala Antigua",
       image: "/assets/guatemala.png",
-      description: "Tierras altas, tradición ancestral"
+      description: "Frutal, Especiado",
+      altitude: "1,500m"
     },
     {
-      name: "Brasil",
+      name: "Brasil Cerrado",
       image: "/assets/brasil.png",
-      description: "Cerrado, tecnología y sostenibilidad"
+      description: "Nuez, Caramelo",
+      altitude: "1,200m"
     },
     {
-      name: "Blend Especial",
+      name: "Perú Chanchamayo",
+      image: "/assets/colombia-bruselas.png",
+      description: "Floral, Miel",
+      altitude: "1,600m"
+    },
+    {
+      name: "Costa Rica Tarrazú",
       image: "/assets/blend.png",
-      description: "Mezcla perfecta de nuestros mejores orígenes"
+      description: "Brillante, Cítrico",
+      altitude: "1,900m"
     }
   ];
 
@@ -32,12 +37,13 @@ const CoffeeOrigins = () => {
       <div className="container mx-auto px-6">
         <div className="text-center space-y-6 mb-16">
           <h2 className="text-3xl lg:text-5xl font-bold text-foreground">
+            Orígenes Directos<br />
             Cada café tiene su{" "}
             <span className="text-primary">propia historia</span>
           </h2>
           <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-            Trabajamos directamente con productores de América Latina para traerte 
-            los mejores granos con total trazabilidad y comercio justo.
+            Trabajamos directamente con productores. Sin intermediarios, sin misterios. 
+            Cada personaje representa un origen, cada origen una tradición.
           </p>
         </div>
 
@@ -53,8 +59,11 @@ const CoffeeOrigins = () => {
                 />
               </div>
               <div className="space-y-2">
-                <h3 className="font-semibold text-foreground">{origin.name}</h3>
+                <h3 className="font-semibold text-foreground">Maestro de {origin.name}</h3>
                 <p className="text-sm text-muted-foreground">{origin.description}</p>
+                <div className="flex items-center justify-center">
+                  <span className="text-xs text-primary font-medium">{origin.altitude}</span>
+                </div>
               </div>
             </div>
           ))}

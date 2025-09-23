@@ -1,28 +1,29 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { BarChart3, TrendingUp, Shield, Zap } from "lucide-react";
 
 const Technology = () => {
   const benefits = [
     {
       icon: BarChart3,
-      title: "Análisis Predictivo",
-      description: "IA que aprende de tus patrones de consumo"
+      title: "Dashboard de consumo en tiempo real",
+      description: "Monitoreo continuo de patrones de uso"
     },
     {
       icon: TrendingUp,
-      title: "Optimización Automática",
-      description: "Reduce desperdicios y maximiza eficiencia"
+      title: "Predicción inteligente de reposición",
+      description: "Algoritmo que prevé tus necesidades"
     },
     {
       icon: Shield,
-      title: "Trazabilidad Total",
-      description: "Del grano a la taza, control completo"
+      title: "Asesoría personalizada por barista experto",
+      description: "Soporte especializado cuando lo necesites"
     },
     {
       icon: Zap,
-      title: "Integración Simple",
-      description: "Se conecta con tu POS existente"
+      title: "Reportes de calidad y satisfacción",
+      description: "Análisis completo de rendimiento"
     }
   ];
 
@@ -47,14 +48,15 @@ const Technology = () => {
           <div className="space-y-8">
             <div className="space-y-6">
               <h2 className="text-3xl lg:text-5xl font-bold text-foreground">
+                TUPÁ Hub<br />
                 Tecnología que{" "}
                 <span className="text-primary">simplifica.</span>{" "}
                 Datos que{" "}
                 <span className="text-primary">potencian.</span>
               </h2>
               <p className="text-xl text-muted-foreground">
-                Nuestra plataforma inteligente se integra perfectamente con tu negocio, 
-                aprendiendo de cada taza para optimizar tu operación.
+                Nuestra plataforma integrada te da control total: monitoreo de consumo, 
+                reposición automática, insights de rendimiento y asesoría en tiempo real.
               </p>
             </div>
 
@@ -111,15 +113,21 @@ const Technology = () => {
                   {/* Mock Metrics */}
                   <div className="grid grid-cols-2 gap-4">
                     <div className="p-3 rounded-lg bg-muted/30">
-                      <p className="text-xs text-muted-foreground">Consumo Diario</p>
-                      <p className="text-lg font-bold text-foreground">2.3kg</p>
-                      <p className="text-xs text-green-600">+12% vs ayer</p>
+                      <p className="text-xs text-muted-foreground">Consumo Semanal</p>
+                      <p className="text-lg font-bold text-foreground">+12%</p>
+                      <p className="text-xs text-green-600">Tendencia positiva</p>
                     </div>
                     <div className="p-3 rounded-lg bg-muted/30">
-                      <p className="text-xs text-muted-foreground">Stock Restante</p>
-                      <p className="text-lg font-bold text-foreground">15.7kg</p>
-                      <p className="text-xs text-orange-600">7 días aprox.</p>
+                      <p className="text-xs text-muted-foreground">Próxima entrega</p>
+                      <p className="text-lg font-bold text-foreground">En 3 días</p>
+                      <p className="text-xs text-muted-foreground">Stock actual: 2.5 kg</p>
                     </div>
+                  </div>
+                  
+                  <div className="pt-4">
+                    <Button variant="outline" size="sm" className="w-full">
+                      Ver Demo de la Plataforma
+                    </Button>
                   </div>
                 </div>
               </CardContent>

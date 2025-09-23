@@ -8,6 +8,8 @@ import type { Tables, Enums } from "@/integrations/supabase/types";
 import { OrdersKPIDashboard } from "@/components/admin/orders/OrdersKPIDashboard";
 import { OrdersFilters } from "@/components/admin/orders/OrdersFilters";
 import { OrderCard } from "@/components/admin/orders/OrderCard";
+import { KanbanBoard } from "@/components/admin/orders/KanbanBoard";
+import { ViewToggle } from "@/components/admin/orders/ViewToggle";
 
 interface OrderWithDetails extends Tables<"order_proposals"> {
   order_items?: Array<{
@@ -35,6 +37,7 @@ export default function OrdersQueue() {
   const [tenants, setTenants] = useState<Array<Tables<"tenants">>>([]);
   const [locations, setLocations] = useState<Array<Tables<"locations">>>([]);
   const [loading, setLoading] = useState(true);
+  const [view, setView] = useState<"list" | "kanban">("list");
   const [filters, setFilters] = useState({
     tenantId: "",
     locationId: "",
@@ -181,6 +184,7 @@ export default function OrdersQueue() {
             Gestiona los pedidos de todas las sucursales desde un solo lugar
           </p>
         </div>
+        <ViewToggle view={view} onViewChange={setView} />
       </div>
 
       <OrdersKPIDashboard orders={filteredOrders} />
@@ -209,6 +213,11 @@ export default function OrdersQueue() {
             </p>
           </CardContent>
         </Card>
+      ) : view === "kanban" ? (
+        <KanbanBoard
+          orders={filteredOrders}
+          onUpdateStatus={updateOrderStatus}
+        />
       ) : (
         <div className="grid gap-4">
           {filteredOrders.map((order) => (

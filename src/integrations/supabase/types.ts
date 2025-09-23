@@ -750,6 +750,48 @@ export type Database = {
           },
         ]
       }
+      notifications: {
+        Row: {
+          created_at: string
+          data: Json | null
+          expires_at: string | null
+          id: string
+          location_id: string | null
+          message: string
+          read_at: string | null
+          tenant_id: string | null
+          title: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          data?: Json | null
+          expires_at?: string | null
+          id?: string
+          location_id?: string | null
+          message: string
+          read_at?: string | null
+          tenant_id?: string | null
+          title: string
+          type: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          data?: Json | null
+          expires_at?: string | null
+          id?: string
+          location_id?: string | null
+          message?: string
+          read_at?: string | null
+          tenant_id?: string | null
+          title?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       order_items: {
         Row: {
           coffee_variety_id: string
@@ -2124,6 +2166,19 @@ export type Database = {
           tenant_id: string
           token: string
         }[]
+      }
+      create_notification: {
+        Args: {
+          _data?: Json
+          _expires_at?: string
+          _location_id?: string
+          _message: string
+          _tenant_id?: string
+          _title: string
+          _type: string
+          _user_id: string
+        }
+        Returns: string
       }
       effective_pos: {
         Args: { _location_id?: string; _tenant_id: string }

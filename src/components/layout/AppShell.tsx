@@ -26,6 +26,7 @@ import { useDataStore } from "@/lib/data-store";
 import LocationSwitcher from "@/components/app/LocationSwitcher";
 import UserMenu from "@/components/layout/UserMenu";
 import GlobalSearch from "@/components/admin/GlobalSearch";
+import { NotificationCenter } from "@/components/layout/NotificationCenter";
 import { useFeatureFlags } from "@/hooks/useFeatureFlags";
 import { useUserRole } from "@/hooks/useTeam";
 export type AppShellProps = {
@@ -161,6 +162,7 @@ export function AppShell({ children, section = "Dashboard", variant = "client" }
             <div className="ml-auto flex items-center gap-2">
               <GlobalSearch variant={variant} />
               {variant === "client" && <LocationSwitcher />}
+              <NotificationCenter />
               <Button variant="soft" className="hidden sm:inline-flex">Recomendación IA</Button>
               <UserMenu variant={variant} />
             </div>

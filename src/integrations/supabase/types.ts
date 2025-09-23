@@ -1825,6 +1825,24 @@ export type Database = {
       }
     }
     Views: {
+      job_lock_status: {
+        Row: {
+          locked_until: string | null
+          name: string | null
+          status: string | null
+        }
+        Insert: {
+          locked_until?: never
+          name?: string | null
+          status?: never
+        }
+        Update: {
+          locked_until?: never
+          name?: string | null
+          status?: never
+        }
+        Relationships: []
+      }
       locations_public: {
         Row: {
           code: string | null
@@ -2171,6 +2189,16 @@ export type Database = {
           severity: string
           status: string
           triggered_at: string
+        }[]
+      }
+      get_rotation_candidates: {
+        Args: {
+          _limit?: number
+          _provider: Database["public"]["Enums"]["app_pos_provider"]
+        }
+        Returns: {
+          expires_at: string
+          location_id: string
         }[]
       }
       has_role: {

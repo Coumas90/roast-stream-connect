@@ -156,8 +156,19 @@ const CTA = () => {
                   <Button type="submit" size="lg" className="flex-1">
                     Probá TUPÁ Gratis
                   </Button>
-                  <Button variant="outline" size="lg" className="flex-1">
-                    Hablemos por WhatsApp
+                  <Button 
+                    variant="outline" 
+                    size="lg" 
+                    className="flex-1"
+                    asChild
+                  >
+                    <a
+                      href="https://wa.me/5491125145969?text=¡Hola! Me interesa conocer más sobre TUPÁ Hub"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      Hablemos por WhatsApp
+                    </a>
                   </Button>
                 </div>
 

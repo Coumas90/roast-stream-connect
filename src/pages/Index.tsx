@@ -9,6 +9,7 @@ import Technology from "@/components/landing/Technology";
 import Testimonials from "@/components/landing/Testimonials";
 import CTA from "@/components/landing/CTA";
 import Footer from "@/components/landing/Footer";
+import WhatsAppWidget from "@/components/landing/WhatsAppWidget";
 
 const Index = () => {
   return (
@@ -34,6 +35,7 @@ const Index = () => {
       <Testimonials />
       <CTA />
       <Footer />
+      <WhatsAppWidget />
     </div>
   );
 };

@@ -29,8 +29,13 @@ const Header = () => {
             <a href="#tecnologia" className="text-foreground hover:text-primary transition-colors">
               Tecnología
             </a>
-            <a href="#catalogo" className="text-foreground hover:text-primary transition-colors">
-              Catálogo
+            <a 
+              href="https://cafetupa.mitiendanube.com/" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="text-foreground hover:text-primary transition-colors"
+            >
+              Tienda Online
             </a>
           </nav>
 
@@ -70,8 +75,13 @@ const Header = () => {
               <a href="#tecnologia" className="text-foreground hover:text-primary transition-colors">
                 Tecnología
               </a>
-              <a href="#catalogo" className="text-foreground hover:text-primary transition-colors">
-                Catálogo
+              <a 
+                href="https://cafetupa.mitiendanube.com/" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-foreground hover:text-primary transition-colors"
+              >
+                Tienda Online
               </a>
               <div className="flex flex-col space-y-2 pt-4">
                 <Button variant="ghost" asChild>

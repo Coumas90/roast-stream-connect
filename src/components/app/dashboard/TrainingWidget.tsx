@@ -7,7 +7,6 @@ import { useTrainingRequests, useTrainingEnabled } from "@/hooks/useTrainingRequ
 import { TrainingRequestModal } from "./TrainingRequestModal";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-import { useUserRole } from "@/hooks/useUserRole";
 
 interface TrainingWidgetProps {
   locationId: string;
@@ -17,7 +16,6 @@ export function TrainingWidget({ locationId }: TrainingWidgetProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const { data: requests = [], isLoading } = useTrainingRequests(locationId);
   const { data: trainingEnabled = false } = useTrainingEnabled(locationId);
-  const { data: userRole } = useUserRole();
 
   if (!trainingEnabled) {
     return null; // Don't show widget if training is not enabled
@@ -129,16 +127,14 @@ export function TrainingWidget({ locationId }: TrainingWidgetProps) {
             </div>
           )}
 
-          {userRole?.canManageTraining && (
-            <Button 
-              onClick={() => setIsModalOpen(true)}
-              className="w-full"
-              variant="outline"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Solicitar Capacitación
-            </Button>
-          )}
+          <Button 
+            onClick={() => setIsModalOpen(true)}
+            className="w-full"
+            variant="outline"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Solicitar Capacitación
+          </Button>
 
           {requests.length > 0 && (
             <div className="pt-2 border-t border-border/50">
@@ -150,13 +146,11 @@ export function TrainingWidget({ locationId }: TrainingWidgetProps) {
         </CardContent>
       </Card>
 
-      {userRole?.canManageTraining && (
-        <TrainingRequestModal 
-          isOpen={isModalOpen}
-          onClose={() => setIsModalOpen(false)}
-          locationId={locationId}
-        />
-      )}
+      <TrainingRequestModal 
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        locationId={locationId}
+      />
     </>
   );
 }

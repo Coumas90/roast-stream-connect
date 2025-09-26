@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
-import { Home, Coffee, LineChart, Package, Users2, GraduationCap, CircleHelp, Settings, Users, Layers, ListChecks, BarChart3, Bean, Warehouse, PanelLeftClose, ChefHat } from "lucide-react";
+import { Home, Coffee, LineChart, Package, Users2, GraduationCap, CircleHelp, Settings, Users, Layers, ListChecks, BarChart3, Bean, Warehouse, PanelLeftClose, ChefHat, ClipboardList } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { NavLink, useLocation } from "react-router-dom";
 import { useDataStore } from "@/lib/data-store";
@@ -76,6 +76,11 @@ export function AppShell({ children, section = "Dashboard", variant = "client" }
       })
     : baseItems;
 
+  // Add Training Management for owners/managers with training enabled
+  const enhancedItems = variant === "client" && flags?.training_enabled && (effectiveRole === 'owner' || effectiveRole === 'manager')
+    ? [...items.slice(0, 5), { icon: ClipboardList, label: "Gestión de Capacitaciones", to: "/app/training-management" }, ...items.slice(5)]
+    : items;
+
   return (
     <SidebarProvider defaultOpen={true}>
       <Sidebar variant="inset" collapsible="icon">
@@ -101,7 +106,7 @@ export function AppShell({ children, section = "Dashboard", variant = "client" }
                     </SidebarMenuItem>
                   ))
                 ) : (
-                  items.map((n) => {
+                  enhancedItems.map((n) => {
                     const isActive = n.exact ? pathname === n.to : pathname.startsWith(n.to);
                     return (
                       <SidebarMenuItem key={n.label}>

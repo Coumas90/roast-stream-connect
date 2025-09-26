@@ -25,6 +25,7 @@ import Stock from "./pages/app/Stock";
 import Replenishment from "./pages/app/Replenishment";
 import MyTeam from "./pages/app/MyTeam";
 import Academy from "./pages/app/Academy";
+import TrainingManagement from "./pages/app/TrainingManagement";
 import Loyalty from "./pages/app/Loyalty";
 import Raffles from "./pages/app/Raffles";
 import AppIntegrations from "./pages/app/settings/Integrations";
@@ -92,6 +93,7 @@ const App = () => (
                     <Route path="replenishment" element={<Replenishment />} />
                     <Route path="my-team" element={<MyTeam />} />
                     <Route path="academy" element={<Academy />} />
+                    <Route path="training-management" element={<TrainingManagement />} />
                     <Route path="loyalty" element={<Loyalty />} />
                     <Route path="raffles" element={<Raffles />} />
                     <Route path="settings/integrations" element={<AppIntegrations />} />

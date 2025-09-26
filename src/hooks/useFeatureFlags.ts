@@ -16,6 +16,7 @@ export type FeatureFlags = Pick<
   | "auto_order_enabled"
   | "pos_connected"
   | "raffles_enabled"
+  | "training_enabled"
 >;
 
 export type FeatureKey = keyof Omit<FeatureFlags, never>;
@@ -30,6 +31,7 @@ const DEFAULT_FLAGS: FeatureFlags = {
   auto_order_enabled: false,
   pos_connected: false,
   raffles_enabled: false,
+  training_enabled: false,
 };
 
 export function useFeatureFlags() {
@@ -56,7 +58,7 @@ export function useFeatureFlags() {
         supabase
           .from("entitlements")
           .select(
-            "loyalty_enabled,mystery_enabled,qa_franchise_enabled,barista_tool_enabled,barista_pool_enabled,academy_enabled,auto_order_enabled,pos_connected,raffles_enabled"
+            "loyalty_enabled,mystery_enabled,qa_franchise_enabled,barista_tool_enabled,barista_pool_enabled,academy_enabled,auto_order_enabled,pos_connected,raffles_enabled,training_enabled"
           )
           .eq("tenant_id", tenantId)
           .eq("location_id", locationId)

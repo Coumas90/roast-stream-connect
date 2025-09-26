@@ -12,6 +12,7 @@ const labels: Record<string, string> = {
   "/app/replenishment": "Reposición",
   "/app/my-team": "Mi Equipo",
   "/app/academy": "Academia",
+  "/app/training-management": "Gestión de Capacitaciones",
   "/app/loyalty": "Loyalty",
   "/app/raffles": "Loterías",
   "/app/settings/integrations": "Integraciones",
@@ -37,6 +38,8 @@ export default function AppLayout() {
       }
     } else if (pathname.startsWith("/app/academy")) {
       if (!flags.academy_enabled) redirect();
+    } else if (pathname.startsWith("/app/training-management")) {
+      if (!flags.training_enabled) redirect();
     } else if (pathname.startsWith("/app/loyalty")) {
       if (!flags.loyalty_enabled) redirect();
     } else if (pathname.startsWith("/app/raffles")) {

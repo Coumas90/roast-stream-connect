@@ -7,6 +7,7 @@ import { useTrainingRequests, useTrainingEnabled } from "@/hooks/useTrainingRequ
 import { TrainingRequestModal } from "./TrainingRequestModal";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
+import { useUserRole } from "@/hooks/useTeam";
 
 interface TrainingWidgetProps {
   locationId: string;
@@ -16,10 +17,14 @@ export function TrainingWidget({ locationId }: TrainingWidgetProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const { data: requests = [], isLoading } = useTrainingRequests(locationId);
   const { data: trainingEnabled = false } = useTrainingEnabled(locationId);
+  const { data: userRole } = useUserRole();
 
   if (!trainingEnabled) {
     return null; // Don't show widget if training is not enabled
   }
+
+  // Only owners and managers can request training
+  const canRequestTraining = userRole === 'owner' || userRole === 'manager';
 
   const nextTraining = requests.find(r => r.status === 'scheduled' && r.scheduled_at);
   const pendingCount = requests.filter(r => r.status === 'pending').length;
@@ -127,14 +132,24 @@ export function TrainingWidget({ locationId }: TrainingWidgetProps) {
             </div>
           )}
 
-          <Button 
-            onClick={() => setIsModalOpen(true)}
-            className="w-full"
-            variant="outline"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Solicitar Capacitación
-          </Button>
+          {canRequestTraining && (
+            <Button 
+              onClick={() => setIsModalOpen(true)}
+              className="w-full"
+              variant="outline"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Solicitar Capacitación
+            </Button>
+          )}
+          
+          {!canRequestTraining && (
+            <div className="text-center py-2 px-3 bg-muted/50 rounded-lg">
+              <div className="text-xs text-muted-foreground">
+                Para solicitar capacitaciones, contacta a tu encargado
+              </div>
+            </div>
+          )}
 
           {requests.length > 0 && (
             <div className="pt-2 border-t border-border/50">
@@ -146,11 +161,13 @@ export function TrainingWidget({ locationId }: TrainingWidgetProps) {
         </CardContent>
       </Card>
 
-      <TrainingRequestModal 
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        locationId={locationId}
-      />
+      {canRequestTraining && (
+        <TrainingRequestModal 
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          locationId={locationId}
+        />
+      )}
     </>
   );
 }

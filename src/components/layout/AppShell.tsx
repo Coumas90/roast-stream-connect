@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
-import { Home, Coffee, LineChart, Package, Users2, GraduationCap, CircleHelp, Settings, Users, Layers, ListChecks, BarChart3, Bean, Warehouse, PanelLeftClose, ChefHat, ClipboardList } from "lucide-react";
+import { Home, Coffee, LineChart, Package, Users2, GraduationCap, CircleHelp, Settings, Users, Layers, ListChecks, BarChart3, Bean, Warehouse, PanelLeftClose, ChefHat, ClipboardList, MessageSquare } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { NavLink, useLocation } from "react-router-dom";
 import { useDataStore } from "@/lib/data-store";
@@ -51,6 +51,7 @@ const adminItems: NavItem[] = [
   { icon: Home, label: "Dashboard", to: "/admin", exact: true },
   { icon: Users, label: "Clientes", to: "/admin/clients" },
   { icon: ChefHat, label: "Recetas", to: "/admin/recipes" },
+  { icon: MessageSquare, label: "Asesorías", to: "/admin/advisory" },
   { icon: Layers, label: "Entitlements", to: "/admin/entitlements" },
   { icon: Settings, label: "Integraciones", to: "/admin/integrations" },
   { icon: ListChecks, label: "Cola de Pedidos", to: "/admin/orders-queue" },

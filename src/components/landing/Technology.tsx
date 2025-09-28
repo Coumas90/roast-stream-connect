@@ -6,37 +6,37 @@ import { BarChart3, TrendingUp, Shield, Zap } from "lucide-react";
 const Technology = () => {
   const benefits = [
     {
-      icon: BarChart3,
-      title: "Dashboard de consumo en tiempo real",
-      description: "Monitoreo continuo de patrones de uso"
-    },
-    {
-      icon: TrendingUp,
-      title: "Predicción inteligente de reposición",
-      description: "Algoritmo que prevé tus necesidades"
-    },
-    {
       icon: Shield,
-      title: "Asesoría personalizada por barista experto",
-      description: "Soporte especializado cuando lo necesites"
+      title: "Soporte personalizado 24/7",
+      description: "Asistencia experta cuando la necesites"
     },
     {
       icon: Zap,
-      title: "Reportes de calidad y satisfacción",
-      description: "Análisis completo de rendimiento"
+      title: "Capacitación y entrenamiento continuo",
+      description: "Formación constante para tu equipo"
+    },
+    {
+      icon: BarChart3,
+      title: "Seguimiento post-venta",
+      description: "Monitoreo de satisfacción y calidad"
+    },
+    {
+      icon: TrendingUp,
+      title: "Asesoría especializada en café",
+      description: "Consultoría de baristas certificados"
     }
   ];
 
   const testimonials = [
     {
-      name: "María González",
-      role: "Café Central",
-      quote: "Reducimos el desperdicio en un 30% desde que usamos TUPÁ"
+      name: "Dani",
+      role: "Togni Café",
+      quote: "El soporte técnico y la capacitación continua nos ayudó a maximizar nuestro café"
     },
     {
-      name: "Carlos Mendoza",
-      role: "Coffee & Co",
-      quote: "La reposición automática me ahorra 10 horas semanales"
+      name: "Vanesa",
+      role: "Chef León",
+      quote: "La asesoría personalizada transformó como servimos café en nuestro restaurante"
     }
   ];
 
@@ -48,15 +48,15 @@ const Technology = () => {
           <div className="space-y-8">
             <div className="space-y-6">
               <h2 className="text-3xl lg:text-5xl font-bold text-foreground">
-                TUPÁ Hub<br />
-                Tecnología que{" "}
-                <span className="text-primary">simplifica.</span>{" "}
-                Datos que{" "}
-                <span className="text-primary">potencian.</span>
+                Servicio postventa{" "}
+                <span className="text-primary">excepcional.</span><br />
+                Soporte que{" "}
+                <span className="text-primary">marca la diferencia.</span>
               </h2>
               <p className="text-xl text-muted-foreground">
-                Nuestra plataforma integrada te da control total: monitoreo de consumo, 
-                reposición automática, insights de rendimiento y asesoría en tiempo real.
+                Nuestro compromiso va más allá de la entrega. Te acompañamos con 
+                capacitación continua, soporte técnico 24/7 y asesoría personalizada para 
+                maximizar tu experiencia de café.
               </p>
             </div>
 

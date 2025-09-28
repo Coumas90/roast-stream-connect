@@ -50,6 +50,8 @@ import ProfilePage from "./pages/app/Profile";
 import ForgotPassword from "./pages/auth/ForgotPassword";
 import ResetPassword from "./pages/auth/ResetPassword";
 import LocationPosDetail from "./pages/app/locations/Pos";
+import Terms from "./pages/Terms";
+import Privacy from "./pages/Privacy";
 
 const queryClient = new QueryClient();
 
@@ -71,6 +73,8 @@ const App = () => (
                 <DataStoreProvider>
                 <Routes>
                   <Route path="/" element={<Index />} />
+                  <Route path="/terms" element={<Terms />} />
+                  <Route path="/privacy" element={<Privacy />} />
 
                   {/* AUTH */}
                   <Route path="/auth/forgot-password" element={<ForgotPassword />} />

@@ -217,8 +217,8 @@ const CTA = () => {
 
                 <p className="text-xs text-muted-foreground text-center">
                   Al enviar este formulario aceptas nuestros{" "}
-                  <a href="#" className="text-primary hover:underline">términos y condiciones</a> y{" "}
-                  <a href="#" className="text-primary hover:underline">política de privacidad</a>.
+                  <a href="/terms" className="text-primary hover:underline">términos y condiciones</a> y{" "}
+                  <a href="/privacy" className="text-primary hover:underline">política de privacidad</a>.
                 </p>
               </form>
             </CardContent>

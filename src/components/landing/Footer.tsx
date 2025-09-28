@@ -127,10 +127,10 @@ const Footer = () => {
               © 2025 TUPÁ Hub. Todos los derechos reservados.
             </p>
             <div className="flex items-center gap-6 text-sm text-muted-foreground">
-              <a href="#privacy" className="hover:text-primary transition-colors">
+              <a href="/privacy" className="hover:text-primary transition-colors">
                 Política de Privacidad
               </a>
-              <a href="#terms" className="hover:text-primary transition-colors">
+              <a href="/terms" className="hover:text-primary transition-colors">
                 Términos de Servicio
               </a>
               <a href="#cookies" className="hover:text-primary transition-colors">

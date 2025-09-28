@@ -27,7 +27,13 @@ const Hero = () => {
                 <a href="#cta">Prueba TUPÁ Gratis</a>
               </Button>
               <Button variant="outline" size="lg" asChild>
-                <a href="#catalogo">Ver Catálogo</a>
+                <a
+                  href="https://wa.me/5491125145969?text=¡Hola! Quiero conocer más sobre TUPÁ y sus productos de café"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Contáctanos Ahora
+                </a>
               </Button>
             </div>
 

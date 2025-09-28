@@ -3,19 +3,19 @@ import { Card, CardContent } from "@/components/ui/card";
 const Testimonials = () => {
   const testimonials = [
     {
-      quote: "Nuestros clientes notan la diferencia. El café TUPÁ elevó completamente la experiencia en nuestro local.",
-      name: "María González",
-      role: "Dueña de Café Central"
+      quote: "TUPÁ transformó completamente la experiencia de café en nuestro local. Nuestros clientes notan la diferencia y el café de calidad superior nos ayudó a diferenciarnos en el mercado.",
+      name: "Dani",
+      role: "Gerente - Togni Café"
     },
     {
-      quote: "El café TUPÁ transformó el ambiente de oficina. Los reportes de consumo nos ayudan a entender mejor las preferencias del equipo y la productividad aumentó notablemente.",
-      name: "Carlos Méndez",
-      role: "Gerente de HR - Tech Corp"
+      quote: "La calidad del café TUPÁ elevó el nivel de nuestro restaurante. Los productos de origen trazable y el soporte técnico nos permitieron crear una experiencia gastronómica única.",
+      name: "Vanesa",
+      role: "Dueña - Chef León"
     },
     {
-      quote: "Los maridajes que nos sugirieron transformaron nuestro menú de postres. Café de autor, literal.",
-      name: "Ana Herrera",
-      role: "Chef Ejecutiva"
+      quote: "Como centro de formación, necesitábamos café de la más alta calidad para nuestros cursos. TUPÁ no solo cumplió nuestras expectativas, sino que superó todos los estándares profesionales.",
+      name: "Ariel Pereyra",
+      role: "Dueño - Centro Argentino de Barismo (CAB)"
     }
   ];
 

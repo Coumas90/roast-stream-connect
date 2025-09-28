@@ -41,7 +41,7 @@ const Header = () => {
 
           {/* Desktop Buttons */}
           <div className="hidden md:flex items-center space-x-4">
-            <Button variant="ghost" asChild>
+            <Button variant="secondary" asChild>
               <a href="/app">Iniciar Sesión</a>
             </Button>
             <Button asChild>
@@ -84,7 +84,7 @@ const Header = () => {
                 Tienda Online
               </a>
               <div className="flex flex-col space-y-2 pt-4">
-                <Button variant="ghost" asChild>
+                <Button variant="secondary" asChild>
                   <a href="/app">Iniciar Sesión</a>
                 </Button>
                 <Button asChild>

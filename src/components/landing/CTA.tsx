@@ -21,10 +21,10 @@ const CTA = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const benefits = [
-    { icon: Coffee, text: "Primer envío gratis" },
-    { icon: Truck, text: "Setup incluido" },
-    { icon: Users, text: "Sin permanencia" },
-    { icon: Check, text: "Probá TUPÁ Gratis" }
+    { icon: Coffee, text: "Muestras gratuitas de café" },
+    { icon: Truck, text: "Entrega sin costo inicial" },
+    { icon: Users, text: "Prueba en tu establecimiento" },
+    { icon: Check, text: "Sin compromiso de compra" }
   ];
 
   const handleSubmit = async (e: React.FormEvent) => {

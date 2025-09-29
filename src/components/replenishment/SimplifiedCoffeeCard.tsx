@@ -180,7 +180,7 @@ export function SimplifiedCoffeeCard({
               <Button
                 variant="default"
                 size="sm"
-                onClick={() => onUpdateQuantity(selectedQuantity + 5)}
+                onClick={() => onUpdateQuantity(5)}
                 className="h-8 text-xs px-2"
               >
                 +5

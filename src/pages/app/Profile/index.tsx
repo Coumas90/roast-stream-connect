@@ -9,6 +9,7 @@ import UserAvatar from "@/components/ui/UserAvatar";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
+import { useQueryClient } from "@tanstack/react-query";
 import { useProfile, useUpdateProfile } from "@/hooks/useProfile";
 import { toast } from "@/components/ui/sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -26,6 +27,7 @@ type FormValues = z.infer<typeof ProfileSchema>;
 export default function ProfilePage() {
   const { profile, email, userId, isLoading } = useProfile();
   const updateProfile = useUpdateProfile(userId);
+  const queryClient = useQueryClient();
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -65,14 +67,43 @@ export default function ProfilePage() {
   const handleUploadAvatar = async () => {
     const file = fileInputRef.current?.files?.[0];
     if (!file || !userId) return;
+    
     const ext = file.name.split(".").pop() || "jpg";
     const path = `${userId}.${ext}`;
-    const { error } = await supabase.storage.from("avatars").upload(path, file, { upsert: true, contentType: file.type });
-    if (error) {
-      toast("Upload pendiente de configuración (bucket/columna no disponible)");
-      return;
+    
+    try {
+      const { error } = await supabase.storage
+        .from("avatars")
+        .upload(path, file, { upsert: true, contentType: file.type });
+      
+      if (error) {
+        toast("Error al subir imagen: " + error.message);
+        return;
+      }
+      
+      // Obtener la URL pública del archivo subido
+      const { data: { publicUrl } } = supabase.storage
+        .from("avatars")
+        .getPublicUrl(path);
+      
+      // Actualizar el perfil con la nueva URL del avatar
+      const { error: updateError } = await supabase
+        .from("profiles")
+        .update({ avatar_url: publicUrl })
+        .eq("id", userId);
+      
+      if (updateError) {
+        toast("Error al actualizar perfil: " + updateError.message);
+        return;
+      }
+      
+      toast("Avatar actualizado exitosamente");
+      // Invalidar las queries para refrescar el perfil
+      await queryClient.invalidateQueries({ queryKey: ["profile", userId] });
+      setPreviewUrl(null); // Limpiar preview
+    } catch (error) {
+      toast("Error inesperado al subir avatar");
     }
-    toast("Avatar subido (guarda la URL en perfil cuando esté disponible)");
   };
 
   const handleChangePassword = async () => {
@@ -149,7 +180,7 @@ export default function ProfilePage() {
 
             <TabsContent value="perfil" className="space-y-6">
               <div className="flex items-center gap-4">
-                <UserAvatar fullName={profile?.full_name ?? undefined} email={email ?? undefined} src={previewUrl ?? undefined} />
+                <UserAvatar fullName={profile?.full_name ?? undefined} email={email ?? undefined} src={previewUrl ?? profile?.avatar_url ?? undefined} />
                 <div className="flex items-center gap-2">
                   <Button variant="secondary" onClick={handlePickImage}>Seleccionar avatar</Button>
                   <Button variant="outline" onClick={handleUploadAvatar}>Subir</Button>

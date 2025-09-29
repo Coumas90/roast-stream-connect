@@ -6,8 +6,8 @@ export type ProfileRow = {
   id: string;
   full_name: string | null;
   phone: string | null;
+  avatar_url: string | null;
   default_tenant_id?: string | null;
-  // avatar_url is intentionally omitted from update since it may not exist in schema
 };
 
 async function fetchAuthUser() {
@@ -19,7 +19,7 @@ async function fetchAuthUser() {
 async function fetchProfile(userId: string) {
   const { data, error } = await supabase
     .from("profiles")
-    .select("id, full_name, phone, default_tenant_id")
+    .select("id, full_name, phone, avatar_url, default_tenant_id")
     .eq("id", userId)
     .maybeSingle();
   if (error) throw error;

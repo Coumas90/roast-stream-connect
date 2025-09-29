@@ -180,7 +180,11 @@ export function SimplifiedCoffeeCard({
               <Button
                 variant="default"
                 size="sm"
-                onClick={() => onUpdateQuantity(5)}
+                onClick={() => {
+                  console.log("Botón +5 clickeado, cantidad actual:", selectedQuantity);
+                  onUpdateQuantity(5);
+                  console.log("onUpdateQuantity llamado con:", 5);
+                }}
                 className="h-8 text-xs px-2"
               >
                 +5

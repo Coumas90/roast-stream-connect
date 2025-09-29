@@ -121,12 +121,30 @@ export function EnhancedCoffeeSelectorV2({
       return;
     }
     
-    const updatedItems = selectedGroundItems.map(item =>
-      item.coffee_variety_id === varietyId
-        ? { ...item, quantity_kg: newQuantity }
-        : item
-    );
-    onGroundItemsChange(updatedItems);
+    const existingItem = selectedGroundItems.find(item => item.coffee_variety_id === varietyId);
+    
+    if (existingItem) {
+      // Update existing item
+      const updatedItems = selectedGroundItems.map(item =>
+        item.coffee_variety_id === varietyId
+          ? { ...item, quantity_kg: newQuantity }
+          : item
+      );
+      onGroundItemsChange(updatedItems);
+    } else {
+      // Create new item if it doesn't exist
+      const variety = coffeeVarieties?.find(v => v.id === varietyId);
+      if (variety) {
+        const newItem: GroundCoffeeOrderItem = {
+          coffee_variety_id: varietyId,
+          quantity_kg: newQuantity,
+          variety_name: variety.name,
+          category: variety.category,
+          price_per_kg: variety.price_per_kg,
+        };
+        onGroundItemsChange([...selectedGroundItems, newItem]);
+      }
+    }
   };
 
   const removeGroundItem = (varietyId: string) => {
@@ -164,12 +182,32 @@ export function EnhancedCoffeeSelectorV2({
       return;
     }
     
-    const updatedItems = selectedProductItems.map(item =>
-      item.coffee_product_id === productId
-        ? { ...item, quantity_units: newQuantity }
-        : item
-    );
-    onProductItemsChange(updatedItems);
+    const existingItem = selectedProductItems.find(item => item.coffee_product_id === productId);
+    
+    if (existingItem) {
+      // Update existing item
+      const updatedItems = selectedProductItems.map(item =>
+        item.coffee_product_id === productId
+          ? { ...item, quantity_units: newQuantity }
+          : item
+      );
+      onProductItemsChange(updatedItems);
+    } else {
+      // Create new item if it doesn't exist
+      const variety = coffeeProducts?.find(v => v.id === productId);
+      if (variety) {
+        const newItem: ProductOrderItem = {
+          coffee_product_id: productId,
+          quantity_units: newQuantity,
+          product_name: variety.name,
+          weight_grams: 250, // Default cuartito weight
+          product_type: variety.category === 'tupa' ? 'cuartito' : 'other',
+          price_per_unit: variety.price_per_kg ? variety.price_per_kg * 0.25 : undefined, // Estimate price for 250g
+          sku: variety.name.toLowerCase().replace(/\s+/g, '-'),
+        };
+        onProductItemsChange([...selectedProductItems, newItem]);
+      }
+    }
   };
 
   const removeProductItem = (productId: string) => {

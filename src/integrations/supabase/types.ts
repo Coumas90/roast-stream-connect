@@ -1577,6 +1577,79 @@ export type Database = {
           },
         ]
       }
+      recurring_orders: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          day_of_week: number | null
+          delivery_type: string | null
+          enabled: boolean
+          frequency: string
+          id: string
+          items: Json
+          last_order_date: string | null
+          location_id: string
+          next_order_date: string | null
+          notes: string | null
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          day_of_week?: number | null
+          delivery_type?: string | null
+          enabled?: boolean
+          frequency?: string
+          id?: string
+          items?: Json
+          last_order_date?: string | null
+          location_id: string
+          next_order_date?: string | null
+          notes?: string | null
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          day_of_week?: number | null
+          delivery_type?: string | null
+          enabled?: boolean
+          frequency?: string
+          id?: string
+          items?: Json
+          last_order_date?: string | null
+          location_id?: string
+          next_order_date?: string | null
+          notes?: string | null
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_recurring_orders_location"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_recurring_orders_location"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_recurring_orders_tenant"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       rotation_cb: {
         Row: {
           created_at: string

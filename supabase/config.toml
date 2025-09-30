@@ -1,5 +1,8 @@
 project_id = "ipjidjijilhpblxrnaeg"
 
+[functions.recurring-order-processor]
+verify_jwt = false
+
 [functions.validate-credentials]
 verify_jwt = true
 

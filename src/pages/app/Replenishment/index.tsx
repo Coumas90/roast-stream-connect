@@ -19,6 +19,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
 import { useTenant } from "@/lib/tenant";
+import { AutoOrderToggle } from "@/components/replenishment/AutoOrderToggle";
 import { 
   Coffee, 
   Package, 
@@ -47,6 +48,7 @@ export default function ReplenishmentPage() {
   const { isAuthenticated } = useAuth();
   const { toast } = useToast();
   const { location, locationId } = useTenant();
+  const [tenantId, setTenantId] = useState<string>('');
   const [loading, setLoading] = useState(false);
   const [orders, setOrders] = useState<OrderProposal[]>([]);
   
@@ -75,8 +77,26 @@ export default function ReplenishmentPage() {
   useEffect(() => {
     if (locationId) {
       loadOrders();
+      loadTenantId();
     }
   }, [locationId]);
+
+  const loadTenantId = async () => {
+    if (!locationId) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('locations')
+        .select('tenant_id')
+        .eq('id', locationId)
+        .single();
+
+      if (error) throw error;
+      setTenantId(data.tenant_id);
+    } catch (error) {
+      console.error('Error loading tenant ID:', error);
+    }
+  };
 
   const loadOrders = async () => {
     if (!locationId) return;
@@ -327,6 +347,14 @@ export default function ReplenishmentPage() {
 
         {locationId ? (
           <>
+            {/* Automatic Orders Toggle */}
+            {tenantId && (
+              <AutoOrderToggle 
+                locationId={locationId} 
+                tenantId={tenantId} 
+              />
+            )}
+
             {/* Main Content - New Layout with Cart */}
             <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
               {/* Coffee Selection - 2 columns */}
@@ -478,11 +506,17 @@ export default function ReplenishmentPage() {
                           <TableCell>
                             {order.coffee_variety || "N/A"}
                           </TableCell>
-                          <TableCell>
-                            <Badge variant={order.source === "ai" ? "default" : "secondary"}>
-                              {order.source === "ai" ? "IA" : "Manual"}
-                            </Badge>
-                          </TableCell>
+                           <TableCell>
+                             <Badge variant={
+                               order.source === "ai" ? "default" : 
+                               order.source === "recurring" ? "outline" :
+                               "secondary"
+                             }>
+                               {order.source === "ai" ? "IA" : 
+                                order.source === "recurring" ? "Automático" :
+                                "Manual"}
+                             </Badge>
+                           </TableCell>
                           <TableCell>{getStatusBadge(order.status)}</TableCell>
                           <TableCell>
                             {order.delivery_type || "Estándar"}

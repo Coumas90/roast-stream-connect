@@ -10,6 +10,7 @@ import { Save, Calendar, Package, Settings } from 'lucide-react';
 import { EnhancedCoffeeSelectorV2, GroundCoffeeOrderItem, ProductOrderItem } from './EnhancedCoffeeSelectorV2';
 import { useUpdateRecurringOrder, RecurringOrder } from '@/hooks/useRecurringOrders';
 import { addDays, format, startOfWeek } from 'date-fns';
+import { es } from 'date-fns/locale';
 
 interface AutoOrderConfigModalProps {
   isOpen: boolean;
@@ -218,7 +219,7 @@ export function AutoOrderConfigModal({
                     <div className="p-4 bg-muted rounded-lg">
                       <h4 className="font-medium mb-2">Vista previa del próximo pedido:</h4>
                       <p className="text-sm text-muted-foreground">
-                        {format(calculateNextOrderDate(frequency, dayOfWeek), 'EEEE, dd/MM/yyyy', { locale: require('date-fns/locale/es') })}
+                        {format(calculateNextOrderDate(frequency, dayOfWeek), 'EEEE, dd/MM/yyyy', { locale: es })}
                       </p>
                     </div>
                   </CardContent>

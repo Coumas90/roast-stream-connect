@@ -103,7 +103,7 @@ export function CalibrationHistoryPanel({ entries, approvedEntryId }: Calibratio
               <div className="grid grid-cols-4 gap-2 text-xs">
                 <div>
                   <div className="text-muted-foreground text-[10px] mb-0.5">Dosis</div>
-                  <div className="font-semibold text-xs">{entry.dose_g}g</div>
+                  <div className="font-semibold text-xs">{entry.dose_g.toFixed(1)}g</div>
                   {previousEntry && (
                     <div className="mt-0.5">
                       {renderDelta(getDelta(entry.dose_g, previousEntry.dose_g), "g")}
@@ -113,7 +113,7 @@ export function CalibrationHistoryPanel({ entries, approvedEntryId }: Calibratio
 
                 <div>
                   <div className="text-muted-foreground text-[10px] mb-0.5">Ratio</div>
-                  <div className="font-semibold text-xs">{entry.ratio_calc?.toFixed(2) || "-"}</div>
+                  <div className="font-semibold text-xs">{entry.ratio_calc?.toFixed(1) || "-"}</div>
                   {previousEntry && previousEntry.ratio_calc && entry.ratio_calc && (
                     <div className="mt-0.5">
                       {renderDelta(getDelta(entry.ratio_calc, previousEntry.ratio_calc))}

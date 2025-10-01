@@ -3,7 +3,7 @@ import { Helmet } from "react-helmet-async";
 import { Button } from "@/components/ui/button";
 import { Download, Plus, Settings, Search, BarChart, Calculator, History, FileText, Activity } from "lucide-react";
 import { RecipeTabNavigation, type RecipeTab } from "@/components/recipes/RecipeTabNavigation";
-import { CalibrationWizard } from "@/components/app/calibration/wizard/CalibrationWizard";
+import { CalibrationPanel } from "@/components/app/calibration/CalibrationPanel";
 import { CalibrationHistory } from "@/components/app/calibration/CalibrationHistory";
 import { CalibrationTemplates } from "@/components/app/calibration/CalibrationTemplates";
 import { TelemetryTab } from "@/components/app/calibration/TelemetryTab";
@@ -420,7 +420,7 @@ export default function Recipes() {
           }}
         />
 
-        <CalibrationWizard
+        <CalibrationPanel
           open={isCalibrationOpen}
           onOpenChange={setIsCalibrationOpen}
           locationId={profile?.id}

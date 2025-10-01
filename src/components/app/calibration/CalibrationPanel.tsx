@@ -13,11 +13,17 @@ import { CalibrationHistoryPanel } from "./CalibrationHistoryPanel";
 import { useActiveRecipes } from "@/hooks/useActiveRecipes";
 import { useGrinders } from "@/hooks/useGrinders";
 import { useCalibrationSettings } from "@/hooks/useCalibrationSettings";
-import { useTodayApprovedEntry, useTodayCalibrations, useCreateCalibrationEntry, useApproveCalibrationEntry } from "@/hooks/useCalibrationEntries";
+import { useTodayApprovedEntry, useTodayCalibrations, useCreateCalibrationEntry } from "@/hooks/useCalibrationEntries";
 import { useProfile } from "@/hooks/useProfile";
 import { useDebounce } from "@/hooks/useDebounce";
 import { calculateRatio, evaluateSemaphore } from "@/lib/calibration-utils";
 import { useToast } from "@/hooks/use-toast";
+import { useCalibrationValidation, detectDrasticChanges } from "@/hooks/useCalibrationValidation";
+import { useCalibrationApproval } from "@/hooks/useCalibrationApproval";
+import { ShiftValidator } from "./ShiftValidator";
+import { CalibrationConfirmModal } from "./CalibrationConfirmModal";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AlertTriangle, Info } from "lucide-react";
 
 interface CalibrationPanelProps {
   open: boolean;
@@ -50,10 +56,11 @@ export function CalibrationPanel({ open, onOpenChange, locationId: propLocationI
   const [grindPoints, setGrindPoints] = useState(3.5);
   const [notesTags, setNotesTags] = useState<string[]>([]);
   const [notesText, setNotesText] = useState("");
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
 
   // Mutations
   const createEntry = useCreateCalibrationEntry();
-  const approveEntry = useApproveCalibrationEntry();
+  const { handleApproval, isApproving, approvalStep } = useCalibrationApproval();
 
   // Get calibrations for today
   const { data: approvedEntry } = useTodayApprovedEntry(undefined, selectedRecipeId, turno);
@@ -113,16 +120,36 @@ export function CalibrationPanel({ open, onOpenChange, locationId: propLocationI
   ];
 
   const handleApprove = async () => {
-    if (!selectedRecipeId || !profile?.id) return;
+    if (!selectedRecipeId || !profile?.id) {
+      toast({
+        title: "Error",
+        description: "Debes seleccionar una receta y un turno",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Show confirmation modal for replacements or drastic changes
+    if (approvedEntry || drasticChanges.length > 0) {
+      setShowConfirmModal(true);
+      return;
+    }
+
+    // Direct approval if no confirmation needed
+    await executeApproval();
+  };
+
+  const executeApproval = async () => {
+    if (!profile?.id) return;
 
     const previousGrindPoints = approvedEntry?.grind_points;
     const clicksDelta = previousGrindPoints !== undefined 
-      ? Math.round((grindPoints - previousGrindPoints) * 1) // Default clicks per point
+      ? Math.round((grindPoints - previousGrindPoints) * 1)
       : 0;
 
     const entryData = {
       recipe_id: selectedRecipeId,
-      coffee_profile_id: null, // Migrating away from coffee_profiles
+      coffee_profile_id: null,
       barista_id: profile.id,
       turno,
       dose_g: doseG,
@@ -136,38 +163,19 @@ export function CalibrationPanel({ open, onOpenChange, locationId: propLocationI
       notes_tags: notesTags,
       notes_text: notesText || null,
       suggestion_shown: "",
-      approved: false, // Explicitly create as not approved
     };
 
     try {
-      // Step 1: Create new entry as NOT approved
-      const result = await createEntry.mutateAsync(entryData);
-
-      // Step 2: De-approve the old entry if it exists
-      if (approvedEntry?.id) {
-        const { error: unapproveError } = await supabase
-          .from("calibration_entries")
-          .update({ approved: false, approved_at: null, approved_by: null })
-          .eq("id", approvedEntry.id);
-        
-        if (unapproveError) throw unapproveError;
-      }
-
-      // Step 3: Approve the new entry
-      await approveEntry.mutateAsync(result.id);
-
-      toast({
-        title: "¡Calibración aprobada! ✓",
-        description: "La calibración se guardó exitosamente",
+      await handleApproval({
+        entryData,
+        existingApprovedId: approvedEntry?.id,
+        onSuccess: () => {
+          onOpenChange(false);
+          setShowConfirmModal(false);
+        },
       });
-
-      onOpenChange(false);
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "No se pudo guardar la calibración",
-        variant: "destructive",
-      });
+      setShowConfirmModal(false);
     }
   };
 
@@ -199,7 +207,24 @@ export function CalibrationPanel({ open, onOpenChange, locationId: propLocationI
     }
   };
 
-  const isValid = semaphore?.overallStatus !== "error" && doseG > 0 && yieldValue > 0 && timeS > 0;
+  // Validation using the custom hook
+  const validation = useCalibrationValidation({
+    doseG,
+    yieldValue,
+    timeS,
+    turno,
+    selectedRecipeId,
+    semaphoreStatus: semaphore?.overallStatus,
+  });
+
+  // Detect drastic changes from previous calibration
+  const drasticChanges = useMemo(() => {
+    if (!approvedEntry) return [];
+    return detectDrasticChanges(
+      { doseG, yieldValue, timeS, tempC },
+      approvedEntry
+    );
+  }, [approvedEntry, doseG, yieldValue, timeS, tempC]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -212,6 +237,49 @@ export function CalibrationPanel({ open, onOpenChange, locationId: propLocationI
               <h2 className="text-xl font-bold">Calibración Diaria</h2>
               <p className="text-sm text-muted-foreground">Selecciona el café y turno</p>
             </div>
+
+            {/* Validation Errors */}
+            {validation.errors.length > 0 && (
+              <Alert variant="destructive">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertDescription>
+                  <ul className="list-disc list-inside space-y-1 text-sm">
+                    {validation.errors.map((error, idx) => (
+                      <li key={idx}>{error}</li>
+                    ))}
+                  </ul>
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {/* Validation Warnings */}
+            {validation.warnings.length > 0 && (
+              <Alert variant="default" className="bg-amber-50 dark:bg-amber-950 border-amber-200 dark:border-amber-800">
+                <Info className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                <AlertDescription className="text-amber-800 dark:text-amber-200">
+                  <ul className="list-disc list-inside space-y-1 text-sm">
+                    {validation.warnings.map((warning, idx) => (
+                      <li key={idx}>{warning}</li>
+                    ))}
+                  </ul>
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {/* Drastic Changes Warning */}
+            {drasticChanges.length > 0 && (
+              <Alert variant="default" className="bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800">
+                <Info className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                <AlertDescription className="text-blue-800 dark:text-blue-200">
+                  <p className="font-semibold mb-1 text-sm">Cambios significativos:</p>
+                  <ul className="list-disc list-inside space-y-1 text-xs">
+                    {drasticChanges.map((change, idx) => (
+                      <li key={idx}>{change}</li>
+                    ))}
+                  </ul>
+                </AlertDescription>
+              </Alert>
+            )}
 
             <Separator />
 
@@ -226,11 +294,13 @@ export function CalibrationPanel({ open, onOpenChange, locationId: propLocationI
                     size="sm"
                     className="capitalize"
                     onClick={() => setTurno(shift)}
+                    disabled={isApproving || createEntry.isPending}
                   >
                     {shift}
                   </Button>
                 ))}
               </div>
+              <ShiftValidator turno={turno} />
             </div>
 
             {/* Recipe Cards */}
@@ -260,7 +330,11 @@ export function CalibrationPanel({ open, onOpenChange, locationId: propLocationI
                           ? "border-primary bg-primary/5"
                           : "hover:border-primary/50"
                       )}
-                      onClick={() => setSelectedRecipeId(recipe.id)}
+                      onClick={() => {
+                        if (!isApproving && !createEntry.isPending) {
+                          setSelectedRecipeId(recipe.id);
+                        }
+                      }}
                     >
                       <div className="flex items-center gap-3">
                         <Coffee className="w-5 h-5 text-primary" />
@@ -306,9 +380,13 @@ export function CalibrationPanel({ open, onOpenChange, locationId: propLocationI
                       setNotesTags(approvedEntry.notes_tags || []);
                       setNotesText(approvedEntry.notes_text || "");
                     }}
+                    disabled={isApproving || createEntry.isPending}
                   >
-                    Ajustar
+                    Ajustar y Reemplazar
                   </Button>
+                  <p className="text-[10px] text-green-600 dark:text-green-400 mt-1 text-center">
+                    Al aprobar, reemplazarás esta calibración
+                  </p>
                 </div>
               </Card>
             )}
@@ -532,7 +610,7 @@ export function CalibrationPanel({ open, onOpenChange, locationId: propLocationI
               
               <Button
                 onClick={handleApprove}
-                disabled={!isValid || !selectedRecipeId || createEntry.isPending}
+                disabled={!validation.isValid || !selectedRecipeId || createEntry.isPending || isApproving}
                 className="h-14 text-base font-semibold"
                 size="lg"
               >
@@ -548,6 +626,17 @@ export function CalibrationPanel({ open, onOpenChange, locationId: propLocationI
             </div>
           </div>
         </div>
+
+        {/* Confirmation Modal */}
+        <CalibrationConfirmModal
+          open={showConfirmModal}
+          onOpenChange={setShowConfirmModal}
+          onConfirm={executeApproval}
+          currentParams={{ doseG, yieldValue, timeS, tempC, grindPoints }}
+          previousParams={approvedEntry}
+          drasticChanges={drasticChanges}
+          isReplacement={!!approvedEntry}
+        />
       </DialogContent>
     </Dialog>
   );

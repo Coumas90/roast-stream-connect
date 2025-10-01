@@ -34,7 +34,7 @@ export function useActiveRecipes(locationId?: string) {
         `)
         .eq("method", "espresso")
         .eq("is_active", true)
-        .in("status", ["published", "draft"])
+        .in("status", ["published", "draft", "active"])
         .order("name");
 
       // Filter by location or tenant

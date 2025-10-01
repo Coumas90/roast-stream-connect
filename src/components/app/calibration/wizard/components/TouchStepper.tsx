@@ -96,7 +96,6 @@ export function TouchStepper({
           "touch-manipulation transition-all",
           isHoldingMinus && "scale-95 bg-muted"
         )}
-        onClick={handleDecrement}
         onMouseDown={() => startHold("minus")}
         onMouseUp={stopHold}
         onMouseLeave={stopHold}
@@ -121,7 +120,6 @@ export function TouchStepper({
           "touch-manipulation transition-all",
           isHoldingPlus && "scale-95 bg-muted"
         )}
-        onClick={handleIncrement}
         onMouseDown={() => startHold("plus")}
         onMouseUp={stopHold}
         onMouseLeave={stopHold}

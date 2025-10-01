@@ -384,9 +384,6 @@ export function CalibrationPanel({ open, onOpenChange, locationId: propLocationI
                   >
                     Ajustar y Reemplazar
                   </Button>
-                  <p className="text-[10px] text-green-600 dark:text-green-400 mt-1 text-center">
-                    Al aprobar, reemplazarás esta calibración
-                  </p>
                 </div>
               </Card>
             )}

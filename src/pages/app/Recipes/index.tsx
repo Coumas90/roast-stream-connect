@@ -1,8 +1,10 @@
 import React, { useState, useMemo } from "react";
 import { Helmet } from "react-helmet-async";
 import { Button } from "@/components/ui/button";
-import { Download, Plus, Settings, Search, BarChart } from "lucide-react";
+import { Download, Plus, Settings, Search, BarChart, Calculator } from "lucide-react";
 import { RecipeTabNavigation, type RecipeTab } from "@/components/recipes/RecipeTabNavigation";
+import { CalibrationCalculator } from "@/components/app/calibration/CalibrationCalculator";
+import { useProfile } from "@/hooks/useProfile";
 import { RecipeFilters, type RecipeFilters as RecipeFiltersType } from "@/components/recipes/RecipeFilters";
 import { RecipeCard } from "@/components/recipes/RecipeCard";
 import { RecipeHeroSection } from "@/components/recipes/RecipeHeroSection";
@@ -31,9 +33,12 @@ export default function Recipes() {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const [isCalibrationOpen, setIsCalibrationOpen] = useState(false);
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
   const [editingRecipe, setEditingRecipe] = useState<Recipe | null>(null);
   const [mainActiveTab, setMainActiveTab] = useState("recipes");
+
+  const { profile } = useProfile();
 
   // Fetch recipes data
   const { data: allRecipes = [], isLoading } = useRecipes(filters);
@@ -186,6 +191,14 @@ export default function Recipes() {
             </div>
             
             <div className="flex items-center gap-2">
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => setIsCalibrationOpen(true)}
+              >
+                <Calculator className="w-4 h-4 mr-2" />
+                Calibración
+              </Button>
               <Button variant="outline" size="sm">
                 <Settings className="w-4 h-4 mr-2" />
                 Settings
@@ -375,6 +388,12 @@ export default function Recipes() {
             }
             setIsShareModalOpen(false);
           }}
+        />
+
+        <CalibrationCalculator
+          open={isCalibrationOpen}
+          onOpenChange={setIsCalibrationOpen}
+          locationId={profile?.id || undefined}
         />
       </div>
     </>

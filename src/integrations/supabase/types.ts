@@ -136,6 +136,119 @@ export type Database = {
         }
         Relationships: []
       }
+      calibration_entries: {
+        Row: {
+          approved: boolean
+          approved_at: string | null
+          approved_by: string | null
+          barista_id: string
+          coffee_profile_id: string
+          created_at: string
+          created_by: string | null
+          dose_g: number
+          fecha: string
+          grind_label: string | null
+          grind_points: number
+          grinder_clicks_delta: number | null
+          id: string
+          is_override: boolean | null
+          notes_tags: string[] | null
+          notes_text: string | null
+          ratio_calc: number | null
+          suggestion_shown: string | null
+          temp_c: number
+          time_s: number
+          turno: string
+          updated_at: string
+          yield_unit: string
+          yield_value: number
+        }
+        Insert: {
+          approved?: boolean
+          approved_at?: string | null
+          approved_by?: string | null
+          barista_id: string
+          coffee_profile_id: string
+          created_at?: string
+          created_by?: string | null
+          dose_g: number
+          fecha?: string
+          grind_label?: string | null
+          grind_points: number
+          grinder_clicks_delta?: number | null
+          id?: string
+          is_override?: boolean | null
+          notes_tags?: string[] | null
+          notes_text?: string | null
+          ratio_calc?: number | null
+          suggestion_shown?: string | null
+          temp_c: number
+          time_s: number
+          turno: string
+          updated_at?: string
+          yield_unit?: string
+          yield_value: number
+        }
+        Update: {
+          approved?: boolean
+          approved_at?: string | null
+          approved_by?: string | null
+          barista_id?: string
+          coffee_profile_id?: string
+          created_at?: string
+          created_by?: string | null
+          dose_g?: number
+          fecha?: string
+          grind_label?: string | null
+          grind_points?: number
+          grinder_clicks_delta?: number | null
+          id?: string
+          is_override?: boolean | null
+          notes_tags?: string[] | null
+          notes_text?: string | null
+          ratio_calc?: number | null
+          suggestion_shown?: string | null
+          temp_c?: number
+          time_s?: number
+          turno?: string
+          updated_at?: string
+          yield_unit?: string
+          yield_value?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "calibration_entries_coffee_profile_id_fkey"
+            columns: ["coffee_profile_id"]
+            isOneToOne: false
+            referencedRelation: "coffee_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      calibration_settings: {
+        Row: {
+          description: string | null
+          key: string
+          updated_at: string
+          updated_by: string | null
+          value: Json
+        }
+        Insert: {
+          description?: string | null
+          key: string
+          updated_at?: string
+          updated_by?: string | null
+          value: Json
+        }
+        Update: {
+          description?: string | null
+          key?: string
+          updated_at?: string
+          updated_by?: string | null
+          value?: Json
+        }
+        Relationships: []
+      }
       chaos_scenarios: {
         Row: {
           configuration: Json
@@ -278,6 +391,104 @@ export type Database = {
           violations?: Json[] | null
         }
         Relationships: []
+      }
+      coffee_profiles: {
+        Row: {
+          active: boolean
+          brew_method: string
+          created_at: string
+          grinder_id: string | null
+          humidity_hint: boolean | null
+          id: string
+          location_id: string
+          lote: string | null
+          name: string
+          target_dose_g: number
+          target_ratio_max: number
+          target_ratio_min: number
+          target_temp_c: number
+          target_time_max: number
+          target_time_min: number
+          target_yield_unit: string
+          tenant_id: string
+          tueste: string | null
+          updated_at: string
+          water_profile_id: string | null
+        }
+        Insert: {
+          active?: boolean
+          brew_method: string
+          created_at?: string
+          grinder_id?: string | null
+          humidity_hint?: boolean | null
+          id?: string
+          location_id: string
+          lote?: string | null
+          name: string
+          target_dose_g?: number
+          target_ratio_max?: number
+          target_ratio_min?: number
+          target_temp_c?: number
+          target_time_max?: number
+          target_time_min?: number
+          target_yield_unit?: string
+          tenant_id: string
+          tueste?: string | null
+          updated_at?: string
+          water_profile_id?: string | null
+        }
+        Update: {
+          active?: boolean
+          brew_method?: string
+          created_at?: string
+          grinder_id?: string | null
+          humidity_hint?: boolean | null
+          id?: string
+          location_id?: string
+          lote?: string | null
+          name?: string
+          target_dose_g?: number
+          target_ratio_max?: number
+          target_ratio_min?: number
+          target_temp_c?: number
+          target_time_max?: number
+          target_time_min?: number
+          target_yield_unit?: string
+          tenant_id?: string
+          tueste?: string | null
+          updated_at?: string
+          water_profile_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coffee_profiles_grinder_id_fkey"
+            columns: ["grinder_id"]
+            isOneToOne: false
+            referencedRelation: "grinders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "coffee_profiles_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "coffee_profiles_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "coffee_profiles_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       coffee_varieties: {
         Row: {
@@ -505,6 +716,57 @@ export type Database = {
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      grinders: {
+        Row: {
+          active: boolean
+          clicks_per_point: number
+          created_at: string
+          id: string
+          location_id: string
+          model: string | null
+          name: string
+          notes: string | null
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          clicks_per_point?: number
+          created_at?: string
+          id?: string
+          location_id: string
+          model?: string | null
+          name: string
+          notes?: string | null
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          clicks_per_point?: number
+          created_at?: string
+          id?: string
+          location_id?: string
+          model?: string | null
+          name?: string
+          notes?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "grinders_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "grinders_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations_public"
             referencedColumns: ["id"]
           },
         ]
@@ -2161,6 +2423,15 @@ export type Database = {
         }
         Returns: undefined
       }
+      calculate_brew_ratio: {
+        Args: {
+          p_density?: number
+          p_dose_g: number
+          p_yield_unit: string
+          p_yield_value: number
+        }
+        Returns: number
+      }
       calculate_pos_mttr_7d: {
         Args: Record<PropertyKey, never>
         Returns: {
@@ -2306,6 +2577,18 @@ export type Database = {
       get_auth_status: {
         Args: Record<PropertyKey, never>
         Returns: Json
+      }
+      get_calibration_suggestion: {
+        Args: {
+          p_notes_tags: string[]
+          p_ratio: number
+          p_target_ratio_max: number
+          p_target_ratio_min: number
+          p_target_time_max: number
+          p_target_time_min: number
+          p_time_s: number
+        }
+        Returns: string
       }
       get_fudo_credentials_expiring: {
         Args:

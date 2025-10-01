@@ -83,7 +83,7 @@ export function TouchStepper({
     };
   }, []);
 
-  const decimals = step < 1 ? 1 : 0;
+  const decimals = unit === "s" ? 0 : (step < 1 ? 1 : 0);
 
   return (
     <div className="flex items-center justify-center gap-4">

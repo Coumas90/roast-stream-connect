@@ -5,12 +5,22 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Save, Copy, RotateCcw, CheckCircle, Plus, Minus } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Save, Copy, RotateCcw, CheckCircle, Plus, Minus, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useDebounce } from "@/hooks/useDebounce";
 import { useCoffeeProfiles } from "@/hooks/useCoffeeProfiles";
 import { useCalibrationEntries, useCreateCalibrationEntry, useUpdateCalibrationEntry, useApproveCalibrationEntry, useTodayApprovedEntry } from "@/hooks/useCalibrationEntries";
 import { useCalibrationSettings } from "@/hooks/useCalibrationSettings";
 import { useProfile } from "@/hooks/useProfile";
+import {
+  calculateRatio,
+  validateCalibration,
+  evaluateSemaphore,
+  generateSuggestions,
+  formatGrindDelta,
+  calculateClicksDelta,
+} from "@/lib/calibration-utils";
 
 interface CalibrationCalculatorProps {
   open: boolean;
@@ -39,6 +49,13 @@ export function CalibrationCalculator({ open, onOpenChange, locationId }: Calibr
   const [notesTags, setNotesTags] = useState<string[]>([]);
   const [notesText, setNotesText] = useState("");
   const [currentEntryId, setCurrentEntryId] = useState<string | null>(null);
+  const [previousGrindPoints, setPreviousGrindPoints] = useState<number | undefined>(undefined);
+
+  // Debounced values for calculations (200ms)
+  const debouncedDoseG = useDebounce(doseG, 200);
+  const debouncedYieldValue = useDebounce(yieldValue, 200);
+  const debouncedTimeS = useDebounce(timeS, 200);
+  const debouncedGrindPoints = useDebounce(grindPoints, 200);
 
   const selectedProfile = useMemo(
     () => coffeeProfiles.find((p) => p.id === selectedProfileId),
@@ -51,70 +68,78 @@ export function CalibrationCalculator({ open, onOpenChange, locationId }: Calibr
   const updateEntry = useUpdateCalibrationEntry();
   const approveEntry = useApproveCalibrationEntry();
 
-  // Calculate ratio with density conversion
-  const ratio = useMemo(() => {
-    if (doseG <= 0) return 0;
-    const density = settings?.density_conversion || 0.98;
-    const yieldG = yieldUnit === "ml" ? yieldValue * density : yieldValue;
-    return Number((yieldG / doseG).toFixed(2));
-  }, [doseG, yieldValue, yieldUnit, settings]);
+  // Load previous grind points from approved entry
+  useEffect(() => {
+    if (approvedEntry) {
+      setPreviousGrindPoints(approvedEntry.grind_points);
+    }
+  }, [approvedEntry]);
 
-  // Semaphore status
+  // Calculate ratio with density conversion (debounced)
+  const ratio = useMemo(() => {
+    const density = settings?.density_conversion || 0.98;
+    return calculateRatio(debouncedYieldValue, yieldUnit, debouncedDoseG, density);
+  }, [debouncedDoseG, debouncedYieldValue, yieldUnit, settings]);
+
+  // Validations
+  const validation = useMemo(() => {
+    const maxGrindDelta = settings?.max_grind_delta || 1.5;
+    const grindDelta = previousGrindPoints !== undefined ? debouncedGrindPoints - previousGrindPoints : 0;
+    return validateCalibration(debouncedDoseG, debouncedYieldValue, debouncedTimeS, grindDelta, maxGrindDelta);
+  }, [debouncedDoseG, debouncedYieldValue, debouncedTimeS, debouncedGrindPoints, previousGrindPoints, settings]);
+
+  // Semaphore status and suggestions (debounced)
   const { timeStatus, ratioStatus, overallStatus, suggestion } = useMemo(() => {
     if (!selectedProfile) {
-      return { timeStatus: "neutral", ratioStatus: "neutral", overallStatus: "neutral", suggestion: "" };
+      return { 
+        timeStatus: "good" as const, 
+        ratioStatus: "good" as const, 
+        overallStatus: "good" as const, 
+        suggestion: "" 
+      };
     }
 
     const { target_time_min, target_time_max, target_ratio_min, target_ratio_max } = selectedProfile;
 
-    // Time status
-    let timeStatus: "good" | "warning" | "error" = "good";
-    if (timeS < target_time_min || timeS > target_time_max) {
-      timeStatus = "error";
-    }
+    // Evaluate semaphore
+    const semaphore = evaluateSemaphore({
+      timeS: debouncedTimeS,
+      ratio,
+      targetTimeMin: target_time_min,
+      targetTimeMax: target_time_max,
+      targetRatioMin: target_ratio_min,
+      targetRatioMax: target_ratio_max,
+    });
 
-    // Ratio status
-    let ratioStatus: "good" | "warning" | "error" = "good";
-    if (ratio < target_ratio_min || ratio > target_ratio_max) {
-      ratioStatus = "warning";
-    }
+    // Generate intelligent suggestions
+    const grindDelta = previousGrindPoints !== undefined ? debouncedGrindPoints - previousGrindPoints : 0;
+    const suggestionText = generateSuggestions({
+      timeS: debouncedTimeS,
+      ratio,
+      targetTimeMin: target_time_min,
+      targetTimeMax: target_time_max,
+      targetRatioMin: target_ratio_min,
+      targetRatioMax: target_ratio_max,
+      notesTags,
+      grindDelta,
+      maxGrindDelta: settings?.max_grind_delta || 1.5,
+    });
 
-    // Overall status
-    let overallStatus: "good" | "warning" | "error" = "good";
-    if (timeStatus === "error") {
-      overallStatus = "error";
-    } else if (ratioStatus === "warning") {
-      overallStatus = "warning";
-    }
+    return { ...semaphore, suggestion: suggestionText };
+  }, [selectedProfile, debouncedTimeS, ratio, notesTags, debouncedGrindPoints, previousGrindPoints, settings]);
 
-    // Generate suggestion
-    let suggestionText = "";
-    if (timeS < target_time_min) {
-      suggestionText += "Cerrar molienda (0.3-0.5 puntos) o aumentar dosis (+0.2g). ";
-    } else if (timeS > target_time_max) {
-      suggestionText += "Abrir molienda (0.3-0.5 puntos) o reducir dosis (-0.2g). ";
-    }
+  // Calculate grind delta display
+  const grindDeltaDisplay = useMemo(() => {
+    return formatGrindDelta(grindPoints, previousGrindPoints);
+  }, [grindPoints, previousGrindPoints]);
 
-    if (ratio < target_ratio_min) {
-      suggestionText += "Ratio bajo: aumentar rendimiento. ";
-    } else if (ratio > target_ratio_max) {
-      suggestionText += "Ratio alto: reducir rendimiento. ";
-    }
-
-    if (notesTags.includes("ácido") || notesTags.includes("sub-extraído")) {
-      suggestionText += "Cerrar molienda y/o aumentar tiempo. ";
-    }
-
-    if (notesTags.includes("amargo") || notesTags.includes("sobre-extraído")) {
-      suggestionText += "Abrir molienda y/o reducir temperatura (-1°C). ";
-    }
-
-    if (!suggestionText) {
-      suggestionText = "✓ Parámetros dentro del rango objetivo";
-    }
-
-    return { timeStatus, ratioStatus, overallStatus, suggestion: suggestionText };
-  }, [selectedProfile, timeS, ratio, notesTags]);
+  const clicksDelta = useMemo(() => {
+    const grinder = selectedProfile?.grinders;
+    const clicksPerPoint = grinder && typeof grinder === 'object' && 'clicks_per_point' in grinder 
+      ? (grinder as any).clicks_per_point 
+      : 1;
+    return calculateClicksDelta(grindPoints, previousGrindPoints, clicksPerPoint);
+  }, [grindPoints, previousGrindPoints, selectedProfile]);
 
   // Stepper component
   const Stepper = ({ 
@@ -171,6 +196,11 @@ export function CalibrationCalculator({ open, onOpenChange, locationId }: Calibr
   const handleSave = async () => {
     if (!selectedProfileId || !profile?.id) return;
 
+    // Validate before saving
+    if (!validation.isValid) {
+      return;
+    }
+
     const entryData = {
       coffee_profile_id: selectedProfileId,
       barista_id: profile.id,
@@ -182,7 +212,7 @@ export function CalibrationCalculator({ open, onOpenChange, locationId }: Calibr
       temp_c: tempC,
       grind_points: grindPoints,
       grind_label: grindLabel || null,
-      grinder_clicks_delta: 0,
+      grinder_clicks_delta: clicksDelta,
       notes_tags: notesTags,
       notes_text: notesText || null,
       suggestion_shown: suggestion,
@@ -193,11 +223,14 @@ export function CalibrationCalculator({ open, onOpenChange, locationId }: Calibr
     } else {
       const result = await createEntry.mutateAsync(entryData);
       setCurrentEntryId(result.id);
+      // Update previous grind points after saving
+      setPreviousGrindPoints(grindPoints);
     }
   };
 
   const handleDuplicate = () => {
     setCurrentEntryId(null);
+    // Keep current values but reset entry ID to create a new one
   };
 
   const handleRevert = () => {
@@ -215,6 +248,11 @@ export function CalibrationCalculator({ open, onOpenChange, locationId }: Calibr
   };
 
   const handleApprove = async () => {
+    // Validate before approving
+    if (!validation.isValid) {
+      return;
+    }
+
     if (!currentEntryId) {
       await handleSave();
     }
@@ -288,6 +326,33 @@ export function CalibrationCalculator({ open, onOpenChange, locationId }: Calibr
 
         {/* Main Content */}
         <div className="p-6 space-y-6">
+          {/* Validation Errors */}
+          {validation.errors.length > 0 && (
+            <Alert variant="destructive">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription>
+                <ul className="list-disc pl-4 space-y-1">
+                  {validation.errors.map((error, i) => (
+                    <li key={i}>{error}</li>
+                  ))}
+                </ul>
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {/* Validation Warnings */}
+          {validation.warnings.length > 0 && (
+            <Alert>
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription>
+                <ul className="list-disc pl-4 space-y-1">
+                  {validation.warnings.map((warning, i) => (
+                    <li key={i}>{warning}</li>
+                  ))}
+                </ul>
+              </AlertDescription>
+            </Alert>
+          )}
           {/* Steppers Grid */}
           <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
             <Stepper
@@ -339,13 +404,20 @@ export function CalibrationCalculator({ open, onOpenChange, locationId }: Calibr
               size="large"
             />
 
-            <Stepper
-              label="Molienda"
-              value={grindPoints}
-              onChange={setGrindPoints}
-              step={settings?.default_steps.grind_points || 0.5}
-              size="large"
-            />
+            <div className="space-y-2">
+              <Stepper
+                label="Molienda"
+                value={grindPoints}
+                onChange={setGrindPoints}
+                step={settings?.default_steps.grind_points || 0.5}
+                size="large"
+              />
+              {grindDeltaDisplay && (
+                <div className="text-xs text-center text-muted-foreground">
+                  {grindDeltaDisplay} {clicksDelta !== 0 && `(~${clicksDelta} clicks)`}
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Preview with Semaphore */}
@@ -425,11 +497,11 @@ export function CalibrationCalculator({ open, onOpenChange, locationId }: Calibr
 
         {/* Fixed Footer */}
         <div className="sticky bottom-0 bg-background border-t p-6 flex gap-3">
-          <Button onClick={handleSave} disabled={!selectedProfileId}>
+          <Button onClick={handleSave} disabled={!selectedProfileId || !validation.isValid}>
             <Save className="w-4 h-4 mr-2" />
             Guardar
           </Button>
-          <Button variant="outline" onClick={handleDuplicate}>
+          <Button variant="outline" onClick={handleDuplicate} disabled={!currentEntryId}>
             <Copy className="w-4 h-4 mr-2" />
             Duplicar
           </Button>
@@ -437,7 +509,11 @@ export function CalibrationCalculator({ open, onOpenChange, locationId }: Calibr
             <RotateCcw className="w-4 h-4 mr-2" />
             Revertir
           </Button>
-          <Button variant="default" onClick={handleApprove} disabled={!selectedProfileId}>
+          <Button 
+            variant="default" 
+            onClick={handleApprove} 
+            disabled={!selectedProfileId || !validation.isValid || overallStatus === "error"}
+          >
             <CheckCircle className="w-4 h-4 mr-2" />
             Aprobar
           </Button>

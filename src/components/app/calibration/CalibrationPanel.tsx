@@ -44,14 +44,14 @@ export function CalibrationPanel({ open, onOpenChange, locationId: propLocationI
         .eq("user_id", profile.id)
         .not("location_id", "is", null)
         .limit(1)
-        .single();
+        .maybeSingle();
       
       if (error) {
         console.error("Error fetching user location:", error);
         return null;
       }
       
-      return data?.location_id;
+      return data?.location_id || null;
     },
     enabled: !!profile?.id && !propLocationId,
   });

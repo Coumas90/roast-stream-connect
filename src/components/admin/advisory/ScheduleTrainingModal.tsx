@@ -34,7 +34,7 @@ import { TrainingRequest } from "@/hooks/useTrainingRequests";
 
 const scheduleSchema = z.object({
   scheduled_at: z.date({
-    required_error: "La fecha de programación es requerida.",
+    message: "La fecha de programación es requerida.",
   }),
   notes: z.string().optional(),
 });

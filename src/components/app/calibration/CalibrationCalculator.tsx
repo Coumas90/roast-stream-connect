@@ -9,6 +9,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Save, Copy, RotateCcw, CheckCircle, Plus, Minus, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { OfflineSyncStatus } from "./OfflineSyncStatus";
+import { CalibrationGuide } from "./CalibrationGuide";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useCoffeeProfiles } from "@/hooks/useCoffeeProfiles";
 import { useCalibrationEntries, useCreateCalibrationEntry, useUpdateCalibrationEntry, useApproveCalibrationEntry, useTodayApprovedEntry } from "@/hooks/useCalibrationEntries";
@@ -39,6 +40,12 @@ export function CalibrationCalculator({ open, onOpenChange, locationId }: Calibr
   const { data: settings } = useCalibrationSettings();
   const { isOnline, saveDraft, loadLatestDraft, enableAutoSave, cacheProfile } = useOfflineCalibration();
 
+  // Telemetry session tracking
+  const [sessionRef] = useState(() => {
+    // Import CalibrationSession dynamically to avoid circular deps
+    return { current: null as any };
+  });
+
   // Form state
   const [selectedProfileId, setSelectedProfileId] = useState<string>("");
   const [turno, setTurno] = useState<Turno>("mañana");
@@ -58,6 +65,7 @@ export function CalibrationCalculator({ open, onOpenChange, locationId }: Calibr
   const debouncedDoseG = useDebounce(doseG, 200);
   const debouncedYieldValue = useDebounce(yieldValue, 200);
   const debouncedTimeS = useDebounce(timeS, 200);
+  const debouncedTempC = useDebounce(tempC, 200);
   const debouncedGrindPoints = useDebounce(grindPoints, 200);
 
   const selectedProfile = useMemo(
@@ -411,6 +419,22 @@ export function CalibrationCalculator({ open, onOpenChange, locationId }: Calibr
               </AlertDescription>
             </Alert>
           )}
+          
+          {/* Calibration Guide */}
+          {selectedProfile && (
+            <CalibrationGuide
+              targetProfile={selectedProfile}
+              currentValues={{
+                dose_g: debouncedDoseG,
+                ratio,
+                time_s: debouncedTimeS,
+                temp_c: tempC,
+                grind_points: grindPoints,
+              }}
+              semaphoreStatus={overallStatus === 'good' ? 'success' : overallStatus === 'warning' ? 'warning' : 'error'}
+            />
+          )}
+          
           {/* Steppers Grid */}
           <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
             <Stepper

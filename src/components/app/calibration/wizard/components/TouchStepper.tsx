@@ -25,6 +25,7 @@ export function TouchStepper({
   const [isHoldingMinus, setIsHoldingMinus] = useState(false);
   const [isHoldingPlus, setIsHoldingPlus] = useState(false);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const buttonSize = size === "large" ? "h-14 w-14" : "h-10 w-10";
   const fontSize = size === "large" ? "text-3xl" : "text-xl";
@@ -39,20 +40,32 @@ export function TouchStepper({
   };
 
   const startHold = (direction: "plus" | "minus") => {
+    const action = direction === "plus" ? handleIncrement : handleDecrement;
+    
     if (direction === "plus") {
       setIsHoldingPlus(true);
-      handleIncrement();
-      intervalRef.current = setInterval(handleIncrement, 150);
     } else {
       setIsHoldingMinus(true);
-      handleDecrement();
-      intervalRef.current = setInterval(handleDecrement, 150);
     }
+    
+    // Primera ejecución inmediata al presionar
+    action();
+    
+    // Esperar 500ms antes de comenzar el auto-repeat
+    timeoutRef.current = setTimeout(() => {
+      intervalRef.current = setInterval(action, 200);
+    }, 500);
   };
 
   const stopHold = () => {
     setIsHoldingPlus(false);
     setIsHoldingMinus(false);
+    
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
+    
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
       intervalRef.current = null;
@@ -61,6 +74,9 @@ export function TouchStepper({
 
   useEffect(() => {
     return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
       }

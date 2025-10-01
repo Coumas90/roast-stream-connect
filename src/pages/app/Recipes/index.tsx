@@ -1,9 +1,11 @@
 import React, { useState, useMemo } from "react";
 import { Helmet } from "react-helmet-async";
 import { Button } from "@/components/ui/button";
-import { Download, Plus, Settings, Search, BarChart, Calculator } from "lucide-react";
+import { Download, Plus, Settings, Search, BarChart, Calculator, History, FileText } from "lucide-react";
 import { RecipeTabNavigation, type RecipeTab } from "@/components/recipes/RecipeTabNavigation";
 import { CalibrationCalculator } from "@/components/app/calibration/CalibrationCalculator";
+import { CalibrationHistory } from "@/components/app/calibration/CalibrationHistory";
+import { CalibrationTemplates } from "@/components/app/calibration/CalibrationTemplates";
 import { useProfile } from "@/hooks/useProfile";
 import { RecipeFilters, type RecipeFilters as RecipeFiltersType } from "@/components/recipes/RecipeFilters";
 import { RecipeCard } from "@/components/recipes/RecipeCard";
@@ -219,7 +221,7 @@ export default function Recipes() {
 
           {/* Main Content Tabs */}
           <Tabs value={mainActiveTab} onValueChange={setMainActiveTab} className="space-y-6">
-            <TabsList className="grid w-full grid-cols-4">
+            <TabsList className="grid w-full grid-cols-6">
               <TabsTrigger value="recipes">Recipes</TabsTrigger>
               <TabsTrigger value="analytics">
                 <BarChart className="w-4 h-4 mr-2" />
@@ -230,6 +232,14 @@ export default function Recipes() {
                 Advanced Search
               </TabsTrigger>
               <TabsTrigger value="discover">Discover</TabsTrigger>
+              <TabsTrigger value="historial">
+                <History className="w-4 h-4 mr-2" />
+                Historial
+              </TabsTrigger>
+              <TabsTrigger value="plantillas">
+                <FileText className="w-4 h-4 mr-2" />
+                Plantillas
+              </TabsTrigger>
             </TabsList>
 
             <TabsContent value="recipes" className="space-y-6">
@@ -319,6 +329,17 @@ export default function Recipes() {
                   setSelectedRecipe(recipe);
                   setIsDetailModalOpen(true);
                 }}
+              />
+            </TabsContent>
+
+            <TabsContent value="historial">
+              <CalibrationHistory locationId={profile?.id} />
+            </TabsContent>
+
+            <TabsContent value="plantillas">
+              <CalibrationTemplates 
+                locationId={profile?.id}
+                tenantId={profile?.default_tenant_id || undefined}
               />
             </TabsContent>
           </Tabs>

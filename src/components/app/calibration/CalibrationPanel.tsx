@@ -139,6 +139,15 @@ export function CalibrationPanel({ open, onOpenChange, locationId: propLocationI
     };
 
     try {
+      // Si ya existe una calibración aprobada, primero la desaprobamos
+      if (approvedEntry?.id) {
+        await supabase
+          .from("calibration_entries")
+          .update({ approved: false, approved_at: null, approved_by: null })
+          .eq("id", approvedEntry.id);
+      }
+
+      // Crear y aprobar la nueva calibración
       const result = await createEntry.mutateAsync(entryData);
       await approveEntry.mutateAsync(result.id);
 

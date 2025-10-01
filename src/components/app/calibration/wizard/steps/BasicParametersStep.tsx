@@ -148,7 +148,7 @@ export function BasicParametersStep({
           <TouchStepper
             value={state.timeS}
             onChange={(v) => updateState({ timeS: v })}
-            step={settings?.default_steps.time_s || 1}
+            step={settings?.default_steps.time_s || 0.5}
             min={15}
             max={60}
             unit="s"

@@ -51,10 +51,10 @@ export function TouchStepper({
     // Primera ejecución inmediata al presionar
     action();
     
-    // Esperar 500ms antes de comenzar el auto-repeat
+    // Esperar 800ms antes de comenzar el auto-repeat (más tiempo para evitar dobles incrementos)
     timeoutRef.current = setTimeout(() => {
-      intervalRef.current = setInterval(action, 200);
-    }, 500);
+      intervalRef.current = setInterval(action, 300);
+    }, 800);
   };
 
   const stopHold = () => {

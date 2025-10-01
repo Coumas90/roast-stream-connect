@@ -358,7 +358,7 @@ export function CalibrationPanel({ open, onOpenChange, locationId: propLocationI
                 <TouchStepper
                   value={doseG}
                   onChange={setDoseG}
-                  step={0.5}
+                  step={settings?.default_steps.dose_g || 0.1}
                   min={10}
                   max={30}
                   unit="g"
@@ -404,7 +404,7 @@ export function CalibrationPanel({ open, onOpenChange, locationId: propLocationI
                 <TouchStepper
                   value={timeS}
                   onChange={setTimeS}
-                  step={1}
+                  step={settings?.default_steps.time_s || 0.5}
                   min={15}
                   max={60}
                   unit="s"
@@ -421,7 +421,7 @@ export function CalibrationPanel({ open, onOpenChange, locationId: propLocationI
                 <TouchStepper
                   value={tempC}
                   onChange={setTempC}
-                  step={1}
+                  step={settings?.default_steps.temp_c || 0.5}
                   min={85}
                   max={98}
                   unit="°C"
@@ -438,7 +438,7 @@ export function CalibrationPanel({ open, onOpenChange, locationId: propLocationI
                 <TouchStepper
                   value={grindPoints}
                   onChange={setGrindPoints}
-                  step={0.5}
+                  step={settings?.default_steps.grind_points || 0.1}
                   min={0}
                   max={10}
                   size="large"

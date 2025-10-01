@@ -65,7 +65,7 @@ export function FineAdjustmentsStep({
           <TouchStepper
             value={state.tempC}
             onChange={(v) => updateState({ tempC: v })}
-            step={settings?.default_steps.temp_c || 1}
+            step={settings?.default_steps.temp_c || 0.5}
             min={85}
             max={98}
             unit="°C"
@@ -82,7 +82,7 @@ export function FineAdjustmentsStep({
           <TouchStepper
             value={state.grindPoints}
             onChange={(v) => updateState({ grindPoints: v })}
-            step={settings?.default_steps.grind_points || 0.5}
+            step={settings?.default_steps.grind_points || 0.1}
             min={0}
             max={10}
             size="large"

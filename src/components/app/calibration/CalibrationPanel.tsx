@@ -10,7 +10,7 @@ import { CheckCircle, Coffee, Clock, Thermometer, Gauge, StickyNote, History, Ch
 import { cn } from "@/lib/utils";
 import { TouchStepper } from "./wizard/components/TouchStepper";
 import { CalibrationHistoryPanel } from "./CalibrationHistoryPanel";
-import { useCoffeeProfiles } from "@/hooks/useCoffeeProfiles";
+import { useActiveRecipes } from "@/hooks/useActiveRecipes";
 import { useGrinders } from "@/hooks/useGrinders";
 import { useCalibrationSettings } from "@/hooks/useCalibrationSettings";
 import { useTodayApprovedEntry, useTodayCalibrations, useCreateCalibrationEntry, useApproveCalibrationEntry } from "@/hooks/useCalibrationEntries";
@@ -59,12 +59,12 @@ export function CalibrationPanel({ open, onOpenChange, locationId: propLocationI
   const locationId = propLocationId || userLocation;
   
   // Data fetching
-  const { data: coffeeProfiles = [] } = useCoffeeProfiles(locationId);
+  const { data: activeRecipes = [], isLoading: recipesLoading } = useActiveRecipes(locationId);
   const { data: grinders = [] } = useGrinders(locationId);
   const { data: settings } = useCalibrationSettings();
 
   // State
-  const [selectedProfileId, setSelectedProfileId] = useState<string>("");
+  const [selectedRecipeId, setSelectedRecipeId] = useState<string>("");
   const [turno, setTurno] = useState<Turno>("mañana");
   const [doseG, setDoseG] = useState(18);
   const [yieldValue, setYieldValue] = useState(36);
@@ -80,8 +80,8 @@ export function CalibrationPanel({ open, onOpenChange, locationId: propLocationI
   const approveEntry = useApproveCalibrationEntry();
 
   // Get calibrations for today
-  const { data: approvedEntry } = useTodayApprovedEntry(selectedProfileId, turno);
-  const { data: todayCalibrations = [] } = useTodayCalibrations(selectedProfileId, turno);
+  const { data: approvedEntry } = useTodayApprovedEntry(undefined, selectedRecipeId, turno);
+  const { data: todayCalibrations = [] } = useTodayCalibrations(undefined, selectedRecipeId, turno);
 
   // Debounced values
   const debouncedDoseG = useDebounce(doseG, 200);
@@ -96,16 +96,16 @@ export function CalibrationPanel({ open, onOpenChange, locationId: propLocationI
     else setTurno("noche");
   }, []);
 
-  // Auto-select first profile
+  // Auto-select first recipe
   useEffect(() => {
-    if (coffeeProfiles.length > 0 && !selectedProfileId) {
-      setSelectedProfileId(coffeeProfiles[0].id);
+    if (activeRecipes.length > 0 && !selectedRecipeId) {
+      setSelectedRecipeId(activeRecipes[0].id);
     }
-  }, [coffeeProfiles, selectedProfileId]);
+  }, [activeRecipes, selectedRecipeId]);
 
-  const selectedProfile = useMemo(
-    () => coffeeProfiles.find((p) => p.id === selectedProfileId),
-    [coffeeProfiles, selectedProfileId]
+  const selectedRecipe = useMemo(
+    () => activeRecipes.find((r) => r.id === selectedRecipeId),
+    [activeRecipes, selectedRecipeId]
   );
 
   // Calculate ratio
@@ -116,16 +116,16 @@ export function CalibrationPanel({ open, onOpenChange, locationId: propLocationI
 
   // Semaphore status
   const semaphore = useMemo(() => {
-    if (!selectedProfile) return null;
+    if (!selectedRecipe) return null;
     return evaluateSemaphore({
       timeS: debouncedTimeS,
       ratio,
-      targetTimeMin: selectedProfile.target_time_min,
-      targetTimeMax: selectedProfile.target_time_max,
-      targetRatioMin: selectedProfile.target_ratio_min,
-      targetRatioMax: selectedProfile.target_ratio_max,
+      targetTimeMin: selectedRecipe.target_time_min,
+      targetTimeMax: selectedRecipe.target_time_max,
+      targetRatioMin: selectedRecipe.target_ratio_min,
+      targetRatioMax: selectedRecipe.target_ratio_max,
     });
-  }, [selectedProfile, debouncedTimeS, ratio]);
+  }, [selectedRecipe, debouncedTimeS, ratio]);
 
   const quickNotes = settings?.quick_notes_chips || [
     "equilibrado",
@@ -137,21 +137,16 @@ export function CalibrationPanel({ open, onOpenChange, locationId: propLocationI
   ];
 
   const handleApprove = async () => {
-    if (!selectedProfileId || !profile?.id) return;
+    if (!selectedRecipeId || !profile?.id) return;
 
-    const grinder = selectedProfile?.grinders;
-    const clicksPerPoint =
-      grinder && typeof grinder === "object" && "clicks_per_point" in grinder
-        ? (grinder as any).clicks_per_point
-        : 1;
     const previousGrindPoints = approvedEntry?.grind_points;
-    const clicksDelta =
-      previousGrindPoints !== undefined
-        ? Math.round((grindPoints - previousGrindPoints) * clicksPerPoint)
-        : 0;
+    const clicksDelta = previousGrindPoints !== undefined 
+      ? Math.round((grindPoints - previousGrindPoints) * 1) // Default clicks per point
+      : 0;
 
     const entryData = {
-      coffee_profile_id: selectedProfileId,
+      recipe_id: selectedRecipeId,
+      coffee_profile_id: null, // Migrating away from coffee_profiles
       barista_id: profile.id,
       turno,
       dose_g: doseG,
@@ -248,37 +243,49 @@ export function CalibrationPanel({ open, onOpenChange, locationId: propLocationI
               </div>
             </div>
 
-            {/* Coffee Cards */}
+            {/* Recipe Cards */}
             <div className="space-y-2">
-              <label className="text-sm font-semibold">Café</label>
+              <label className="text-sm font-semibold">Receta Madre</label>
               <div className="space-y-2">
-                {coffeeProfiles.length === 0 ? (
+                {recipesLoading ? (
                   <Card className="p-4 text-center text-sm text-muted-foreground">
-                    No hay perfiles de café configurados
+                    Cargando recetas...
+                  </Card>
+                ) : activeRecipes.length === 0 ? (
+                  <Card className="p-4 text-center space-y-2">
+                    <p className="text-sm text-muted-foreground">
+                      No hay recetas activas configuradas
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Contacta al administrador para activar recetas de espresso
+                    </p>
                   </Card>
                 ) : (
-                  coffeeProfiles.map((profile) => (
+                  activeRecipes.map((recipe) => (
                     <Card
-                      key={profile.id}
+                      key={recipe.id}
                       className={cn(
                         "p-4 cursor-pointer transition-all hover-scale",
-                        selectedProfileId === profile.id
+                        selectedRecipeId === recipe.id
                           ? "border-primary bg-primary/5"
                           : "hover:border-primary/50"
                       )}
-                      onClick={() => setSelectedProfileId(profile.id)}
+                      onClick={() => setSelectedRecipeId(recipe.id)}
                     >
                       <div className="flex items-center gap-3">
                         <Coffee className="w-5 h-5 text-primary" />
                         <div className="flex-1">
-                          <div className="font-semibold">{profile.name}</div>
-                          {profile.lote && (
-                            <div className="text-xs text-muted-foreground">
-                              Lote: {profile.lote}
+                          <div className="font-semibold">{recipe.name}</div>
+                          <div className="text-xs text-muted-foreground">
+                            {recipe.coffee_name}
+                          </div>
+                          {recipe.coffee_origin && (
+                            <div className="text-xs text-muted-foreground/70">
+                              {recipe.coffee_origin}
                             </div>
                           )}
                         </div>
-                        {selectedProfileId === profile.id && (
+                        {selectedRecipeId === recipe.id && (
                           <CheckCircle className="w-5 h-5 text-primary" />
                         )}
                       </div>
@@ -487,21 +494,16 @@ export function CalibrationPanel({ open, onOpenChange, locationId: propLocationI
               <Button
                 variant="outline"
                 onClick={async () => {
-                  if (!selectedProfileId || !profile?.id) return;
+                  if (!selectedRecipeId || !profile?.id) return;
 
-                  const grinder = selectedProfile?.grinders;
-                  const clicksPerPoint =
-                    grinder && typeof grinder === "object" && "clicks_per_point" in grinder
-                      ? (grinder as any).clicks_per_point
-                      : 1;
                   const previousGrindPoints = approvedEntry?.grind_points;
-                  const clicksDelta =
-                    previousGrindPoints !== undefined
-                      ? Math.round((grindPoints - previousGrindPoints) * clicksPerPoint)
-                      : 0;
+                  const clicksDelta = previousGrindPoints !== undefined 
+                    ? Math.round((grindPoints - previousGrindPoints) * 1)
+                    : 0;
 
                   const entryData = {
-                    coffee_profile_id: selectedProfileId,
+                    recipe_id: selectedRecipeId,
+                    coffee_profile_id: null,
                     barista_id: profile.id,
                     turno,
                     dose_g: doseG,
@@ -531,7 +533,7 @@ export function CalibrationPanel({ open, onOpenChange, locationId: propLocationI
                     });
                   }
                 }}
-                disabled={!selectedProfileId || createEntry.isPending}
+                disabled={!selectedRecipeId || createEntry.isPending}
                 className="h-14 text-base font-semibold"
                 size="lg"
               >
@@ -540,7 +542,7 @@ export function CalibrationPanel({ open, onOpenChange, locationId: propLocationI
               
               <Button
                 onClick={handleApprove}
-                disabled={!isValid || !selectedProfileId || createEntry.isPending}
+                disabled={!isValid || !selectedRecipeId || createEntry.isPending}
                 className="h-14 text-base font-semibold"
                 size="lg"
               >

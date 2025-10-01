@@ -7,9 +7,9 @@ type CalibrationEntry = ConsumptionAugmentedDatabase["public"]["Tables"]["calibr
 type CalibrationEntryInsert = ConsumptionAugmentedDatabase["public"]["Tables"]["calibration_entries"]["Insert"];
 type CalibrationEntryUpdate = ConsumptionAugmentedDatabase["public"]["Tables"]["calibration_entries"]["Update"];
 
-export function useCalibrationEntries(coffeeProfileId?: string, fecha?: string) {
+export function useCalibrationEntries(coffeeProfileId?: string, recipeId?: string, fecha?: string) {
   return useQuery({
-    queryKey: ["calibration-entries", coffeeProfileId, fecha],
+    queryKey: ["calibration-entries", coffeeProfileId, recipeId, fecha],
     queryFn: async () => {
       let query = supabase
         .from("calibration_entries")
@@ -18,6 +18,10 @@ export function useCalibrationEntries(coffeeProfileId?: string, fecha?: string) 
 
       if (coffeeProfileId) {
         query = query.eq("coffee_profile_id", coffeeProfileId);
+      }
+
+      if (recipeId) {
+        query = query.eq("recipe_id", recipeId);
       }
 
       if (fecha) {
@@ -29,54 +33,67 @@ export function useCalibrationEntries(coffeeProfileId?: string, fecha?: string) 
       if (error) throw error;
       return data as CalibrationEntry[];
     },
-    enabled: !!coffeeProfileId,
+    enabled: !!(coffeeProfileId || recipeId),
   });
 }
 
-export function useTodayCalibrations(coffeeProfileId?: string, turno?: string) {
+export function useTodayCalibrations(coffeeProfileId?: string, recipeId?: string, turno?: string) {
   const today = new Date().toISOString().split('T')[0];
   
   return useQuery({
-    queryKey: ["calibration-today-all", coffeeProfileId, turno, today],
+    queryKey: ["calibration-today-all", coffeeProfileId, recipeId, turno, today],
     queryFn: async () => {
-      if (!coffeeProfileId || !turno) return [];
+      if ((!coffeeProfileId && !recipeId) || !turno) return [];
 
-      const { data, error } = await supabase
+      let query = supabase
         .from("calibration_entries")
         .select("*")
-        .eq("coffee_profile_id", coffeeProfileId)
         .eq("fecha", today)
         .eq("turno", turno)
         .order("created_at", { ascending: false });
 
+      if (coffeeProfileId) {
+        query = query.eq("coffee_profile_id", coffeeProfileId);
+      } else if (recipeId) {
+        query = query.eq("recipe_id", recipeId);
+      }
+
+      const { data, error } = await query;
+
       if (error) throw error;
       return data as CalibrationEntry[];
     },
-    enabled: !!coffeeProfileId && !!turno,
+    enabled: !!(coffeeProfileId || recipeId) && !!turno,
   });
 }
 
-export function useTodayApprovedEntry(coffeeProfileId?: string, turno?: string) {
+export function useTodayApprovedEntry(coffeeProfileId?: string, recipeId?: string, turno?: string) {
   const today = new Date().toISOString().split('T')[0];
   
   return useQuery({
-    queryKey: ["calibration-approved-today", coffeeProfileId, turno, today],
+    queryKey: ["calibration-approved-today", coffeeProfileId, recipeId, turno, today],
     queryFn: async () => {
-      if (!coffeeProfileId || !turno) return null;
+      if ((!coffeeProfileId && !recipeId) || !turno) return null;
 
-      const { data, error } = await supabase
+      let query = supabase
         .from("calibration_entries")
         .select("*")
-        .eq("coffee_profile_id", coffeeProfileId)
         .eq("fecha", today)
         .eq("turno", turno)
-        .eq("approved", true)
-        .maybeSingle();
+        .eq("approved", true);
+
+      if (coffeeProfileId) {
+        query = query.eq("coffee_profile_id", coffeeProfileId);
+      } else if (recipeId) {
+        query = query.eq("recipe_id", recipeId);
+      }
+
+      const { data, error } = await query.maybeSingle();
 
       if (error) throw error;
       return data as CalibrationEntry | null;
     },
-    enabled: !!coffeeProfileId && !!turno,
+    enabled: !!(coffeeProfileId || recipeId) && !!turno,
   });
 }
 

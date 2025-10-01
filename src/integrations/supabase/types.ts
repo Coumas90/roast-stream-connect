@@ -142,7 +142,7 @@ export type Database = {
           approved_at: string | null
           approved_by: string | null
           barista_id: string
-          coffee_profile_id: string
+          coffee_profile_id: string | null
           created_at: string
           created_by: string | null
           dose_g: number
@@ -155,6 +155,7 @@ export type Database = {
           notes_tags: string[] | null
           notes_text: string | null
           ratio_calc: number | null
+          recipe_id: string | null
           suggestion_shown: string | null
           temp_c: number
           time_s: number
@@ -168,7 +169,7 @@ export type Database = {
           approved_at?: string | null
           approved_by?: string | null
           barista_id: string
-          coffee_profile_id: string
+          coffee_profile_id?: string | null
           created_at?: string
           created_by?: string | null
           dose_g: number
@@ -181,6 +182,7 @@ export type Database = {
           notes_tags?: string[] | null
           notes_text?: string | null
           ratio_calc?: number | null
+          recipe_id?: string | null
           suggestion_shown?: string | null
           temp_c: number
           time_s: number
@@ -194,7 +196,7 @@ export type Database = {
           approved_at?: string | null
           approved_by?: string | null
           barista_id?: string
-          coffee_profile_id?: string
+          coffee_profile_id?: string | null
           created_at?: string
           created_by?: string | null
           dose_g?: number
@@ -207,6 +209,7 @@ export type Database = {
           notes_tags?: string[] | null
           notes_text?: string | null
           ratio_calc?: number | null
+          recipe_id?: string | null
           suggestion_shown?: string | null
           temp_c?: number
           time_s?: number
@@ -221,6 +224,13 @@ export type Database = {
             columns: ["coffee_profile_id"]
             isOneToOne: false
             referencedRelation: "coffee_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "calibration_entries_recipe_id_fkey"
+            columns: ["recipe_id"]
+            isOneToOne: false
+            referencedRelation: "recipes"
             referencedColumns: ["id"]
           },
         ]

@@ -1,0 +1,53 @@
+{
+  "name": "TUPÁ Hub - Calibración Café",
+  "short_name": "TUPÁ Hub",
+  "description": "Plataforma de calibración y gestión de café para baristas",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#8B4513",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/placeholder.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/placeholder.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["food", "productivity", "business"],
+  "screenshots": [],
+  "shortcuts": [
+    {
+      "name": "Nueva Calibración",
+      "short_name": "Calibrar",
+      "description": "Crear nueva entrada de calibración",
+      "url": "/app/recipes?calibration=true",
+      "icons": [
+        {
+          "src": "/placeholder.svg",
+          "sizes": "96x96"
+        }
+      ]
+    },
+    {
+      "name": "Historial",
+      "short_name": "Historial",
+      "description": "Ver historial de calibraciones",
+      "url": "/app/recipes?tab=historial",
+      "icons": [
+        {
+          "src": "/placeholder.svg",
+          "sizes": "96x96"
+        }
+      ]
+    }
+  ],
+  "prefer_related_applications": false
+}

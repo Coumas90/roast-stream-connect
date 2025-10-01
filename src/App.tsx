@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
 import { ThemeProvider } from "next-themes";
+import { OfflineIndicator } from "@/components/app/calibration/OfflineIndicator";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import AppHome from "./pages/AppHome";
@@ -64,9 +65,7 @@ const App = () => (
         enableSystem
         disableTransitionOnChange={false}
       >
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
+         <TooltipProvider>
           <BrowserRouter>
             <AuthProvider>
               <TenantProvider>
@@ -145,11 +144,15 @@ const App = () => (
               </DataStoreProvider>
             </TenantProvider>
           </AuthProvider>
-        </BrowserRouter>
-      </TooltipProvider>
-    </ThemeProvider>
+         </BrowserRouter>
+          <Toaster />
+          <Sonner />
+          <OfflineIndicator />
+        </TooltipProvider>
+      </ThemeProvider>
     </QueryClientProvider>
   </HelmetProvider>
 );
 
 export default App;
+

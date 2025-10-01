@@ -8,11 +8,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Save, Copy, RotateCcw, CheckCircle, Plus, Minus, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { OfflineSyncStatus } from "./OfflineSyncStatus";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useCoffeeProfiles } from "@/hooks/useCoffeeProfiles";
 import { useCalibrationEntries, useCreateCalibrationEntry, useUpdateCalibrationEntry, useApproveCalibrationEntry, useTodayApprovedEntry } from "@/hooks/useCalibrationEntries";
 import { useCalibrationSettings } from "@/hooks/useCalibrationSettings";
 import { useProfile } from "@/hooks/useProfile";
+import { useOfflineCalibration } from "@/hooks/useOfflineCalibration";
 import {
   calculateRatio,
   validateCalibration,
@@ -35,6 +37,7 @@ export function CalibrationCalculator({ open, onOpenChange, locationId }: Calibr
   const { profile } = useProfile();
   const { data: coffeeProfiles = [] } = useCoffeeProfiles(locationId);
   const { data: settings } = useCalibrationSettings();
+  const { isOnline, saveDraft, loadLatestDraft, enableAutoSave, cacheProfile } = useOfflineCalibration();
 
   // Form state
   const [selectedProfileId, setSelectedProfileId] = useState<string>("");
@@ -74,6 +77,58 @@ export function CalibrationCalculator({ open, onOpenChange, locationId }: Calibr
       setPreviousGrindPoints(approvedEntry.grind_points);
     }
   }, [approvedEntry]);
+
+  // Auto-save draft every 30 seconds
+  useEffect(() => {
+    if (!open || !selectedProfileId) return;
+
+    const draftId = `calibration-${selectedProfileId}-${turno}`;
+    const getData = () => ({
+      selectedProfileId,
+      turno,
+      doseG,
+      yieldValue,
+      yieldUnit,
+      timeS,
+      tempC,
+      grindPoints,
+      grindLabel,
+      notesTags,
+      notesText,
+    });
+
+    const cleanup = enableAutoSave(draftId, getData, 30000);
+    return cleanup;
+  }, [open, selectedProfileId, turno, doseG, yieldValue, yieldUnit, timeS, tempC, grindPoints, grindLabel, notesTags, notesText, enableAutoSave]);
+
+  // Load draft on open
+  useEffect(() => {
+    if (open) {
+      loadLatestDraft().then((draft) => {
+        if (draft && draft.data) {
+          const data = draft.data;
+          setSelectedProfileId(data.selectedProfileId || "");
+          setTurno(data.turno || "mañana");
+          setDoseG(data.doseG || 18);
+          setYieldValue(data.yieldValue || 36);
+          setYieldUnit(data.yieldUnit || "g");
+          setTimeS(data.timeS || 28);
+          setTempC(data.tempC || 93);
+          setGrindPoints(data.grindPoints || 3.5);
+          setGrindLabel(data.grindLabel || "");
+          setNotesTags(data.notesTags || []);
+          setNotesText(data.notesText || "");
+        }
+      });
+    }
+  }, [open, loadLatestDraft]);
+
+  // Cache active profile
+  useEffect(() => {
+    if (selectedProfile) {
+      cacheProfile(selectedProfile.id, selectedProfile);
+    }
+  }, [selectedProfile, cacheProfile]);
 
   // Calculate ratio with density conversion (debounced)
   const ratio = useMemo(() => {
@@ -282,7 +337,10 @@ export function CalibrationCalculator({ open, onOpenChange, locationId }: Calibr
       <DialogContent className="max-w-4xl h-[90vh] overflow-y-auto p-0">
         {/* Fixed Header */}
         <DialogHeader className="sticky top-0 z-10 bg-background border-b p-6">
-          <DialogTitle className="text-2xl">Calculadora de Calibración</DialogTitle>
+          <div className="flex items-center justify-between mb-4">
+            <DialogTitle className="text-2xl">Calculadora de Calibración</DialogTitle>
+            <OfflineSyncStatus />
+          </div>
           
           {/* Metadata Row */}
           <div className="grid grid-cols-2 gap-4 mt-4">

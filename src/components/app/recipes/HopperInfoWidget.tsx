@@ -24,8 +24,36 @@ export function HopperInfoWidget() {
     );
   }
 
-  if (!locationId || primaryHoppers.length === 0) {
+  // Show empty state if no hoppers configured
+  if (!locationId) {
     return null;
+  }
+
+  if (primaryHoppers.length === 0) {
+    return (
+      <Card className="p-4 border-dashed border-2 border-muted-foreground/20 bg-muted/20">
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <Coffee className="w-5 h-5 text-muted-foreground" />
+            <div>
+              <p className="text-sm font-medium text-muted-foreground">
+                No hay tolvas configuradas
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Configura el stock de café para ver la información aquí
+              </p>
+            </div>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setIsModalOpen(true)}
+          >
+            Configurar
+          </Button>
+        </div>
+      </Card>
+    );
   }
 
   const getStockStatus = (kg: number) => {

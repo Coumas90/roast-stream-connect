@@ -6,13 +6,14 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { CheckCircle, Coffee, Clock, Thermometer, Gauge, StickyNote } from "lucide-react";
+import { CheckCircle, Coffee, Clock, Thermometer, Gauge, StickyNote, History, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { TouchStepper } from "./wizard/components/TouchStepper";
+import { CalibrationHistoryPanel } from "./CalibrationHistoryPanel";
 import { useCoffeeProfiles } from "@/hooks/useCoffeeProfiles";
 import { useGrinders } from "@/hooks/useGrinders";
 import { useCalibrationSettings } from "@/hooks/useCalibrationSettings";
-import { useTodayApprovedEntry, useCreateCalibrationEntry, useApproveCalibrationEntry } from "@/hooks/useCalibrationEntries";
+import { useTodayApprovedEntry, useTodayCalibrations, useCreateCalibrationEntry, useApproveCalibrationEntry } from "@/hooks/useCalibrationEntries";
 import { useProfile } from "@/hooks/useProfile";
 import { useDebounce } from "@/hooks/useDebounce";
 import { calculateRatio, evaluateSemaphore } from "@/lib/calibration-utils";
@@ -31,32 +32,17 @@ export function CalibrationPanel({ open, onOpenChange, locationId }: Calibration
   const { profile } = useProfile();
   const { toast } = useToast();
   
-  // Data fetching - Get user's locations first
-  const { data: userRoles = [] } = useQuery({
-    queryKey: ["user-roles", profile?.id],
-    queryFn: async () => {
-      if (!profile?.id) return [];
-      const { data, error } = await supabase
-        .from("user_roles")
-        .select("location_id")
-        .eq("user_id", profile.id)
-        .not("location_id", "is", null);
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!profile?.id,
-  });
-
-  const userLocationIds = useMemo(
-    () => userRoles.map((r) => r.location_id).filter((id): id is string => id !== null),
-    [userRoles]
-  );
-
-  const effectiveLocationId = userLocationIds[0]; // Use first location for now
-
-  const { data: coffeeProfiles = [] } = useCoffeeProfiles(effectiveLocationId);
-  const { data: grinders = [] } = useGrinders(effectiveLocationId);
+  // Data fetching
+  const { data: coffeeProfiles = [] } = useCoffeeProfiles(locationId);
+  const { data: grinders = [] } = useGrinders(locationId);
   const { data: settings } = useCalibrationSettings();
+
+  // Debug logging
+  useEffect(() => {
+    console.log('CalibrationPanel - locationId:', locationId);
+    console.log('CalibrationPanel - coffeeProfiles:', coffeeProfiles);
+    console.log('CalibrationPanel - profile:', profile);
+  }, [locationId, coffeeProfiles, profile]);
 
   // State
   const [selectedProfileId, setSelectedProfileId] = useState<string>("");
@@ -74,8 +60,9 @@ export function CalibrationPanel({ open, onOpenChange, locationId }: Calibration
   const createEntry = useCreateCalibrationEntry();
   const approveEntry = useApproveCalibrationEntry();
 
-  // Get approved entry
+  // Get calibrations for today
   const { data: approvedEntry } = useTodayApprovedEntry(selectedProfileId, turno);
+  const { data: todayCalibrations = [] } = useTodayCalibrations(selectedProfileId, turno);
 
   // Debounced values
   const debouncedDoseG = useDebounce(doseG, 200);
@@ -282,11 +269,32 @@ export function CalibrationPanel({ open, onOpenChange, locationId }: Calibration
               </div>
             </div>
 
-            {/* Approved Entry Badge */}
+            {/* Approved Entry Badge with Adjust Button */}
             {approvedEntry && (
-              <Badge variant="secondary" className="w-full justify-center py-2">
-                ✓ Calibración aprobada hoy
-              </Badge>
+              <Card className="p-3 bg-green-50 dark:bg-green-950/20 border-green-500">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-green-600" />
+                    <span className="text-sm font-medium">Calibración aprobada</span>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setDoseG(approvedEntry.dose_g);
+                      setYieldValue(approvedEntry.yield_value);
+                      setYieldUnit(approvedEntry.yield_unit as YieldUnit);
+                      setTimeS(approvedEntry.time_s);
+                      setTempC(approvedEntry.temp_c);
+                      setGrindPoints(approvedEntry.grind_points);
+                      setNotesTags(approvedEntry.notes_tags || []);
+                      setNotesText(approvedEntry.notes_text || "");
+                    }}
+                  >
+                    Ajustar
+                  </Button>
+                </div>
+              </Card>
             )}
 
             <Separator />
@@ -313,6 +321,17 @@ export function CalibrationPanel({ open, onOpenChange, locationId }: Calibration
                 </div>
               </Card>
             </div>
+
+            {/* History Section */}
+            {todayCalibrations.length > 0 && (
+              <>
+                <Separator />
+                <CalibrationHistoryPanel
+                  entries={todayCalibrations}
+                  approvedEntryId={approvedEntry?.id}
+                />
+              </>
+            )}
           </div>
 
           {/* CENTER & RIGHT: Parameters */}
@@ -444,22 +463,78 @@ export function CalibrationPanel({ open, onOpenChange, locationId }: Calibration
               </div>
             </div>
 
-            {/* Approve Button */}
-            <Button
-              onClick={handleApprove}
-              disabled={!isValid || !selectedProfileId || createEntry.isPending}
-              className="w-full h-14 text-lg font-semibold"
-              size="lg"
-            >
-              {createEntry.isPending ? (
-                "Guardando..."
-              ) : (
-                <>
-                  <CheckCircle className="w-5 h-5 mr-2" />
-                  Aprobar Calibración
-                </>
-              )}
-            </Button>
+            {/* Action Buttons */}
+            <div className="grid grid-cols-2 gap-3">
+              <Button
+                variant="outline"
+                onClick={async () => {
+                  if (!selectedProfileId || !profile?.id) return;
+
+                  const grinder = selectedProfile?.grinders;
+                  const clicksPerPoint =
+                    grinder && typeof grinder === "object" && "clicks_per_point" in grinder
+                      ? (grinder as any).clicks_per_point
+                      : 1;
+                  const previousGrindPoints = approvedEntry?.grind_points;
+                  const clicksDelta =
+                    previousGrindPoints !== undefined
+                      ? Math.round((grindPoints - previousGrindPoints) * clicksPerPoint)
+                      : 0;
+
+                  const entryData = {
+                    coffee_profile_id: selectedProfileId,
+                    barista_id: profile.id,
+                    turno,
+                    dose_g: doseG,
+                    yield_value: yieldValue,
+                    yield_unit: yieldUnit,
+                    time_s: timeS,
+                    temp_c: tempC,
+                    grind_points: grindPoints,
+                    grind_label: null,
+                    grinder_clicks_delta: clicksDelta,
+                    notes_tags: notesTags,
+                    notes_text: notesText || null,
+                    suggestion_shown: "",
+                  };
+
+                  try {
+                    await createEntry.mutateAsync(entryData);
+                    toast({
+                      title: "Borrador guardado",
+                      description: "Calibración guardada sin aprobar",
+                    });
+                  } catch (error) {
+                    toast({
+                      title: "Error",
+                      description: "No se pudo guardar",
+                      variant: "destructive",
+                    });
+                  }
+                }}
+                disabled={!selectedProfileId || createEntry.isPending}
+                className="h-14 text-base font-semibold"
+                size="lg"
+              >
+                Guardar Borrador
+              </Button>
+              
+              <Button
+                onClick={handleApprove}
+                disabled={!isValid || !selectedProfileId || createEntry.isPending}
+                className="h-14 text-base font-semibold"
+                size="lg"
+              >
+                {createEntry.isPending ? (
+                  "Guardando..."
+                ) : (
+                  <>
+                    <CheckCircle className="w-5 h-5 mr-2" />
+                    Aprobar
+                  </>
+                )}
+              </Button>
+            </div>
           </div>
         </div>
       </DialogContent>

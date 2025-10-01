@@ -33,6 +33,29 @@ export function useCalibrationEntries(coffeeProfileId?: string, fecha?: string) 
   });
 }
 
+export function useTodayCalibrations(coffeeProfileId?: string, turno?: string) {
+  const today = new Date().toISOString().split('T')[0];
+  
+  return useQuery({
+    queryKey: ["calibration-today-all", coffeeProfileId, turno, today],
+    queryFn: async () => {
+      if (!coffeeProfileId || !turno) return [];
+
+      const { data, error } = await supabase
+        .from("calibration_entries")
+        .select("*")
+        .eq("coffee_profile_id", coffeeProfileId)
+        .eq("fecha", today)
+        .eq("turno", turno)
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      return data as CalibrationEntry[];
+    },
+    enabled: !!coffeeProfileId && !!turno,
+  });
+}
+
 export function useTodayApprovedEntry(coffeeProfileId?: string, turno?: string) {
   const today = new Date().toISOString().split('T')[0];
   

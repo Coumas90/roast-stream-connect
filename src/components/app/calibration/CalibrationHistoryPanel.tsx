@@ -55,16 +55,16 @@ export function CalibrationHistoryPanel({ entries, approvedEntryId }: Calibratio
   };
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-2">
       <div className="flex items-center gap-2">
         <Clock className="w-4 h-4 text-muted-foreground" />
         <h3 className="text-sm font-semibold">Historial del Turno</h3>
-        <Badge variant="outline" className="ml-auto">
-          {entries.length} {entries.length === 1 ? "calibración" : "calibraciones"}
+        <Badge variant="outline" className="ml-auto text-xs">
+          {entries.length}
         </Badge>
       </div>
 
-      <div className="space-y-2 max-h-[300px] overflow-y-auto">
+      <div className="space-y-1.5 max-h-[180px] overflow-y-auto">
         {entries.map((entry, index) => {
           const previousEntry = entries[index + 1];
           const isApproved = entry.id === approvedEntryId || entry.approved;
@@ -73,18 +73,18 @@ export function CalibrationHistoryPanel({ entries, approvedEntryId }: Calibratio
             <Card
               key={entry.id}
               className={cn(
-                "p-3 transition-all",
+                "p-2 transition-all",
                 isApproved && "border-green-500 bg-green-50/50 dark:bg-green-950/20"
               )}
             >
-              <div className="flex items-start justify-between mb-2">
+              <div className="flex items-start justify-between mb-1.5">
                 <div className="flex items-center gap-2">
                   <span className="text-xs text-muted-foreground">
                     {format(new Date(entry.created_at), "HH:mm", { locale: es })}
                   </span>
                   {isApproved && (
-                    <Badge variant="default" className="text-xs py-0 h-5">
-                      <CheckCircle2 className="w-3 h-3 mr-1" />
+                    <Badge variant="default" className="text-[10px] py-0 h-4 px-1.5">
+                      <CheckCircle2 className="w-2.5 h-2.5 mr-0.5" />
                       Aprobada
                     </Badge>
                   )}
@@ -92,7 +92,7 @@ export function CalibrationHistoryPanel({ entries, approvedEntryId }: Calibratio
                 {entry.notes_tags.length > 0 && (
                   <div className="flex gap-1">
                     {entry.notes_tags.slice(0, 2).map((tag) => (
-                      <Badge key={tag} variant="secondary" className="text-xs">
+                      <Badge key={tag} variant="secondary" className="text-[10px] py-0 h-4 px-1.5">
                         {tag}
                       </Badge>
                     ))}
@@ -100,10 +100,10 @@ export function CalibrationHistoryPanel({ entries, approvedEntryId }: Calibratio
                 )}
               </div>
 
-              <div className="grid grid-cols-4 gap-3 text-xs">
+              <div className="grid grid-cols-4 gap-2 text-xs">
                 <div>
-                  <div className="text-muted-foreground mb-1">Dosis</div>
-                  <div className="font-semibold">{entry.dose_g}g</div>
+                  <div className="text-muted-foreground text-[10px] mb-0.5">Dosis</div>
+                  <div className="font-semibold text-xs">{entry.dose_g}g</div>
                   {previousEntry && (
                     <div className="mt-0.5">
                       {renderDelta(getDelta(entry.dose_g, previousEntry.dose_g), "g")}
@@ -112,8 +112,8 @@ export function CalibrationHistoryPanel({ entries, approvedEntryId }: Calibratio
                 </div>
 
                 <div>
-                  <div className="text-muted-foreground mb-1">Ratio</div>
-                  <div className="font-semibold">{entry.ratio_calc?.toFixed(2) || "-"}</div>
+                  <div className="text-muted-foreground text-[10px] mb-0.5">Ratio</div>
+                  <div className="font-semibold text-xs">{entry.ratio_calc?.toFixed(2) || "-"}</div>
                   {previousEntry && previousEntry.ratio_calc && entry.ratio_calc && (
                     <div className="mt-0.5">
                       {renderDelta(getDelta(entry.ratio_calc, previousEntry.ratio_calc))}
@@ -122,8 +122,8 @@ export function CalibrationHistoryPanel({ entries, approvedEntryId }: Calibratio
                 </div>
 
                 <div>
-                  <div className="text-muted-foreground mb-1">Tiempo</div>
-                  <div className="font-semibold">{entry.time_s}s</div>
+                  <div className="text-muted-foreground text-[10px] mb-0.5">Tiempo</div>
+                  <div className="font-semibold text-xs">{entry.time_s}s</div>
                   {previousEntry && (
                     <div className="mt-0.5">
                       {renderDelta(getDelta(entry.time_s, previousEntry.time_s), "s")}
@@ -132,8 +132,8 @@ export function CalibrationHistoryPanel({ entries, approvedEntryId }: Calibratio
                 </div>
 
                 <div>
-                  <div className="text-muted-foreground mb-1">Molienda</div>
-                  <div className="font-semibold">{entry.grind_points.toFixed(1)}</div>
+                  <div className="text-muted-foreground text-[10px] mb-0.5">Molienda</div>
+                  <div className="font-semibold text-xs">{entry.grind_points.toFixed(1)}</div>
                   {previousEntry && (
                     <div className="mt-0.5">
                       {renderDelta(getDelta(entry.grind_points, previousEntry.grind_points))}

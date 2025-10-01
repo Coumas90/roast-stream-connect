@@ -201,7 +201,7 @@ export function CalibrationPanel({ open, onOpenChange, locationId: propLocationI
       <DialogContent className="max-w-6xl h-[95vh] p-0 gap-0">
         <div className="grid grid-cols-1 lg:grid-cols-3 h-full">
           {/* LEFT: Coffee Selection & Status */}
-          <div className="lg:col-span-1 p-6 border-r bg-muted/20 space-y-4 overflow-y-auto">
+          <div className="lg:col-span-1 p-6 border-r bg-muted/20 space-y-4 overflow-y-auto max-h-[95vh]">
             {/* Header */}
             <div>
               <h2 className="text-xl font-bold">Calibración Diaria</h2>
@@ -311,12 +311,12 @@ export function CalibrationPanel({ open, onOpenChange, locationId: propLocationI
             <Separator />
 
             {/* Semaphore Status */}
-            <div className="space-y-3">
+            <div className="space-y-2">
               <label className="text-sm font-semibold">Estado</label>
-              <Card className="p-6 text-center">
+              <Card className="p-3 text-center">
                 <div
                   className={cn(
-                    "w-16 h-16 rounded-full mx-auto mb-3 flex items-center justify-center text-3xl shadow-lg",
+                    "w-10 h-10 rounded-full mx-auto mb-2 flex items-center justify-center text-2xl shadow-md",
                     getSemaphoreColor()
                   )}
                 >
@@ -327,7 +327,7 @@ export function CalibrationPanel({ open, onOpenChange, locationId: propLocationI
                   {semaphore?.overallStatus === "warning" && "Aceptable"}
                   {semaphore?.overallStatus === "error" && "Necesita ajustes"}
                 </div>
-                <div className="text-xs text-muted-foreground mt-1">
+                <div className="text-xs text-muted-foreground mt-0.5">
                   Ratio: {ratio.toFixed(2)} | Tiempo: {timeS}s
                 </div>
               </Card>

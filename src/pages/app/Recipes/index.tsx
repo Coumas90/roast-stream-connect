@@ -7,6 +7,7 @@ import { CalibrationPanel } from "@/components/app/calibration/CalibrationPanel"
 import { CalibrationHistory } from "@/components/app/calibration/CalibrationHistory";
 import { CalibrationTemplates } from "@/components/app/calibration/CalibrationTemplates";
 import { TelemetryTab } from "@/components/app/calibration/TelemetryTab";
+import { HopperInfoWidget } from "@/components/app/recipes/HopperInfoWidget";
 import { useProfile } from "@/hooks/useProfile";
 import { RecipeFilters, type RecipeFilters as RecipeFiltersType } from "@/components/recipes/RecipeFilters";
 import { RecipeCard } from "@/components/recipes/RecipeCard";
@@ -185,39 +186,44 @@ export default function Recipes() {
       <div className="min-h-screen bg-background">
         <div className="container mx-auto px-4 py-8">
           {/* Header */}
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
-            <div>
-              <h1 className="text-3xl font-bold text-foreground">Recipes</h1>
-              <p className="text-muted-foreground">
-                Create and manage your coffee brewing recipes
-              </p>
+          <div className="space-y-4 mb-8">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              <div>
+                <h1 className="text-3xl font-bold text-foreground">Recipes</h1>
+                <p className="text-muted-foreground">
+                  Create and manage your coffee brewing recipes
+                </p>
+              </div>
+              
+              <div className="flex items-center gap-2">
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => setIsCalibrationOpen(true)}
+                >
+                  <Calculator className="w-4 h-4 mr-2" />
+                  Calibración
+                </Button>
+                <Button variant="outline" size="sm">
+                  <Settings className="w-4 h-4 mr-2" />
+                  Settings
+                </Button>
+                <Button variant="outline" size="sm">
+                  <Download className="w-4 h-4 mr-2" />
+                  Export
+                </Button>
+                <Button 
+                  size="sm"
+                  onClick={() => setIsCreateModalOpen(true)}
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  New Recipe
+                </Button>
+              </div>
             </div>
-            
-            <div className="flex items-center gap-2">
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={() => setIsCalibrationOpen(true)}
-              >
-                <Calculator className="w-4 h-4 mr-2" />
-                Calibración
-              </Button>
-              <Button variant="outline" size="sm">
-                <Settings className="w-4 h-4 mr-2" />
-                Settings
-              </Button>
-              <Button variant="outline" size="sm">
-                <Download className="w-4 h-4 mr-2" />
-                Export
-              </Button>
-              <Button 
-                size="sm"
-                onClick={() => setIsCreateModalOpen(true)}
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                New Recipe
-              </Button>
-            </div>
+
+            {/* Hopper Info Widget */}
+            <HopperInfoWidget />
           </div>
 
           {/* Main Content Tabs */}

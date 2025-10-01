@@ -32,31 +32,7 @@ export function CalibrationPanel({ open, onOpenChange, locationId: propLocationI
   const { profile } = useProfile();
   const { toast } = useToast();
   
-  // Get locationId from user_roles if not provided
-  const { data: userLocation } = useQuery({
-    queryKey: ["user-location", profile?.id],
-    queryFn: async () => {
-      if (!profile?.id) return null;
-      
-      const { data, error } = await supabase
-        .from("user_roles")
-        .select("location_id")
-        .eq("user_id", profile.id)
-        .not("location_id", "is", null)
-        .limit(1)
-        .maybeSingle();
-      
-      if (error) {
-        console.error("Error fetching user location:", error);
-        return null;
-      }
-      
-      return data?.location_id || null;
-    },
-    enabled: !!profile?.id && !propLocationId,
-  });
-
-  const locationId = propLocationId || userLocation;
+  const locationId = propLocationId;
   
   // Data fetching
   const { data: activeRecipes = [], isLoading: recipesLoading } = useActiveRecipes(locationId);

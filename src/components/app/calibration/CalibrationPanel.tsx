@@ -28,21 +28,40 @@ interface CalibrationPanelProps {
 type YieldUnit = "g" | "ml";
 type Turno = "mañana" | "tarde" | "noche";
 
-export function CalibrationPanel({ open, onOpenChange, locationId }: CalibrationPanelProps) {
+export function CalibrationPanel({ open, onOpenChange, locationId: propLocationId }: CalibrationPanelProps) {
   const { profile } = useProfile();
   const { toast } = useToast();
+  
+  // Get locationId from user_roles if not provided
+  const { data: userLocation } = useQuery({
+    queryKey: ["user-location", profile?.id],
+    queryFn: async () => {
+      if (!profile?.id) return null;
+      
+      const { data, error } = await supabase
+        .from("user_roles")
+        .select("location_id")
+        .eq("user_id", profile.id)
+        .not("location_id", "is", null)
+        .limit(1)
+        .single();
+      
+      if (error) {
+        console.error("Error fetching user location:", error);
+        return null;
+      }
+      
+      return data?.location_id;
+    },
+    enabled: !!profile?.id && !propLocationId,
+  });
+
+  const locationId = propLocationId || userLocation;
   
   // Data fetching
   const { data: coffeeProfiles = [] } = useCoffeeProfiles(locationId);
   const { data: grinders = [] } = useGrinders(locationId);
   const { data: settings } = useCalibrationSettings();
-
-  // Debug logging
-  useEffect(() => {
-    console.log('CalibrationPanel - locationId:', locationId);
-    console.log('CalibrationPanel - coffeeProfiles:', coffeeProfiles);
-    console.log('CalibrationPanel - profile:', profile);
-  }, [locationId, coffeeProfiles, profile]);
 
   // State
   const [selectedProfileId, setSelectedProfileId] = useState<string>("");

@@ -423,7 +423,6 @@ export default function Recipes() {
         <CalibrationPanel
           open={isCalibrationOpen}
           onOpenChange={setIsCalibrationOpen}
-          locationId={profile?.id}
         />
       </div>
     </>

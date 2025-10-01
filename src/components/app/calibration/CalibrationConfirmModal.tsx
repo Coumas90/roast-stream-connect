@@ -87,43 +87,43 @@ export function CalibrationConfirmModal({
                 <tbody className="divide-y">
                   <tr>
                     <td className="px-4 py-2">Dosis</td>
-                    <td className="px-4 py-2 text-center">{previousParams.dose_g}g</td>
+                    <td className="px-4 py-2 text-center">{previousParams.dose_g.toFixed(1)}g</td>
                     <td className="px-4 py-2 text-center">
                       <ArrowRight className="h-4 w-4 mx-auto text-muted-foreground" />
                     </td>
-                    <td className="px-4 py-2 text-center font-semibold">{currentParams.doseG}g</td>
+                    <td className="px-4 py-2 text-center font-semibold">{currentParams.doseG.toFixed(1)}g</td>
                   </tr>
                   <tr>
                     <td className="px-4 py-2">Rendimiento</td>
-                    <td className="px-4 py-2 text-center">{previousParams.yield_value}g</td>
+                    <td className="px-4 py-2 text-center">{previousParams.yield_value.toFixed(1)}g</td>
                     <td className="px-4 py-2 text-center">
                       <ArrowRight className="h-4 w-4 mx-auto text-muted-foreground" />
                     </td>
-                    <td className="px-4 py-2 text-center font-semibold">{currentParams.yieldValue}g</td>
+                    <td className="px-4 py-2 text-center font-semibold">{currentParams.yieldValue.toFixed(1)}g</td>
                   </tr>
                   <tr>
                     <td className="px-4 py-2">Tiempo</td>
-                    <td className="px-4 py-2 text-center">{previousParams.time_s}s</td>
+                    <td className="px-4 py-2 text-center">{previousParams.time_s.toFixed(1)}s</td>
                     <td className="px-4 py-2 text-center">
                       <ArrowRight className="h-4 w-4 mx-auto text-muted-foreground" />
                     </td>
-                    <td className="px-4 py-2 text-center font-semibold">{currentParams.timeS}s</td>
+                    <td className="px-4 py-2 text-center font-semibold">{currentParams.timeS.toFixed(1)}s</td>
                   </tr>
                   <tr>
                     <td className="px-4 py-2">Temperatura</td>
-                    <td className="px-4 py-2 text-center">{previousParams.temp_c}°C</td>
+                    <td className="px-4 py-2 text-center">{previousParams.temp_c.toFixed(1)}°C</td>
                     <td className="px-4 py-2 text-center">
                       <ArrowRight className="h-4 w-4 mx-auto text-muted-foreground" />
                     </td>
-                    <td className="px-4 py-2 text-center font-semibold">{currentParams.tempC}°C</td>
+                    <td className="px-4 py-2 text-center font-semibold">{currentParams.tempC.toFixed(1)}°C</td>
                   </tr>
                   <tr>
                     <td className="px-4 py-2">Molienda</td>
-                    <td className="px-4 py-2 text-center">{previousParams.grind_points}</td>
+                    <td className="px-4 py-2 text-center">{previousParams.grind_points.toFixed(1)}</td>
                     <td className="px-4 py-2 text-center">
                       <ArrowRight className="h-4 w-4 mx-auto text-muted-foreground" />
                     </td>
-                    <td className="px-4 py-2 text-center font-semibold">{currentParams.grindPoints}</td>
+                    <td className="px-4 py-2 text-center font-semibold">{currentParams.grindPoints.toFixed(1)}</td>
                   </tr>
                 </tbody>
               </table>

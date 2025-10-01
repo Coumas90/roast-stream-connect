@@ -4,12 +4,14 @@ import { Coffee, ChevronRight, AlertTriangle } from "lucide-react";
 import { useStockMetrics } from "@/hooks/useLocationStock";
 import { useTenant } from "@/lib/tenant";
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { HopperManagementModal } from "./HopperManagementModal";
 
 export function HopperInfoWidget() {
   const { locationId } = useTenant();
   const { stockItems, isLoading } = useStockMetrics(locationId);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const navigate = useNavigate();
 
   // Get primary hoppers (1 and 2)
   const primaryHoppers = stockItems
@@ -47,7 +49,7 @@ export function HopperInfoWidget() {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => setIsModalOpen(true)}
+            onClick={() => navigate("/app/stock")}
           >
             Configurar
           </Button>

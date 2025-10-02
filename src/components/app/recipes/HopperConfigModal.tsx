@@ -9,6 +9,7 @@ import { useTenant } from "@/lib/tenant";
 import { useStockMetrics } from "@/hooks/useLocationStock";
 import { Coffee, X } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 
 interface HopperConfigModalProps {
   open: boolean;
@@ -52,65 +53,66 @@ export function HopperConfigModal({ open, onOpenChange }: HopperConfigModalProps
     if (!locationId) return;
 
     try {
-      console.log('[MODAL] === STARTING HOPPER SAVE OPERATION ===');
-      console.log('[MODAL] Current stock items:', stockItems);
-      console.log('[MODAL] Selected hoppers:', { hopper1Coffee, hopper2Coffee });
+      console.log('[MODAL] Starting save operation');
+      
+      const operations = [];
 
-      // Primero, procesar las eliminaciones de forma secuencial
+      // Preparar eliminaciones
       if (!hopper1Coffee && hopper1) {
-        console.log('[MODAL] Deleting Hopper 1:', hopper1.id);
-        await deleteHopperStock.mutateAsync({
-          locationId,
-          hopperNumber: 1,
-        });
-        console.log('[MODAL] Hopper 1 deleted, waiting for sync...');
-        await new Promise(resolve => setTimeout(resolve, 300));
+        operations.push(
+          deleteHopperStock.mutateAsync({
+            locationId,
+            hopperNumber: 1,
+          })
+        );
       }
 
       if (!hopper2Coffee && hopper2) {
-        console.log('[MODAL] Deleting Hopper 2:', hopper2.id);
-        await deleteHopperStock.mutateAsync({
-          locationId,
-          hopperNumber: 2,
-        });
-        console.log('[MODAL] Hopper 2 deleted, waiting for sync...');
-        await new Promise(resolve => setTimeout(resolve, 300));
+        operations.push(
+          deleteHopperStock.mutateAsync({
+            locationId,
+            hopperNumber: 2,
+          })
+        );
       }
 
-      // Ahora procesar las inserciones/actualizaciones de forma secuencial
+      // Preparar upserts
       if (hopper1Coffee) {
-        console.log('[MODAL] Upserting Hopper 1 with coffee:', hopper1Coffee);
-        await upsertHopperStock.mutateAsync({
-          locationId,
-          hopperNumber: 1,
-          coffeeVarietyId: hopper1Coffee,
-        });
-        console.log('[MODAL] Hopper 1 upserted');
+        operations.push(
+          upsertHopperStock.mutateAsync({
+            locationId,
+            hopperNumber: 1,
+            coffeeVarietyId: hopper1Coffee,
+          })
+        );
       }
 
       if (hopper2Coffee) {
-        console.log('[MODAL] Upserting Hopper 2 with coffee:', hopper2Coffee);
-        await upsertHopperStock.mutateAsync({
-          locationId,
-          hopperNumber: 2,
-          coffeeVarietyId: hopper2Coffee,
-        });
-        console.log('[MODAL] Hopper 2 upserted');
+        operations.push(
+          upsertHopperStock.mutateAsync({
+            locationId,
+            hopperNumber: 2,
+            coffeeVarietyId: hopper2Coffee,
+          })
+        );
       }
 
-      console.log('[MODAL] All operations completed, resetting all location_stock queries...');
+      // Ejecutar TODAS las operaciones en paralelo
+      console.log('[MODAL] Executing all operations in parallel');
+      await Promise.all(operations);
+      console.log('[MODAL] All operations completed');
       
-      // Resetear TODAS las queries de location_stock para forzar re-render en todos los componentes
-      await queryClient.resetQueries({ 
-        queryKey: ['location_stock'],
-        exact: false 
+      // UN SOLO invalidate al final
+      await queryClient.invalidateQueries({ 
+        queryKey: ['location_stock']
       });
       
-      console.log('[MODAL] All queries reset successfully, closing modal');
-      await new Promise(resolve => setTimeout(resolve, 500));
+      console.log('[MODAL] Cache invalidated');
+      toast.success('Tolvas configuradas correctamente');
       onOpenChange(false);
     } catch (error) {
       console.error('[MODAL] Error saving hopper configuration:', error);
+      toast.error('Error al configurar las tolvas');
     }
   };
 

@@ -136,7 +136,7 @@ export function HopperInfoWidget() {
                         <div className="relative w-12 h-12 rounded-lg overflow-hidden ring-2 ring-border/50">
                           <img 
                             src={hopper.coffee_image_url} 
-                            alt={hopper.coffee_name}
+                            alt={hopper.coffee_name || 'Coffee'}
                             className="w-full h-full object-cover"
                           />
                         </div>

@@ -11,14 +11,14 @@ export interface LocationStockItemReadonly {
   notes: string | null;
   created_at: string;
   updated_at: string;
-  // Coffee variety fields (without sensitive data like price_per_kg)
-  coffee_id: string;
-  coffee_name: string;
-  coffee_category: string;
+  // Coffee variety fields (denormalized, no price!)
+  coffee_id: string | null;
+  coffee_name: string | null;
+  coffee_category: string | null;
   coffee_image_url: string | null;
   coffee_origin: string | null;
   coffee_description: string | null;
-  coffee_specifications: any;
+  coffee_specifications: any | null;
 }
 
 export function useLocationStockReadonly(locationId?: string) {

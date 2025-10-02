@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
@@ -32,32 +32,42 @@ export function HopperConfigModal({ open, onOpenChange }: HopperConfigModalProps
   );
 
   const handleSave = async () => {
-    if (!locationId) return;
-
-    const promises = [];
-
-    if (hopper1Coffee) {
-      promises.push(
-        upsertHopperStock.mutateAsync({
-          locationId,
-          hopperNumber: 1,
-          coffeeVarietyId: hopper1Coffee,
-        })
-      );
+    if (!locationId) {
+      console.error('No locationId available');
+      return;
     }
 
-    if (hopper2Coffee) {
-      promises.push(
-        upsertHopperStock.mutateAsync({
-          locationId,
-          hopperNumber: 2,
-          coffeeVarietyId: hopper2Coffee,
-        })
-      );
-    }
+    console.log('Saving hopper configuration:', { locationId, hopper1Coffee, hopper2Coffee });
 
-    await Promise.all(promises);
-    onOpenChange(false);
+    try {
+      const promises = [];
+
+      if (hopper1Coffee) {
+        promises.push(
+          upsertHopperStock.mutateAsync({
+            locationId,
+            hopperNumber: 1,
+            coffeeVarietyId: hopper1Coffee,
+          })
+        );
+      }
+
+      if (hopper2Coffee) {
+        promises.push(
+          upsertHopperStock.mutateAsync({
+            locationId,
+            hopperNumber: 2,
+            coffeeVarietyId: hopper2Coffee,
+          })
+        );
+      }
+
+      await Promise.all(promises);
+      console.log('Hopper configuration saved successfully');
+      onOpenChange(false);
+    } catch (error) {
+      console.error('Error saving hopper configuration:', error);
+    }
   };
 
   const isSaveDisabled = !hopper1Coffee && !hopper2Coffee;
@@ -70,6 +80,9 @@ export function HopperConfigModal({ open, onOpenChange }: HopperConfigModalProps
             <Coffee className="w-5 h-5" />
             Seleccionar Café por Tolva
           </DialogTitle>
+          <DialogDescription>
+            Configura qué café TUPÁ utilizarás en cada tolva de tu máquina.
+          </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-6 py-4">

@@ -13,6 +13,8 @@ export function useStockManagement() {
 
   const upsertHopperStock = useMutation({
     mutationFn: async ({ locationId, hopperNumber, coffeeVarietyId }: UpsertHopperStockParams) => {
+      console.log('Upserting hopper stock:', { locationId, hopperNumber, coffeeVarietyId });
+      
       const { data, error } = await supabase
         .from('location_stock')
         .upsert(
@@ -29,11 +31,19 @@ export function useStockManagement() {
         )
         .select();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase error:', error);
+        throw error;
+      }
+      
+      console.log('Hopper stock upserted successfully:', data);
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (data, variables) => {
+      console.log('Invalidating queries for location:', variables.locationId);
+      // Invalidar tanto las queries genéricas como las específicas por location
       queryClient.invalidateQueries({ queryKey: ['location_stock'] });
+      queryClient.invalidateQueries({ queryKey: ['location_stock', variables.locationId] });
       toast.success('Tolvas configuradas correctamente');
     },
     onError: (error) => {

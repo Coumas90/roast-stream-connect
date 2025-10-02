@@ -2,7 +2,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Coffee, ChevronRight, AlertTriangle, Settings2, Gauge, Info } from "lucide-react";
-import { useStockMetrics } from "@/hooks/useLocationStock";
+import { useStockMetricsReadonly } from "@/hooks/useLocationStockReadonly";
 import { useTenant } from "@/lib/tenant";
 import { useState } from "react";
 import { HopperManagementModal } from "./HopperManagementModal";
@@ -11,7 +11,7 @@ import { CoffeeDetailModal } from "@/components/coffee/CoffeeDetailModal";
 
 export function HopperInfoWidget() {
   const { locationId } = useTenant();
-  const { stockItems, isLoading } = useStockMetrics(locationId);
+  const { stockItems, isLoading } = useStockMetricsReadonly(locationId);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isConfigModalOpen, setIsConfigModalOpen] = useState(false);
   const [selectedCoffee, setSelectedCoffee] = useState<any>(null);
@@ -132,11 +132,11 @@ export function HopperInfoWidget() {
                   >
                     {/* Coffee Image or Icon */}
                     <div className="flex-shrink-0">
-                      {hopper.coffee_varieties.image_url ? (
+                      {hopper.coffee_image_url ? (
                         <div className="relative w-12 h-12 rounded-lg overflow-hidden ring-2 ring-border/50">
                           <img 
-                            src={hopper.coffee_varieties.image_url} 
-                            alt={hopper.coffee_varieties.name}
+                            src={hopper.coffee_image_url} 
+                            alt={hopper.coffee_name}
                             className="w-full h-full object-cover"
                           />
                         </div>
@@ -158,7 +158,7 @@ export function HopperInfoWidget() {
                         )}
                       </div>
                       <p className="font-semibold text-sm text-foreground truncate group-hover:text-primary transition-colors">
-                        {hopper.coffee_varieties.name}
+                        {hopper.coffee_name}
                       </p>
                       <div className="flex items-baseline gap-1 mt-1">
                         <span className={`text-lg font-bold ${status.color}`}>
@@ -175,13 +175,21 @@ export function HopperInfoWidget() {
                     </div>
 
                     {/* Info Button */}
-                    {hopper.coffee_varieties.specifications && (
+                    {hopper.coffee_specifications && (
                       <Button
                         variant="ghost"
                         size="sm"
                         className="flex-shrink-0 h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
                         onClick={() => {
-                          setSelectedCoffee(hopper.coffee_varieties);
+                          setSelectedCoffee({
+                            id: hopper.coffee_id,
+                            name: hopper.coffee_name,
+                            category: hopper.coffee_category,
+                            image_url: hopper.coffee_image_url,
+                            origin: hopper.coffee_origin,
+                            description: hopper.coffee_description,
+                            specifications: hopper.coffee_specifications
+                          });
                           setIsCoffeeDetailOpen(true);
                         }}
                       >

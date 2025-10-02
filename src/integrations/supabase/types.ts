@@ -987,6 +987,78 @@ export type Database = {
           },
         ]
       }
+      location_stock_readonly: {
+        Row: {
+          coffee_category: string | null
+          coffee_description: string | null
+          coffee_id: string | null
+          coffee_image_url: string | null
+          coffee_name: string | null
+          coffee_origin: string | null
+          coffee_specifications: Json | null
+          coffee_variety_id: string
+          created_at: string
+          current_kg: number
+          hopper_number: number
+          id: string
+          last_refill_at: string | null
+          location_id: string
+          notes: string | null
+          updated_at: string
+        }
+        Insert: {
+          coffee_category?: string | null
+          coffee_description?: string | null
+          coffee_id?: string | null
+          coffee_image_url?: string | null
+          coffee_name?: string | null
+          coffee_origin?: string | null
+          coffee_specifications?: Json | null
+          coffee_variety_id: string
+          created_at?: string
+          current_kg: number
+          hopper_number: number
+          id?: string
+          last_refill_at?: string | null
+          location_id: string
+          notes?: string | null
+          updated_at?: string
+        }
+        Update: {
+          coffee_category?: string | null
+          coffee_description?: string | null
+          coffee_id?: string | null
+          coffee_image_url?: string | null
+          coffee_name?: string | null
+          coffee_origin?: string | null
+          coffee_specifications?: Json | null
+          coffee_variety_id?: string
+          created_at?: string
+          current_kg?: number
+          hopper_number?: number
+          id?: string
+          last_refill_at?: string | null
+          location_id?: string
+          notes?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "location_stock_readonly_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "location_stock_readonly_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       locations: {
         Row: {
           code: string | null

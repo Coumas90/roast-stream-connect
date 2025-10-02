@@ -8,6 +8,11 @@ interface UpsertHopperStockParams {
   coffeeVarietyId: string;
 }
 
+interface DeleteHopperStockParams {
+  locationId: string;
+  hopperNumber: number;
+}
+
 export function useStockManagement() {
   const queryClient = useQueryClient();
 
@@ -41,7 +46,6 @@ export function useStockManagement() {
     },
     onSuccess: (data, variables) => {
       console.log('Invalidating queries for location:', variables.locationId);
-      // Invalidar tanto las queries genéricas como las específicas por location
       queryClient.invalidateQueries({ queryKey: ['location_stock'] });
       queryClient.invalidateQueries({ queryKey: ['location_stock', variables.locationId] });
       toast.success('Tolvas configuradas correctamente');
@@ -52,7 +56,37 @@ export function useStockManagement() {
     },
   });
 
+  const deleteHopperStock = useMutation({
+    mutationFn: async ({ locationId, hopperNumber }: DeleteHopperStockParams) => {
+      console.log('Deleting hopper stock:', { locationId, hopperNumber });
+      
+      const { error } = await supabase
+        .from('location_stock')
+        .delete()
+        .eq('location_id', locationId)
+        .eq('hopper_number', hopperNumber);
+
+      if (error) {
+        console.error('Supabase error:', error);
+        throw error;
+      }
+      
+      console.log('Hopper stock deleted successfully');
+    },
+    onSuccess: (data, variables) => {
+      console.log('Invalidating queries for location:', variables.locationId);
+      queryClient.invalidateQueries({ queryKey: ['location_stock'] });
+      queryClient.invalidateQueries({ queryKey: ['location_stock', variables.locationId] });
+      toast.success('Tolva eliminada correctamente');
+    },
+    onError: (error) => {
+      console.error('Error deleting hopper stock:', error);
+      toast.error('Error al eliminar la tolva');
+    },
+  });
+
   return {
     upsertHopperStock,
+    deleteHopperStock,
   };
 }

@@ -7,7 +7,7 @@ import { useTupaCoffees } from "@/hooks/useCoffeeVarieties";
 import { useStockManagement } from "@/hooks/useStockManagement";
 import { useTenant } from "@/lib/tenant";
 import { useStockMetrics } from "@/hooks/useLocationStock";
-import { Coffee } from "lucide-react";
+import { Coffee, X } from "lucide-react";
 
 interface HopperConfigModalProps {
   open: boolean;
@@ -20,7 +20,7 @@ export function HopperConfigModal({ open, onOpenChange }: HopperConfigModalProps
   const { locationId } = useTenant();
   const { data: tupaCoffees, isLoading: loadingCoffees } = useTupaCoffees();
   const { stockItems } = useStockMetrics(locationId);
-  const { upsertHopperStock } = useStockManagement();
+  const { upsertHopperStock, deleteHopperStock } = useStockManagement();
 
   console.log('HopperConfigModal data loaded:', { 
     locationId, 
@@ -59,6 +59,7 @@ export function HopperConfigModal({ open, onOpenChange }: HopperConfigModalProps
     try {
       const promises = [];
 
+      // Tolva 1: crear/actualizar o eliminar
       if (hopper1Coffee) {
         promises.push(
           upsertHopperStock.mutateAsync({
@@ -67,14 +68,31 @@ export function HopperConfigModal({ open, onOpenChange }: HopperConfigModalProps
             coffeeVarietyId: hopper1Coffee,
           })
         );
+      } else if (hopper1) {
+        // Si existía pero ahora está vacía, eliminarla
+        promises.push(
+          deleteHopperStock.mutateAsync({
+            locationId,
+            hopperNumber: 1,
+          })
+        );
       }
 
+      // Tolva 2: crear/actualizar o eliminar
       if (hopper2Coffee) {
         promises.push(
           upsertHopperStock.mutateAsync({
             locationId,
             hopperNumber: 2,
             coffeeVarietyId: hopper2Coffee,
+          })
+        );
+      } else if (hopper2) {
+        // Si existía pero ahora está vacía, eliminarla
+        promises.push(
+          deleteHopperStock.mutateAsync({
+            locationId,
+            hopperNumber: 2,
           })
         );
       }
@@ -87,7 +105,7 @@ export function HopperConfigModal({ open, onOpenChange }: HopperConfigModalProps
     }
   };
 
-  const isSaveDisabled = !hopper1Coffee && !hopper2Coffee;
+  const isSaveDisabled = upsertHopperStock.isPending || deleteHopperStock.isPending;
 
   console.log('HopperConfigModal render:', { open, locationId, coffeeCount: tupaCoffees?.length });
 
@@ -107,9 +125,22 @@ export function HopperConfigModal({ open, onOpenChange }: HopperConfigModalProps
         <div className="space-y-6 py-4">
           {/* Tolva 1 */}
           <div className="space-y-2">
-            <Label htmlFor="hopper1" className="text-sm font-medium">
-              Tolva 1 (Principal)
-            </Label>
+            <div className="flex items-center justify-between">
+              <Label htmlFor="hopper1" className="text-sm font-medium">
+                Tolva 1 (Principal)
+              </Label>
+              {hopper1Coffee && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setHopper1Coffee("")}
+                  className="h-6 px-2 text-muted-foreground hover:text-destructive"
+                >
+                  <X className="w-3 h-3 mr-1" />
+                  Quitar
+                </Button>
+              )}
+            </div>
             <Select
               value={hopper1Coffee}
               onValueChange={setHopper1Coffee}
@@ -131,9 +162,22 @@ export function HopperConfigModal({ open, onOpenChange }: HopperConfigModalProps
 
           {/* Tolva 2 */}
           <div className="space-y-2">
-            <Label htmlFor="hopper2" className="text-sm font-medium">
-              Tolva 2 (Secundaria)
-            </Label>
+            <div className="flex items-center justify-between">
+              <Label htmlFor="hopper2" className="text-sm font-medium">
+                Tolva 2 (Secundaria)
+              </Label>
+              {hopper2Coffee && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setHopper2Coffee("")}
+                  className="h-6 px-2 text-muted-foreground hover:text-destructive"
+                >
+                  <X className="w-3 h-3 mr-1" />
+                  Quitar
+                </Button>
+              )}
+            </div>
             <Select
               value={hopper2Coffee}
               onValueChange={setHopper2Coffee}
@@ -163,9 +207,9 @@ export function HopperConfigModal({ open, onOpenChange }: HopperConfigModalProps
           </Button>
           <Button
             onClick={handleSave}
-            disabled={isSaveDisabled || upsertHopperStock.isPending}
+            disabled={isSaveDisabled}
           >
-            {upsertHopperStock.isPending ? "Guardando..." : "Guardar"}
+            {isSaveDisabled ? "Guardando..." : "Guardar"}
           </Button>
         </DialogFooter>
       </DialogContent>

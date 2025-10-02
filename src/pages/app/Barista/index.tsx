@@ -1,4 +1,5 @@
 import { Helmet } from "react-helmet-async";
+import { useNavigate } from "react-router-dom";
 import { BaristaKPIGrid } from "@/components/app/barista/BaristaKPIGrid";
 import { QuickCalibrationWidget } from "@/components/app/barista/QuickCalibrationWidget";
 import { ActiveRecipesWidget } from "@/components/app/barista/ActiveRecipesWidget";
@@ -6,9 +7,11 @@ import { PersonalHistoryWidget } from "@/components/app/barista/PersonalHistoryW
 import { BaristaPerformanceChart } from "@/components/app/barista/BaristaPerformanceChart";
 import { BaristaInsightsWidget } from "@/components/app/barista/BaristaInsightsWidget";
 import { BaristaBadgesWidget } from "@/components/app/barista/BaristaBadgesWidget";
-import { Coffee } from "lucide-react";
+import { Coffee, Zap } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 export default function BaristaHome() {
+  const navigate = useNavigate();
   return (
     <>
       <Helmet>
@@ -39,8 +42,16 @@ export default function BaristaHome() {
         {/* Main Grid */}
         <section className="grid gap-6 lg:grid-cols-3">
           {/* Left - Quick Calibration (Takes 2 cols) */}
-          <div className="lg:col-span-2">
+          <div className="lg:col-span-2 relative group">
             <QuickCalibrationWidget />
+            <Button 
+              size="lg"
+              onClick={() => navigate('/app/barista/calibration')}
+              className="absolute top-4 right-4 shadow-glow z-10"
+            >
+              <Zap className="h-4 w-4 mr-2" />
+              Ir a Calibración
+            </Button>
           </div>
           
           {/* Right - Active Recipes */}

@@ -53,6 +53,7 @@ import ForgotPassword from "./pages/auth/ForgotPassword";
 import ResetPassword from "./pages/auth/ResetPassword";
 import LocationPosDetail from "./pages/app/locations/Pos";
 import BaristaHome from "./pages/app/Barista";
+import BaristaCalibration from "./pages/app/barista/Calibration";
 import Terms from "./pages/Terms";
 import Privacy from "./pages/Privacy";
 
@@ -99,6 +100,11 @@ const App = () => (
                     <Route path="barista" element={
                       <RequireRole allowedRoles={['barista', 'coffee_master']}>
                         <BaristaHome />
+                      </RequireRole>
+                    } />
+                    <Route path="barista/calibration" element={
+                      <RequireRole allowedRoles={['barista', 'coffee_master']}>
+                        <BaristaCalibration />
                       </RequireRole>
                     } />
                     <Route path="recipes" element={<Recipes />} />

@@ -41,6 +41,21 @@ export default function AppHome() {
     }
   }, [userRole, navigate]);
   
+  // Show loading skeleton while role is being verified
+  if (!userRole) {
+    return (
+      <div className="space-y-8 p-4">
+        <div className="h-8 w-48 bg-muted animate-pulse rounded" />
+        <div className="grid gap-6 md:grid-cols-4">
+          {[1, 2, 3, 4].map(i => (
+            <div key={i} className="h-32 bg-muted animate-pulse rounded" />
+          ))}
+        </div>
+        <div className="h-64 bg-muted animate-pulse rounded" />
+      </div>
+    );
+  }
+  
   // Check if training is enabled for this location
   const { data: trainingEnabled = false } = useTrainingEnabled(locationId);
   

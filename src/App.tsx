@@ -18,6 +18,7 @@ import { TenantProvider } from "./lib/tenant";
 import { DataStoreProvider } from "./lib/data-store";
 import { RequireClient } from "./components/auth/RequireClient";
 import { RequireAdmin } from "./components/auth/RequireAdmin";
+import { RequireRole } from "./components/auth/RequireRole";
 import AppLogin from "./pages/app/Login";
 import AdminLogin from "./pages/admin/Login";
 import Recipes from "./pages/app/Recipes";
@@ -90,19 +91,63 @@ const App = () => (
                       </RequireClient>
                     }
                   >
-                    <Route index element={<AppHome />} />
-                    <Route path="barista" element={<BaristaHome />} />
+                    <Route index element={
+                      <RequireRole allowedRoles={['owner', 'manager', 'tupa_admin']}>
+                        <AppHome />
+                      </RequireRole>
+                    } />
+                    <Route path="barista" element={
+                      <RequireRole allowedRoles={['barista', 'coffee_master']}>
+                        <BaristaHome />
+                      </RequireRole>
+                    } />
                     <Route path="recipes" element={<Recipes />} />
-                    <Route path="consumption" element={<Consumption />} />
-                    <Route path="stock" element={<Stock />} />
-                    <Route path="replenishment" element={<Replenishment />} />
-                    <Route path="my-team" element={<MyTeam />} />
+                    <Route path="consumption" element={
+                      <RequireRole allowedRoles={['owner', 'manager', 'tupa_admin']}>
+                        <Consumption />
+                      </RequireRole>
+                    } />
+                    <Route path="stock" element={
+                      <RequireRole allowedRoles={['owner', 'manager', 'tupa_admin']}>
+                        <Stock />
+                      </RequireRole>
+                    } />
+                    <Route path="replenishment" element={
+                      <RequireRole allowedRoles={['owner', 'manager', 'tupa_admin']}>
+                        <Replenishment />
+                      </RequireRole>
+                    } />
+                    <Route path="my-team" element={
+                      <RequireRole allowedRoles={['owner', 'manager', 'tupa_admin']}>
+                        <MyTeam />
+                      </RequireRole>
+                    } />
                     <Route path="academy" element={<Academy />} />
-                    <Route path="training-management" element={<TrainingManagement />} />
-                    <Route path="loyalty" element={<Loyalty />} />
-                    <Route path="raffles" element={<Raffles />} />
-                    <Route path="settings/integrations" element={<AppIntegrations />} />
-                    <Route path="locations/:id/pos" element={<LocationPosDetail />} />
+                    <Route path="training-management" element={
+                      <RequireRole allowedRoles={['owner', 'manager', 'tupa_admin']}>
+                        <TrainingManagement />
+                      </RequireRole>
+                    } />
+                    <Route path="loyalty" element={
+                      <RequireRole allowedRoles={['owner', 'manager', 'tupa_admin']}>
+                        <Loyalty />
+                      </RequireRole>
+                    } />
+                    <Route path="raffles" element={
+                      <RequireRole allowedRoles={['owner', 'manager', 'tupa_admin']}>
+                        <Raffles />
+                      </RequireRole>
+                    } />
+                    <Route path="settings/integrations" element={
+                      <RequireRole allowedRoles={['owner', 'manager', 'tupa_admin']}>
+                        <AppIntegrations />
+                      </RequireRole>
+                    } />
+                    <Route path="locations/:id/pos" element={
+                      <RequireRole allowedRoles={['owner', 'manager', 'tupa_admin']}>
+                        <LocationPosDetail />
+                      </RequireRole>
+                    } />
                     <Route path="profile" element={<ProfilePage />} />
                   </Route>
 

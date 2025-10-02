@@ -25,12 +25,21 @@ import type { AppPosProvider } from "@/integrations/supabase/pos-types";
 import { formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
 import { Package, Zap, Calendar, TrendingUp } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 export default function AppHome() {
+  const navigate = useNavigate();
   const { provider, source, connected, isLoading } = useEffectivePos();
   const { data: userRole } = useUserRole();
   const { flags, posEffective } = useFeatureFlags();
   const { locationId } = useTenant();
+
+  // Redirect baristas to their specialized dashboard
+  React.useEffect(() => {
+    if (userRole === 'barista' || userRole === 'coffee_master') {
+      navigate('/app/barista', { replace: true });
+    }
+  }, [userRole, navigate]);
   
   // Check if training is enabled for this location
   const { data: trainingEnabled = false } = useTrainingEnabled(locationId);

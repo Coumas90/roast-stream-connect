@@ -51,6 +51,7 @@ import ProfilePage from "./pages/app/Profile";
 import ForgotPassword from "./pages/auth/ForgotPassword";
 import ResetPassword from "./pages/auth/ResetPassword";
 import LocationPosDetail from "./pages/app/locations/Pos";
+import BaristaHome from "./pages/app/Barista";
 import Terms from "./pages/Terms";
 import Privacy from "./pages/Privacy";
 
@@ -90,6 +91,7 @@ const App = () => (
                     }
                   >
                     <Route index element={<AppHome />} />
+                    <Route path="barista" element={<BaristaHome />} />
                     <Route path="recipes" element={<Recipes />} />
                     <Route path="consumption" element={<Consumption />} />
                     <Route path="stock" element={<Stock />} />

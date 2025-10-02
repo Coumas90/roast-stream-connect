@@ -6,6 +6,7 @@ import { toast } from "@/hooks/use-toast";
 
 const labels: Record<string, string> = {
   "/app": "Dashboard",
+  "/app/barista": "Mi Dashboard Barista",
   "/app/recipes": "Recetas",
   "/app/consumption": "Consumo",
   "/app/stock": "Stock",

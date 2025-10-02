@@ -39,6 +39,7 @@ type NavItem = { icon: any; label: string; to: string; exact?: boolean };
 
 const clientItems: NavItem[] = [
   { icon: Home, label: "Dashboard", to: "/app", exact: true },
+  { icon: Coffee, label: "Mi Dashboard", to: "/app/barista", exact: true }, // For baristas
   { icon: Coffee, label: "Recetas", to: "/app/recipes" },
   { icon: LineChart, label: "Consumo", to: "/app/consumption" },
   { icon: Package, label: "Reposición", to: "/app/replenishment" },
@@ -67,9 +68,27 @@ export function AppShell({ children, section = "Dashboard", variant = "client" }
   const { isLoading, flags, posEffective } = useFeatureFlags();
   const { data: effectiveRole } = useUserRole();
 
-  // Compute gated items for client variant
+  // Compute gated items for client variant with role-based filtering
   const items = variant === "client" && flags
     ? baseItems.filter((n) => {
+        // Role-based filtering for baristas and coffee masters
+        if (effectiveRole === 'barista' || effectiveRole === 'coffee_master') {
+          // Baristas only see: Mi Dashboard, Recetas, Academia
+          if (n.to === "/app/barista") return true;
+          if (n.to === "/app/recipes") return true;
+          if (n.to === "/app/academy") return flags.academy_enabled;
+          if (n.to === "/app") return false; // Hide management dashboard
+          if (n.to === "/app/consumption") return false;
+          if (n.to === "/app/replenishment") return false;
+          if (n.to === "/app/my-team") return false;
+          if (n.to === "/app/loyalty") return false;
+          return false;
+        }
+        
+        // Managers and owners don't see barista dashboard
+        if (n.to === "/app/barista") return false;
+        
+        // Feature flag filtering for managers/owners
         if (n.to === "/app/replenishment") return flags.auto_order_enabled;
         if (n.to === "/app/academy") return flags.academy_enabled;
         if (n.to === "/app/loyalty") return flags.loyalty_enabled;

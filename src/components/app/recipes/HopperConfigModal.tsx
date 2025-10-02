@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -24,12 +24,20 @@ export function HopperConfigModal({ open, onOpenChange }: HopperConfigModalProps
   const hopper1 = stockItems.find(item => item.hopper_number === 1);
   const hopper2 = stockItems.find(item => item.hopper_number === 2);
 
-  const [hopper1Coffee, setHopper1Coffee] = useState<string>(
-    hopper1?.coffee_variety_id || ""
-  );
-  const [hopper2Coffee, setHopper2Coffee] = useState<string>(
-    hopper2?.coffee_variety_id || ""
-  );
+  const [hopper1Coffee, setHopper1Coffee] = useState<string>("");
+  const [hopper2Coffee, setHopper2Coffee] = useState<string>("");
+
+  // Sync state with current data when modal opens or data changes
+  useEffect(() => {
+    if (open) {
+      setHopper1Coffee(hopper1?.coffee_variety_id || "");
+      setHopper2Coffee(hopper2?.coffee_variety_id || "");
+      console.log('Modal opened, current hoppers:', { 
+        hopper1: hopper1?.coffee_variety_id, 
+        hopper2: hopper2?.coffee_variety_id 
+      });
+    }
+  }, [open, hopper1?.coffee_variety_id, hopper2?.coffee_variety_id]);
 
   const handleSave = async () => {
     if (!locationId) {
@@ -96,10 +104,10 @@ export function HopperConfigModal({ open, onOpenChange }: HopperConfigModalProps
               onValueChange={setHopper1Coffee}
               disabled={loadingCoffees}
             >
-              <SelectTrigger id="hopper1" className="w-full">
+              <SelectTrigger id="hopper1" className="w-full bg-background">
                 <SelectValue placeholder="Seleccionar café TUPÁ" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="bg-popover z-50">
                 {tupaCoffees?.map((coffee) => (
                   <SelectItem key={coffee.id} value={coffee.id}>
                     {coffee.name}
@@ -120,10 +128,10 @@ export function HopperConfigModal({ open, onOpenChange }: HopperConfigModalProps
               onValueChange={setHopper2Coffee}
               disabled={loadingCoffees}
             >
-              <SelectTrigger id="hopper2" className="w-full">
+              <SelectTrigger id="hopper2" className="w-full bg-background">
                 <SelectValue placeholder="Seleccionar café TUPÁ" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="bg-popover z-50">
                 {tupaCoffees?.map((coffee) => (
                   <SelectItem key={coffee.id} value={coffee.id}>
                     {coffee.name}

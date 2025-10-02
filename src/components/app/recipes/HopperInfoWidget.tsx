@@ -13,6 +13,8 @@ export function HopperInfoWidget() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isConfigModalOpen, setIsConfigModalOpen] = useState(false);
 
+  console.log('HopperInfoWidget render:', { locationId, isConfigModalOpen, stockItemsCount: stockItems.length });
+
   // Get primary hoppers (1 and 2)
   const primaryHoppers = stockItems
     .filter(item => item.hopper_number <= 2)
@@ -123,7 +125,10 @@ export function HopperInfoWidget() {
       
       <HopperConfigModal
         open={isConfigModalOpen}
-        onOpenChange={setIsConfigModalOpen}
+        onOpenChange={(open) => {
+          console.log('HopperConfigModal onOpenChange called:', open);
+          setIsConfigModalOpen(open);
+        }}
       />
     </>
   );

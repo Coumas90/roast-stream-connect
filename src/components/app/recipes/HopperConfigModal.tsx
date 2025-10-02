@@ -15,10 +15,18 @@ interface HopperConfigModalProps {
 }
 
 export function HopperConfigModal({ open, onOpenChange }: HopperConfigModalProps) {
+  console.log('HopperConfigModal component called', { open });
+  
   const { locationId } = useTenant();
   const { data: tupaCoffees, isLoading: loadingCoffees } = useTupaCoffees();
   const { stockItems } = useStockMetrics(locationId);
   const { upsertHopperStock } = useStockManagement();
+
+  console.log('HopperConfigModal data loaded:', { 
+    locationId, 
+    tupaCoffeesCount: tupaCoffees?.length,
+    stockItemsCount: stockItems?.length 
+  });
 
   // Get current hopper configurations
   const hopper1 = stockItems.find(item => item.hopper_number === 1);

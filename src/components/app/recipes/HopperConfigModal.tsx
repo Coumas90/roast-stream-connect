@@ -98,16 +98,16 @@ export function HopperConfigModal({ open, onOpenChange }: HopperConfigModalProps
         console.log('[MODAL] Hopper 2 upserted');
       }
 
-      console.log('[MODAL] All operations completed, waiting for final sync...');
+      console.log('[MODAL] All operations completed, resetting all location_stock queries...');
       
-      // Forzar un refetch final antes de cerrar
-      await queryClient.refetchQueries({ 
-        queryKey: ['location_stock', locationId],
-        exact: true 
+      // Resetear TODAS las queries de location_stock para forzar re-render en todos los componentes
+      await queryClient.resetQueries({ 
+        queryKey: ['location_stock'],
+        exact: false 
       });
       
-      console.log('[MODAL] Final refetch completed, closing modal');
-      await new Promise(resolve => setTimeout(resolve, 200));
+      console.log('[MODAL] All queries reset successfully, closing modal');
+      await new Promise(resolve => setTimeout(resolve, 500));
       onOpenChange(false);
     } catch (error) {
       console.error('[MODAL] Error saving hopper configuration:', error);

@@ -57,48 +57,65 @@ export function HopperConfigModal({ open, onOpenChange }: HopperConfigModalProps
     console.log('Saving hopper configuration:', { locationId, hopper1Coffee, hopper2Coffee });
 
     try {
-      const promises = [];
+      // Primero hacer todos los deletes
+      const deletePromises = [];
+      
+      if (!hopper1Coffee && hopper1) {
+        deletePromises.push(
+          deleteHopperStock.mutateAsync({
+            locationId,
+            hopperNumber: 1,
+          })
+        );
+      }
+      
+      if (!hopper2Coffee && hopper2) {
+        deletePromises.push(
+          deleteHopperStock.mutateAsync({
+            locationId,
+            hopperNumber: 2,
+          })
+        );
+      }
 
-      // Tolva 1: crear/actualizar o eliminar
+      // Esperar a que los deletes completen
+      if (deletePromises.length > 0) {
+        await Promise.all(deletePromises);
+        // Pequeña pausa para asegurar que la DB procesó los deletes
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+
+      // Luego hacer los upserts
+      const upsertPromises = [];
+
       if (hopper1Coffee) {
-        promises.push(
+        upsertPromises.push(
           upsertHopperStock.mutateAsync({
             locationId,
             hopperNumber: 1,
             coffeeVarietyId: hopper1Coffee,
           })
         );
-      } else if (hopper1) {
-        // Si existía pero ahora está vacía, eliminarla
-        promises.push(
-          deleteHopperStock.mutateAsync({
-            locationId,
-            hopperNumber: 1,
-          })
-        );
       }
 
-      // Tolva 2: crear/actualizar o eliminar
       if (hopper2Coffee) {
-        promises.push(
+        upsertPromises.push(
           upsertHopperStock.mutateAsync({
             locationId,
             hopperNumber: 2,
             coffeeVarietyId: hopper2Coffee,
           })
         );
-      } else if (hopper2) {
-        // Si existía pero ahora está vacía, eliminarla
-        promises.push(
-          deleteHopperStock.mutateAsync({
-            locationId,
-            hopperNumber: 2,
-          })
-        );
       }
 
-      await Promise.all(promises);
+      if (upsertPromises.length > 0) {
+        await Promise.all(upsertPromises);
+      }
+
       console.log('Hopper configuration saved successfully');
+      
+      // Esperar un momento antes de cerrar para que las queries se refresquen
+      await new Promise(resolve => setTimeout(resolve, 200));
       onOpenChange(false);
     } catch (error) {
       console.error('Error saving hopper configuration:', error);

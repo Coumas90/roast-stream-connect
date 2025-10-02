@@ -4,6 +4,8 @@ import { QuickCalibrationWidget } from "@/components/app/barista/QuickCalibratio
 import { ActiveRecipesWidget } from "@/components/app/barista/ActiveRecipesWidget";
 import { PersonalHistoryWidget } from "@/components/app/barista/PersonalHistoryWidget";
 import { BaristaPerformanceChart } from "@/components/app/barista/BaristaPerformanceChart";
+import { BaristaInsightsWidget } from "@/components/app/barista/BaristaInsightsWidget";
+import { BaristaBadgesWidget } from "@/components/app/barista/BaristaBadgesWidget";
 import { Coffee } from "lucide-react";
 
 export default function BaristaHome() {
@@ -54,6 +56,15 @@ export default function BaristaHome() {
           
           {/* Personal History */}
           <PersonalHistoryWidget />
+        </section>
+
+        {/* Insights & Badges Grid */}
+        <section className="grid gap-6 lg:grid-cols-2">
+          {/* Insights */}
+          <BaristaInsightsWidget />
+          
+          {/* Badges */}
+          <BaristaBadgesWidget />
         </section>
       </div>
     </>

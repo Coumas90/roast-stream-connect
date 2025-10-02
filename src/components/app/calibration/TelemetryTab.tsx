@@ -1,14 +1,21 @@
 import { Card } from "@/components/ui/card";
 import { TelemetryDashboard } from "@/components/app/calibration/TelemetryDashboard";
 import { useProfile } from "@/hooks/useProfile";
+import { useTenant } from "@/lib/tenant";
+import { useUserRole } from "@/hooks/useTeam";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Info } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 
 export function TelemetryTab() {
   const { profile } = useProfile();
-  const locationId = profile?.id;
+  const { locationId } = useTenant();
+  const { data: userRole } = useUserRole();
+  
+  const isBarista = userRole === 'barista' || userRole === 'coffee_master';
+  const effectiveLocationId = isBarista ? profile?.id : locationId;
 
-  if (!locationId) {
+  if (!effectiveLocationId) {
     return (
       <Card className="p-12 text-center">
         <Alert>
@@ -24,14 +31,24 @@ export function TelemetryTab() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold mb-2">Telemetría de Calibración</h2>
-        <p className="text-muted-foreground">
-          Métricas de desempeño y calidad de las calibraciones realizadas
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold mb-2">Telemetría de Calibración</h2>
+          <p className="text-muted-foreground">
+            {isBarista 
+              ? 'Tus métricas personales de desempeño y calidad'
+              : 'Métricas de desempeño y calidad de las calibraciones realizadas'
+            }
+          </p>
+        </div>
+        {isBarista && (
+          <Badge variant="secondary" className="text-xs">
+            Vista Personal
+          </Badge>
+        )}
       </div>
 
-      <TelemetryDashboard locationId={locationId} days={30} />
+      <TelemetryDashboard locationId={effectiveLocationId} days={30} />
 
       <Card className="p-6 bg-blue-50 border-blue-200">
         <h3 className="text-sm font-semibold text-blue-900 mb-2">

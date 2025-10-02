@@ -116,15 +116,23 @@ export function HopperInfoWidget() {
             })}
           </div>
 
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setIsModalOpen(true)}
-            className="flex-shrink-0"
-          >
-            Ver todas
-            <ChevronRight className="w-4 h-4 ml-1" />
-          </Button>
+          <div className="flex gap-2 flex-shrink-0">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsConfigModalOpen(true)}
+            >
+              Configurar
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setIsModalOpen(true)}
+            >
+              Ver todas
+              <ChevronRight className="w-4 h-4 ml-1" />
+            </Button>
+          </div>
         </div>
       </Card>
 

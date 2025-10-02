@@ -1,18 +1,21 @@
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Coffee, ChevronRight, AlertTriangle, Settings2, Gauge } from "lucide-react";
+import { Coffee, ChevronRight, AlertTriangle, Settings2, Gauge, Info } from "lucide-react";
 import { useStockMetrics } from "@/hooks/useLocationStock";
 import { useTenant } from "@/lib/tenant";
 import { useState } from "react";
 import { HopperManagementModal } from "./HopperManagementModal";
 import { HopperConfigModal } from "./HopperConfigModal";
+import { CoffeeDetailModal } from "@/components/coffee/CoffeeDetailModal";
 
 export function HopperInfoWidget() {
   const { locationId } = useTenant();
   const { stockItems, isLoading } = useStockMetrics(locationId);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isConfigModalOpen, setIsConfigModalOpen] = useState(false);
+  const [selectedCoffee, setSelectedCoffee] = useState<any>(null);
+  const [isCoffeeDetailOpen, setIsCoffeeDetailOpen] = useState(false);
 
   console.log('HopperInfoWidget render:', { locationId, isConfigModalOpen, stockItemsCount: stockItems.length });
 
@@ -123,11 +126,23 @@ export function HopperInfoWidget() {
                 return (
                   <div 
                     key={hopper.id} 
-                    className={`group relative flex items-center gap-3 rounded-lg ${status.bg} border border-border/50 ring-1 ${status.ring} px-4 py-3 flex-1 min-w-0 transition-all duration-200 hover:scale-[1.02] hover:shadow-sm`}
+                    className={`group relative flex items-center gap-3 rounded-lg ${status.bg} border border-border/50 ring-1 ${status.ring} px-3 py-3 flex-1 min-w-0 transition-all duration-200 hover:scale-[1.02] hover:shadow-sm`}
                   >
-                    {/* Icon */}
+                    {/* Coffee Image or Icon */}
                     <div className="flex-shrink-0">
-                      <StatusIcon className={`w-5 h-5 ${status.color}`} />
+                      {hopper.coffee_varieties.image_url ? (
+                        <div className="relative w-12 h-12 rounded-lg overflow-hidden ring-2 ring-border/50">
+                          <img 
+                            src={hopper.coffee_varieties.image_url} 
+                            alt={hopper.coffee_varieties.name}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                      ) : (
+                        <div className={`w-12 h-12 rounded-lg ${status.bg} ring-2 ${status.ring} flex items-center justify-center`}>
+                          <StatusIcon className={`w-6 h-6 ${status.color}`} />
+                        </div>
+                      )}
                     </div>
                     
                     {/* Content */}
@@ -156,6 +171,21 @@ export function HopperInfoWidget() {
                         </Badge>
                       </div>
                     </div>
+
+                    {/* Info Button */}
+                    {hopper.coffee_varieties.specifications && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="flex-shrink-0 h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                        onClick={() => {
+                          setSelectedCoffee(hopper.coffee_varieties);
+                          setIsCoffeeDetailOpen(true);
+                        }}
+                      >
+                        <Info className="w-4 h-4" />
+                      </Button>
+                    )}
                   </div>
                 );
               })}
@@ -197,6 +227,12 @@ export function HopperInfoWidget() {
           console.log('HopperConfigModal onOpenChange called:', open);
           setIsConfigModalOpen(open);
         }}
+      />
+
+      <CoffeeDetailModal
+        variety={selectedCoffee}
+        open={isCoffeeDetailOpen}
+        onOpenChange={setIsCoffeeDetailOpen}
       />
     </>
   );

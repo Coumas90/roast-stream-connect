@@ -12,9 +12,14 @@ export interface LocationStockItem {
   created_at: string;
   updated_at: string;
   coffee_varieties: {
+    id: string;
     name: string;
     category: string;
     price_per_kg?: number;
+    image_url?: string;
+    origin?: string;
+    description?: string;
+    specifications?: any;
   };
 }
 
@@ -28,7 +33,7 @@ export function useLocationStock(locationId?: string) {
         .from('location_stock')
         .select(`
           *,
-          coffee_varieties(name, category, price_per_kg)
+          coffee_varieties(id, name, category, price_per_kg, image_url, origin, description, specifications)
         `)
         .eq('location_id', locationId)
         .order('hopper_number');

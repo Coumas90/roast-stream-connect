@@ -8,6 +8,7 @@ import { useStockManagement } from "@/hooks/useStockManagement";
 import { useTenant } from "@/lib/tenant";
 import { useStockMetrics } from "@/hooks/useLocationStock";
 import { Coffee, X } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface HopperConfigModalProps {
   open: boolean;
@@ -15,8 +16,7 @@ interface HopperConfigModalProps {
 }
 
 export function HopperConfigModal({ open, onOpenChange }: HopperConfigModalProps) {
-  console.log('HopperConfigModal component called', { open });
-  
+  const queryClient = useQueryClient();
   const { locationId } = useTenant();
   const { data: tupaCoffees, isLoading: loadingCoffees } = useTupaCoffees();
   const { stockItems } = useStockMetrics(locationId);
@@ -49,76 +49,68 @@ export function HopperConfigModal({ open, onOpenChange }: HopperConfigModalProps
   }, [open, hopper1?.coffee_variety_id, hopper2?.coffee_variety_id]);
 
   const handleSave = async () => {
-    if (!locationId) {
-      console.error('No locationId available');
-      return;
-    }
-
-    console.log('Saving hopper configuration:', { locationId, hopper1Coffee, hopper2Coffee });
+    if (!locationId) return;
 
     try {
-      // Primero hacer todos los deletes
-      const deletePromises = [];
-      
+      console.log('[MODAL] === STARTING HOPPER SAVE OPERATION ===');
+      console.log('[MODAL] Current stock items:', stockItems);
+      console.log('[MODAL] Selected hoppers:', { hopper1Coffee, hopper2Coffee });
+
+      // Primero, procesar las eliminaciones de forma secuencial
       if (!hopper1Coffee && hopper1) {
-        deletePromises.push(
-          deleteHopperStock.mutateAsync({
-            locationId,
-            hopperNumber: 1,
-          })
-        );
+        console.log('[MODAL] Deleting Hopper 1:', hopper1.id);
+        await deleteHopperStock.mutateAsync({
+          locationId,
+          hopperNumber: 1,
+        });
+        console.log('[MODAL] Hopper 1 deleted, waiting for sync...');
+        await new Promise(resolve => setTimeout(resolve, 300));
       }
-      
+
       if (!hopper2Coffee && hopper2) {
-        deletePromises.push(
-          deleteHopperStock.mutateAsync({
-            locationId,
-            hopperNumber: 2,
-          })
-        );
+        console.log('[MODAL] Deleting Hopper 2:', hopper2.id);
+        await deleteHopperStock.mutateAsync({
+          locationId,
+          hopperNumber: 2,
+        });
+        console.log('[MODAL] Hopper 2 deleted, waiting for sync...');
+        await new Promise(resolve => setTimeout(resolve, 300));
       }
 
-      // Esperar a que los deletes completen
-      if (deletePromises.length > 0) {
-        await Promise.all(deletePromises);
-        // Pequeña pausa para asegurar que la DB procesó los deletes
-        await new Promise(resolve => setTimeout(resolve, 100));
-      }
-
-      // Luego hacer los upserts
-      const upsertPromises = [];
-
+      // Ahora procesar las inserciones/actualizaciones de forma secuencial
       if (hopper1Coffee) {
-        upsertPromises.push(
-          upsertHopperStock.mutateAsync({
-            locationId,
-            hopperNumber: 1,
-            coffeeVarietyId: hopper1Coffee,
-          })
-        );
+        console.log('[MODAL] Upserting Hopper 1 with coffee:', hopper1Coffee);
+        await upsertHopperStock.mutateAsync({
+          locationId,
+          hopperNumber: 1,
+          coffeeVarietyId: hopper1Coffee,
+        });
+        console.log('[MODAL] Hopper 1 upserted');
       }
 
       if (hopper2Coffee) {
-        upsertPromises.push(
-          upsertHopperStock.mutateAsync({
-            locationId,
-            hopperNumber: 2,
-            coffeeVarietyId: hopper2Coffee,
-          })
-        );
+        console.log('[MODAL] Upserting Hopper 2 with coffee:', hopper2Coffee);
+        await upsertHopperStock.mutateAsync({
+          locationId,
+          hopperNumber: 2,
+          coffeeVarietyId: hopper2Coffee,
+        });
+        console.log('[MODAL] Hopper 2 upserted');
       }
 
-      if (upsertPromises.length > 0) {
-        await Promise.all(upsertPromises);
-      }
-
-      console.log('Hopper configuration saved successfully');
+      console.log('[MODAL] All operations completed, waiting for final sync...');
       
-      // Esperar a que todas las invalidaciones de queries se completen
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // Forzar un refetch final antes de cerrar
+      await queryClient.refetchQueries({ 
+        queryKey: ['location_stock', locationId],
+        exact: true 
+      });
+      
+      console.log('[MODAL] Final refetch completed, closing modal');
+      await new Promise(resolve => setTimeout(resolve, 200));
       onOpenChange(false);
     } catch (error) {
-      console.error('Error saving hopper configuration:', error);
+      console.error('[MODAL] Error saving hopper configuration:', error);
     }
   };
 

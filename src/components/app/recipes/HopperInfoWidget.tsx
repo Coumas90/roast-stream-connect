@@ -17,7 +17,9 @@ export function HopperInfoWidget() {
   const [selectedCoffee, setSelectedCoffee] = useState<any>(null);
   const [isCoffeeDetailOpen, setIsCoffeeDetailOpen] = useState(false);
 
-  console.log('HopperInfoWidget render:', { locationId, isConfigModalOpen, stockItemsCount: stockItems.length });
+  // Log para debugging
+  console.log('[WIDGET] stockItems:', stockItems);
+  console.log('[WIDGET] isLoading:', isLoading);
 
   // Get primary hoppers (1 and 2)
   const primaryHoppers = stockItems

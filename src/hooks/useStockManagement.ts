@@ -45,8 +45,16 @@ export function useStockManagement() {
       return data;
     },
     onSuccess: async (data, variables) => {
-      console.log('Invalidating queries for location:', variables.locationId);
-      await queryClient.refetchQueries({ queryKey: ['location_stock', variables.locationId] });
+      console.log('[UPSERT] Invalidating and refetching queries for location:', variables.locationId);
+      // Invalidar primero para marcar como stale
+      queryClient.invalidateQueries({ queryKey: ['location_stock'] });
+      queryClient.invalidateQueries({ queryKey: ['location_stock', variables.locationId] });
+      // Forzar refetch inmediato
+      await queryClient.refetchQueries({ 
+        queryKey: ['location_stock', variables.locationId],
+        exact: true 
+      });
+      console.log('[UPSERT] Queries refetched successfully');
       toast.success('Tolvas configuradas correctamente');
     },
     onError: (error) => {
@@ -73,8 +81,16 @@ export function useStockManagement() {
       console.log('Hopper stock deleted successfully');
     },
     onSuccess: async (data, variables) => {
-      console.log('Invalidating queries for location:', variables.locationId);
-      await queryClient.refetchQueries({ queryKey: ['location_stock', variables.locationId] });
+      console.log('[DELETE] Invalidating and refetching queries for location:', variables.locationId);
+      // Invalidar primero para marcar como stale
+      queryClient.invalidateQueries({ queryKey: ['location_stock'] });
+      queryClient.invalidateQueries({ queryKey: ['location_stock', variables.locationId] });
+      // Forzar refetch inmediato
+      await queryClient.refetchQueries({ 
+        queryKey: ['location_stock', variables.locationId],
+        exact: true 
+      });
+      console.log('[DELETE] Queries refetched successfully');
       toast.success('Tolva eliminada correctamente');
     },
     onError: (error) => {

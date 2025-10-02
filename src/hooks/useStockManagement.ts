@@ -44,10 +44,9 @@ export function useStockManagement() {
       console.log('Hopper stock upserted successfully:', data);
       return data;
     },
-    onSuccess: (data, variables) => {
+    onSuccess: async (data, variables) => {
       console.log('Invalidating queries for location:', variables.locationId);
-      queryClient.invalidateQueries({ queryKey: ['location_stock'] });
-      queryClient.invalidateQueries({ queryKey: ['location_stock', variables.locationId] });
+      await queryClient.refetchQueries({ queryKey: ['location_stock', variables.locationId] });
       toast.success('Tolvas configuradas correctamente');
     },
     onError: (error) => {
@@ -73,10 +72,9 @@ export function useStockManagement() {
       
       console.log('Hopper stock deleted successfully');
     },
-    onSuccess: (data, variables) => {
+    onSuccess: async (data, variables) => {
       console.log('Invalidating queries for location:', variables.locationId);
-      queryClient.invalidateQueries({ queryKey: ['location_stock'] });
-      queryClient.invalidateQueries({ queryKey: ['location_stock', variables.locationId] });
+      await queryClient.refetchQueries({ queryKey: ['location_stock', variables.locationId] });
       toast.success('Tolva eliminada correctamente');
     },
     onError: (error) => {

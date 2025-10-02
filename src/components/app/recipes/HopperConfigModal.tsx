@@ -114,8 +114,8 @@ export function HopperConfigModal({ open, onOpenChange }: HopperConfigModalProps
 
       console.log('Hopper configuration saved successfully');
       
-      // Esperar un momento antes de cerrar para que las queries se refresquen
-      await new Promise(resolve => setTimeout(resolve, 200));
+      // Esperar a que todas las invalidaciones de queries se completen
+      await new Promise(resolve => setTimeout(resolve, 500));
       onOpenChange(false);
     } catch (error) {
       console.error('Error saving hopper configuration:', error);

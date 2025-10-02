@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
-import { Home, Coffee, LineChart, Package, Users2, GraduationCap, CircleHelp, Settings, Users, Layers, ListChecks, BarChart3, Bean, Warehouse, PanelLeftClose, ChefHat, ClipboardList, MessageSquare } from "lucide-react";
+import { Home, Coffee, LineChart, Package, Users2, GraduationCap, CircleHelp, Settings, Users, Layers, ListChecks, BarChart3, Bean, Warehouse, PanelLeftClose, ChefHat, ClipboardList, MessageSquare, Calculator } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { NavLink, useLocation } from "react-router-dom";
 import { useDataStore } from "@/lib/data-store";
@@ -40,6 +40,7 @@ type NavItem = { icon: any; label: string; to: string; exact?: boolean };
 const clientItems: NavItem[] = [
   { icon: Home, label: "Dashboard", to: "/app", exact: true },
   { icon: Coffee, label: "Mi Dashboard", to: "/app/barista", exact: true }, // For baristas
+  { icon: Calculator, label: "Calibración", to: "/app/barista/calibration" }, // For baristas
   { icon: Coffee, label: "Recetas", to: "/app/recipes" },
   { icon: LineChart, label: "Consumo", to: "/app/consumption" },
   { icon: Package, label: "Reposición", to: "/app/replenishment" },
@@ -73,8 +74,9 @@ export function AppShell({ children, section = "Dashboard", variant = "client" }
     ? baseItems.filter((n) => {
         // Role-based filtering for baristas and coffee masters
         if (effectiveRole === 'barista' || effectiveRole === 'coffee_master') {
-          // Baristas only see: Mi Dashboard, Recetas, Academia
+          // Baristas only see: Mi Dashboard, Calibración, Recetas, Academia
           if (n.to === "/app/barista") return true;
+          if (n.to === "/app/barista/calibration") return true;
           if (n.to === "/app/recipes") return true;
           if (n.to === "/app/academy") return flags.academy_enabled;
           if (n.to === "/app") return false; // Hide management dashboard
@@ -85,8 +87,9 @@ export function AppShell({ children, section = "Dashboard", variant = "client" }
           return false;
         }
         
-        // Managers and owners don't see barista dashboard
+        // Managers and owners don't see barista dashboard or barista calibration
         if (n.to === "/app/barista") return false;
+        if (n.to === "/app/barista/calibration") return false;
         
         // Feature flag filtering for managers/owners
         if (n.to === "/app/replenishment") return flags.auto_order_enabled;

@@ -111,113 +111,78 @@ export function HopperInfoWidget() {
 
   return (
     <>
-      <Card className="overflow-hidden border-primary/30 bg-gradient-to-br from-card via-card to-primary/5 shadow-lg">
-        {/* Header */}
-        <div className="px-6 pt-5 pb-3 border-b border-border/50 bg-gradient-to-r from-primary/5 to-transparent">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-primary/10 ring-2 ring-primary/20">
-                <Coffee className="w-5 h-5 text-primary" />
-              </div>
-              <div>
-                <h3 className="font-semibold text-base text-foreground">Estado de Tolvas</h3>
-                <p className="text-xs text-muted-foreground">Control de inventario en tiempo real</p>
-              </div>
+      <Card className="overflow-hidden border-primary/30 bg-gradient-to-br from-card via-card to-primary/5 shadow-sm hover:shadow-md transition-shadow">
+        <div className="p-4">
+          <div className="flex items-center justify-between gap-4">
+            {/* Hoppers - Horizontal Layout */}
+            <div className="flex items-center gap-3 flex-1 min-w-0">
+              {primaryHoppers.map((hopper) => {
+                const status = getStockStatus(hopper.current_kg);
+                const StatusIcon = status.icon;
+                
+                return (
+                  <div 
+                    key={hopper.id} 
+                    className={`group relative flex items-center gap-3 rounded-lg ${status.bg} border border-border/50 ring-1 ${status.ring} px-4 py-3 flex-1 min-w-0 transition-all duration-200 hover:scale-[1.02] hover:shadow-sm`}
+                  >
+                    {/* Icon */}
+                    <div className="flex-shrink-0">
+                      <StatusIcon className={`w-5 h-5 ${status.color}`} />
+                    </div>
+                    
+                    {/* Content */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-0.5">
+                        <span className="text-xs font-medium text-muted-foreground">
+                          Tolva {hopper.hopper_number}
+                        </span>
+                        {hopper.current_kg < 2 && (
+                          <AlertTriangle className="w-3 h-3 text-destructive animate-pulse" />
+                        )}
+                      </div>
+                      <p className="font-semibold text-sm text-foreground truncate group-hover:text-primary transition-colors">
+                        {hopper.coffee_varieties.name}
+                      </p>
+                      <div className="flex items-baseline gap-1 mt-1">
+                        <span className={`text-lg font-bold ${status.color}`}>
+                          {hopper.current_kg.toFixed(1)}
+                        </span>
+                        <span className="text-xs text-muted-foreground">kg</span>
+                        <Badge 
+                          variant="outline"
+                          className={`ml-1.5 ${status.badge} border text-xs px-1.5 py-0`}
+                        >
+                          {status.label}
+                        </Badge>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
-            <div className="flex gap-2">
+
+            {/* Actions */}
+            <div className="flex gap-1.5 flex-shrink-0">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => setIsConfigModalOpen(true)}
-                className="gap-2 hover:bg-primary/10 hover:text-primary hover:border-primary/30 transition-colors"
+                className="gap-1.5 h-9 hover:bg-primary/10 hover:text-primary hover:border-primary/30 transition-all"
               >
-                <Settings2 className="w-4 h-4" />
-                Configurar
+                <Settings2 className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Configurar</span>
               </Button>
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => setIsModalOpen(true)}
-                className="gap-1 hover:bg-muted transition-colors"
+                className="gap-1 h-9 hover:bg-muted transition-colors"
               >
-                Ver todas
+                <span className="hidden sm:inline">Ver todas</span>
                 <ChevronRight className="w-4 h-4" />
               </Button>
             </div>
           </div>
-        </div>
-
-        {/* Hoppers Grid */}
-        <div className="p-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {primaryHoppers.map((hopper) => {
-              const status = getStockStatus(hopper.current_kg);
-              const StatusIcon = status.icon;
-              
-              return (
-                <div 
-                  key={hopper.id} 
-                  className={`group relative rounded-xl ${status.bg} border border-border/50 ring-2 ${status.ring} p-5 transition-all duration-300 hover:shadow-md hover:scale-[1.02]`}
-                >
-                  {/* Hopper Number Badge */}
-                  <div className="absolute top-3 right-3">
-                    <Badge variant="outline" className="text-xs font-medium bg-background/80 backdrop-blur-sm">
-                      Tolva {hopper.hopper_number}
-                    </Badge>
-                  </div>
-
-                  {/* Content */}
-                  <div className="flex items-start gap-4">
-                    <div className={`p-3 rounded-xl ${status.bg} ring-2 ${status.ring} flex-shrink-0`}>
-                      <StatusIcon className={`w-6 h-6 ${status.color}`} />
-                    </div>
-                    
-                    <div className="flex-1 min-w-0 pt-1">
-                      {/* Coffee Name */}
-                      <h4 className="font-semibold text-base text-foreground truncate mb-1 group-hover:text-primary transition-colors">
-                        {hopper.coffee_varieties.name}
-                      </h4>
-                      
-                      {/* Stock Info */}
-                      <div className="flex items-center gap-2 mb-3">
-                        <span className={`text-2xl font-bold ${status.color}`}>
-                          {hopper.current_kg.toFixed(1)}
-                        </span>
-                        <span className="text-sm text-muted-foreground">kg</span>
-                      </div>
-
-                      {/* Status Badge */}
-                      <Badge 
-                        className={`${status.badge} border text-xs font-medium shadow-sm`}
-                      >
-                        {status.label}
-                      </Badge>
-                    </div>
-                  </div>
-
-                  {/* Critical Alert */}
-                  {hopper.current_kg < 2 && (
-                    <div className="mt-4 pt-4 border-t border-destructive/20">
-                      <div className="flex items-center gap-2 text-xs text-destructive font-medium">
-                        <AlertTriangle className="w-3.5 h-3.5" />
-                        <span>¡Requiere reposición urgente!</span>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-
-          {/* Info Footer */}
-          {primaryHoppers.some(h => h.current_kg < 5) && (
-            <div className="mt-4 p-3 rounded-lg bg-muted/50 border border-border/50">
-              <p className="text-xs text-muted-foreground flex items-center gap-2">
-                <AlertTriangle className="w-3.5 h-3.5" />
-                Considera reabastecer las tolvas con nivel bajo para mantener operación continua
-              </p>
-            </div>
-          )}
         </div>
       </Card>
 

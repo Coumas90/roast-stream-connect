@@ -2,6 +2,8 @@ import { Helmet } from "react-helmet-async";
 import { BaristaKPIGrid } from "@/components/app/barista/BaristaKPIGrid";
 import { QuickCalibrationWidget } from "@/components/app/barista/QuickCalibrationWidget";
 import { ActiveRecipesWidget } from "@/components/app/barista/ActiveRecipesWidget";
+import { PersonalHistoryWidget } from "@/components/app/barista/PersonalHistoryWidget";
+import { BaristaPerformanceChart } from "@/components/app/barista/BaristaPerformanceChart";
 import { Coffee } from "lucide-react";
 
 export default function BaristaHome() {
@@ -43,6 +45,15 @@ export default function BaristaHome() {
           <div className="lg:col-span-1">
             <ActiveRecipesWidget />
           </div>
+        </section>
+
+        {/* Performance & History Grid */}
+        <section className="grid gap-6 lg:grid-cols-2">
+          {/* Performance Chart */}
+          <BaristaPerformanceChart />
+          
+          {/* Personal History */}
+          <PersonalHistoryWidget />
         </section>
       </div>
     </>

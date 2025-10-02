@@ -3,7 +3,9 @@ import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/lib/auth";
 import { useUserRole } from "@/hooks/useTeam";
 import { Skeleton } from "@/components/ui/skeleton";
-import type { AppRole } from "@/integrations/supabase/types";
+import type { Database } from "@/integrations/supabase/types";
+
+type AppRole = Database['public']['Enums']['app_role'];
 
 interface RequireRoleProps {
   children: React.ReactElement;

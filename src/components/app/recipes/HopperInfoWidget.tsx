@@ -49,7 +49,10 @@ export function HopperInfoWidget() {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => setIsConfigModalOpen(true)}
+            onClick={() => {
+              console.log('Configurar button clicked');
+              setIsConfigModalOpen(true);
+            }}
           >
             Configurar
           </Button>

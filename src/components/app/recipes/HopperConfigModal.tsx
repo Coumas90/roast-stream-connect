@@ -29,6 +29,7 @@ export function HopperConfigModal({ open, onOpenChange }: HopperConfigModalProps
 
   // Sync state with current data when modal opens or data changes
   useEffect(() => {
+    console.log('HopperConfigModal effect triggered:', { open, hopper1: hopper1?.coffee_variety_id, hopper2: hopper2?.coffee_variety_id });
     if (open) {
       setHopper1Coffee(hopper1?.coffee_variety_id || "");
       setHopper2Coffee(hopper2?.coffee_variety_id || "");
@@ -79,6 +80,8 @@ export function HopperConfigModal({ open, onOpenChange }: HopperConfigModalProps
   };
 
   const isSaveDisabled = !hopper1Coffee && !hopper2Coffee;
+
+  console.log('HopperConfigModal render:', { open, locationId, coffeeCount: tupaCoffees?.length });
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

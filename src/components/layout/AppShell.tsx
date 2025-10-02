@@ -69,6 +69,9 @@ export function AppShell({ children, section = "Dashboard", variant = "client" }
   const { isLoading, flags, posEffective } = useFeatureFlags();
   const { data: effectiveRole } = useUserRole();
 
+  // Debug: Log role for diagnostics
+  console.log('[AppShell] effectiveRole:', effectiveRole, 'flags:', flags, 'isLoading:', isLoading);
+
   // Compute gated items for client variant with role-based filtering
   const items = variant === "client" && flags
     ? baseItems.filter((n) => {

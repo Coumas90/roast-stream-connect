@@ -62,13 +62,19 @@ export function CalibrationCalculator({ open, onOpenChange, locationId }: Calibr
   const { data: settings } = useCalibrationSettings();
   const { isOnline, saveDraft, loadLatestDraft, enableAutoSave, cacheProfile } = useOfflineCalibration();
 
+  // Find active recipe (is_active = true)
+  const activeRecipe = useMemo(() => 
+    recipes.find(r => r.is_active === true),
+    [recipes]
+  );
+
   // Telemetry session tracking
   const [sessionRef] = useState(() => {
     // Import CalibrationSession dynamically to avoid circular deps
     return { current: null as any };
   });
 
-  // Form state
+  // Form state - auto-select active recipe
   const [selectedRecipeId, setSelectedRecipeId] = useState<string>("");
   
   // Auto-detect shift based on current time
@@ -140,7 +146,7 @@ export function CalibrationCalculator({ open, onOpenChange, locationId }: Calibr
     return cleanup;
   }, [open, selectedRecipeId, turno, doseG, yieldValue, yieldUnit, timeS, tempC, grindPoints, grindLabel, notesTags, notesText, enableAutoSave]);
 
-  // Load draft on open
+  // Load draft on open OR auto-select active recipe
   useEffect(() => {
     if (open) {
       loadLatestDraft().then((draft) => {
@@ -157,10 +163,22 @@ export function CalibrationCalculator({ open, onOpenChange, locationId }: Calibr
           setGrindLabel(data.grindLabel || "");
           setNotesTags(data.notesTags || []);
           setNotesText(data.notesText || "");
+        } else if (activeRecipe && !selectedRecipeId) {
+          // Pre-select active recipe if no draft exists
+          setSelectedRecipeId(activeRecipe.id);
+          
+          // Pre-fill parameters from active recipe
+          const targetDose = parseFloat(activeRecipe.coffee_amount || "18");
+          const targetYield = parseFloat(activeRecipe.water_amount || "36");
+          const targetTemp = parseFloat(activeRecipe.temperature || "93");
+          
+          setDoseG(targetDose);
+          setYieldValue(targetYield);
+          setTempC(targetTemp);
         }
       });
     }
-  }, [open, loadLatestDraft]);
+  }, [open, loadLatestDraft, activeRecipe, selectedRecipeId, turno]);
 
   // Cache active recipe
   useEffect(() => {
@@ -422,8 +440,11 @@ export function CalibrationCalculator({ open, onOpenChange, locationId }: Calibr
                   ))}
                 </SelectContent>
               </Select>
-              {!selectedRecipeId && (
-                <p className="text-sm text-destructive">Debes seleccionar una receta</p>
+              {validation.errors.find(e => e.includes('receta')) && (
+                <p className="text-sm text-destructive">⚠️ Debes seleccionar una receta para continuar</p>
+              )}
+              {activeRecipe && selectedRecipeId === activeRecipe.id && (
+                <p className="text-xs text-muted-foreground">✓ Receta activa seleccionada</p>
               )}
             </div>
 
@@ -451,28 +472,30 @@ export function CalibrationCalculator({ open, onOpenChange, locationId }: Calibr
 
         {/* Main Content */}
         <div className="p-6 space-y-6">
-          {/* Validation Errors */}
+          {/* Validation Errors - Real-time */}
           {validation.errors.length > 0 && (
             <Alert variant="destructive">
               <AlertTriangle className="h-4 w-4" />
               <AlertDescription>
+                <div className="font-semibold mb-2">Errores que debes corregir:</div>
                 <ul className="list-disc pl-4 space-y-1">
                   {validation.errors.map((error, i) => (
-                    <li key={i}>{error}</li>
+                    <li key={i} className="text-sm">{error}</li>
                   ))}
                 </ul>
               </AlertDescription>
             </Alert>
           )}
 
-          {/* Validation Warnings */}
+          {/* Validation Warnings - Real-time */}
           {validation.warnings.length > 0 && (
             <Alert>
               <AlertTriangle className="h-4 w-4" />
               <AlertDescription>
+                <div className="font-semibold mb-2">Advertencias:</div>
                 <ul className="list-disc pl-4 space-y-1">
                   {validation.warnings.map((warning, i) => (
-                    <li key={i}>{warning}</li>
+                    <li key={i} className="text-sm">{warning}</li>
                   ))}
                 </ul>
               </AlertDescription>
@@ -647,27 +670,45 @@ export function CalibrationCalculator({ open, onOpenChange, locationId }: Calibr
         </div>
 
         {/* Fixed Footer */}
-        <div className="sticky bottom-0 bg-background border-t p-6 flex gap-3">
-          <Button onClick={handleSave} disabled={!selectedRecipeId || !validation.isValid}>
-            <Save className="w-4 h-4 mr-2" />
+        <div className="sticky bottom-0 bg-background border-t p-6 space-y-3">
+          {/* Show specific reason why save is disabled */}
+          {!validation.isValid && (
+            <Alert variant="destructive" className="py-2">
+              <AlertDescription className="text-xs">
+                {validation.errors.length > 0 
+                  ? `No se puede guardar: ${validation.errors[0]}` 
+                  : 'Corrige los errores antes de guardar'}
+              </AlertDescription>
+            </Alert>
+          )}
+          
+          <div className="flex gap-3">
+            <Button 
+              onClick={handleSave} 
+              disabled={!validation.isValid}
+              className="flex-1"
+            >
+              <Save className="w-4 h-4 mr-2" />
             Guardar
-          </Button>
-          <Button variant="outline" onClick={handleDuplicate} disabled={!currentEntryId}>
-            <Copy className="w-4 h-4 mr-2" />
-            Duplicar
-          </Button>
-          <Button variant="outline" onClick={handleRevert} disabled={!approvedEntry}>
-            <RotateCcw className="w-4 h-4 mr-2" />
-            Revertir
-          </Button>
-          <Button 
-            variant="default" 
-            onClick={handleApprove} 
-            disabled={!selectedRecipeId || !validation.isValid || overallStatus === "error"}
-          >
-            <CheckCircle className="w-4 h-4 mr-2" />
-            Aprobar
-          </Button>
+            </Button>
+            <Button variant="outline" onClick={handleDuplicate} disabled={!currentEntryId}>
+              <Copy className="w-4 h-4 mr-2" />
+              Duplicar
+            </Button>
+            <Button variant="outline" onClick={handleRevert} disabled={!approvedEntry}>
+              <RotateCcw className="w-4 h-4 mr-2" />
+              Revertir
+            </Button>
+            <Button 
+              variant="default" 
+              onClick={handleApprove} 
+              disabled={!validation.isValid || overallStatus === "error"}
+              className="flex-1"
+            >
+              <CheckCircle className="w-4 h-4 mr-2" />
+              Aprobar
+            </Button>
+          </div>
         </div>
       </DialogContent>
     </Dialog>

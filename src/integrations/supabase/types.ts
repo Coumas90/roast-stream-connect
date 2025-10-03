@@ -150,6 +150,7 @@ export type Database = {
           grind_label: string | null
           grind_points: number
           grinder_clicks_delta: number | null
+          hopper_id: string | null
           id: string
           is_override: boolean | null
           notes_tags: string[] | null
@@ -177,6 +178,7 @@ export type Database = {
           grind_label?: string | null
           grind_points: number
           grinder_clicks_delta?: number | null
+          hopper_id?: string | null
           id?: string
           is_override?: boolean | null
           notes_tags?: string[] | null
@@ -204,6 +206,7 @@ export type Database = {
           grind_label?: string | null
           grind_points?: number
           grinder_clicks_delta?: number | null
+          hopper_id?: string | null
           id?: string
           is_override?: boolean | null
           notes_tags?: string[] | null
@@ -224,6 +227,13 @@ export type Database = {
             columns: ["coffee_profile_id"]
             isOneToOne: false
             referencedRelation: "coffee_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "calibration_entries_hopper_id_fkey"
+            columns: ["hopper_id"]
+            isOneToOne: false
+            referencedRelation: "location_stock"
             referencedColumns: ["id"]
           },
           {
@@ -413,6 +423,7 @@ export type Database = {
           location_id: string
           lote: string | null
           name: string
+          recipe_id: string | null
           target_dose_g: number
           target_ratio_max: number
           target_ratio_min: number
@@ -435,6 +446,7 @@ export type Database = {
           location_id: string
           lote?: string | null
           name: string
+          recipe_id?: string | null
           target_dose_g?: number
           target_ratio_max?: number
           target_ratio_min?: number
@@ -457,6 +469,7 @@ export type Database = {
           location_id?: string
           lote?: string | null
           name?: string
+          recipe_id?: string | null
           target_dose_g?: number
           target_ratio_max?: number
           target_ratio_min?: number
@@ -489,6 +502,13 @@ export type Database = {
             columns: ["location_id"]
             isOneToOne: false
             referencedRelation: "locations_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "coffee_profiles_recipe_id_fkey"
+            columns: ["recipe_id"]
+            isOneToOne: false
+            referencedRelation: "recipes"
             referencedColumns: ["id"]
           },
           {
@@ -1777,6 +1797,55 @@ export type Database = {
             columns: ["default_tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      recipe_locations: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          location_id: string
+          recipe_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          location_id: string
+          recipe_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          location_id?: string
+          recipe_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recipe_locations_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recipe_locations_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recipe_locations_recipe_id_fkey"
+            columns: ["recipe_id"]
+            isOneToOne: false
+            referencedRelation: "recipes"
             referencedColumns: ["id"]
           },
         ]

@@ -7,12 +7,24 @@ import { CalibrationHistoryCards } from "@/components/app/barista/CalibrationHis
 import { ActiveRecipesWidget } from "@/components/app/barista/ActiveRecipesWidget";
 import { CoffeeEvolutionChart } from "@/components/app/barista/CoffeeEvolutionChart";
 import { BaristaBadgesWidget } from "@/components/app/barista/BaristaBadgesWidget";
+import { QuickActionsWidget } from "@/components/app/barista/QuickActionsWidget";
 import { useTenant } from "@/lib/tenant";
+import { useBaristaMetrics } from "@/hooks/useBaristaMetrics";
+import { useProfile } from "@/hooks/useProfile";
 import { Coffee } from "lucide-react";
 
 export default function BaristaCalibration() {
   const [showCalculator, setShowCalculator] = useState(false);
   const { locationId } = useTenant();
+  const { profile } = useProfile();
+  const { data: metrics } = useBaristaMetrics(profile?.id);
+
+  const scrollToEvolution = () => {
+    const evolutionSection = document.querySelector('[data-evolution-section]');
+    if (evolutionSection) {
+      evolutionSection.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
 
   return (
     <>
@@ -41,6 +53,14 @@ export default function BaristaCalibration() {
             onRepeatLast={() => setShowCalculator(true)}
           />
 
+          {/* Quick Actions Widget */}
+          <QuickActionsWidget
+            onNewCalibration={() => setShowCalculator(true)}
+            onRepeatLast={() => setShowCalculator(true)}
+            onViewEvolution={scrollToEvolution}
+            lastCalibrationTime={metrics?.lastCalibrationTime}
+          />
+
           {/* Two Column Layout */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Left Column */}
@@ -49,7 +69,9 @@ export default function BaristaCalibration() {
               <CoffeeEvolutionTimeline />
               
               {/* Coffee Evolution Chart */}
-              <CoffeeEvolutionChart />
+              <div data-evolution-section>
+                <CoffeeEvolutionChart />
+              </div>
               
               {/* Active Recipes */}
               <ActiveRecipesWidget />

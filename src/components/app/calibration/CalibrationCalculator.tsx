@@ -24,6 +24,7 @@ import {
   formatGrindDelta,
   calculateClicksDelta,
 } from "@/lib/calibration-utils";
+import confetti from "canvas-confetti";
 
 interface CalibrationCalculatorProps {
   open: boolean;
@@ -256,6 +257,16 @@ export function CalibrationCalculator({ open, onOpenChange, locationId }: Calibr
     );
   };
 
+  // Confetti animation for perfect calibration
+  const triggerConfetti = () => {
+    confetti({
+      particleCount: 100,
+      spread: 70,
+      origin: { y: 0.6 },
+      colors: ['#10b981', '#3b82f6', '#8b5cf6'],
+    });
+  };
+
   const handleSave = async () => {
     if (!selectedProfileId || !profile?.id) return;
 
@@ -321,6 +332,11 @@ export function CalibrationCalculator({ open, onOpenChange, locationId }: Calibr
     }
     if (currentEntryId) {
       await approveEntry.mutateAsync(currentEntryId);
+      
+      // Trigger confetti if calibration is perfect (green status)
+      if (overallStatus === "good") {
+        triggerConfetti();
+      }
     }
   };
 

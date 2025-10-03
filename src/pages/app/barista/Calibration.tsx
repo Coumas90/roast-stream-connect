@@ -8,16 +8,24 @@ import { ActiveRecipesWidget } from "@/components/app/barista/ActiveRecipesWidge
 import { CoffeeEvolutionChart } from "@/components/app/barista/CoffeeEvolutionChart";
 import { BaristaBadgesWidget } from "@/components/app/barista/BaristaBadgesWidget";
 import { QuickActionsWidget } from "@/components/app/barista/QuickActionsWidget";
+import { LocationInfoWidget } from "@/components/app/barista/LocationInfoWidget";
 import { useTenant } from "@/lib/tenant";
 import { useBaristaMetrics } from "@/hooks/useBaristaMetrics";
 import { useProfile } from "@/hooks/useProfile";
-import { Coffee } from "lucide-react";
+import { useUserRole } from "@/hooks/useTeam";
+import { Coffee, BarChart3 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useNavigate } from "react-router-dom";
 
 export default function BaristaCalibration() {
   const [showCalculator, setShowCalculator] = useState(false);
   const { locationId } = useTenant();
   const { profile } = useProfile();
   const { data: metrics } = useBaristaMetrics(profile?.id);
+  const { data: userRole } = useUserRole();
+  const navigate = useNavigate();
+  
+  const canViewCompare = userRole === 'owner' || userRole === 'manager' || userRole === 'tupa_admin';
 
   // Protection against undefined locationId
   if (!locationId) {
@@ -52,10 +60,23 @@ export default function BaristaCalibration() {
         {/* Header - Clean and Simple */}
         <div className="sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
           <div className="container max-w-7xl mx-auto px-4 py-4">
-            <h1 className="text-2xl md:text-3xl font-bold flex items-center gap-2">
-              <Coffee className="h-6 w-6 md:h-8 md:w-8 text-primary" />
-              Calibración
-            </h1>
+            <div className="flex items-center justify-between">
+              <h1 className="text-2xl md:text-3xl font-bold flex items-center gap-2">
+                <Coffee className="h-6 w-6 md:h-8 md:w-8 text-primary" />
+                Calibración
+              </h1>
+              {canViewCompare && (
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => navigate('/app/calibration/compare')}
+                  className="gap-2"
+                >
+                  <BarChart3 className="h-4 w-4" />
+                  <span className="hidden sm:inline">Comparar Sucursales</span>
+                </Button>
+              )}
+            </div>
           </div>
         </div>
 
@@ -75,6 +96,9 @@ export default function BaristaCalibration() {
             onViewEvolution={scrollToEvolution}
             lastCalibrationTime={metrics?.lastCalibrationTime}
           />
+
+          {/* Location Info - Full Width */}
+          <LocationInfoWidget />
 
           {/* Two Column Layout */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

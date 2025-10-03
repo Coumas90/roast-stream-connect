@@ -54,6 +54,7 @@ import ResetPassword from "./pages/auth/ResetPassword";
 import LocationPosDetail from "./pages/app/locations/Pos";
 import BaristaHome from "./pages/app/Barista";
 import BaristaCalibration from "./pages/app/barista/Calibration";
+import CalibrationComparePage from "./pages/app/calibration/Compare";
 import Terms from "./pages/Terms";
 import Privacy from "./pages/Privacy";
 
@@ -105,6 +106,11 @@ const App = () => (
                     <Route path="barista/calibration" element={
                       <RequireRole allowedRoles={['barista', 'coffee_master']}>
                         <BaristaCalibration />
+                      </RequireRole>
+                    } />
+                    <Route path="calibration/compare" element={
+                      <RequireRole allowedRoles={['owner', 'manager', 'tupa_admin']}>
+                        <CalibrationComparePage />
                       </RequireRole>
                     } />
                     <Route path="recipes" element={<Recipes />} />

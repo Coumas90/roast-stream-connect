@@ -11,19 +11,20 @@ import { cn } from "@/lib/utils";
 import { OfflineSyncStatus } from "./OfflineSyncStatus";
 import { CalibrationGuide } from "./CalibrationGuide";
 import { useDebounce } from "@/hooks/useDebounce";
-import { useCoffeeProfiles } from "@/hooks/useCoffeeProfiles";
+import { useRecipes } from "@/hooks/useRecipes";
 import { useCalibrationEntries, useCreateCalibrationEntry, useUpdateCalibrationEntry, useApproveCalibrationEntry, useTodayApprovedEntry } from "@/hooks/useCalibrationEntries";
 import { useCalibrationSettings } from "@/hooks/useCalibrationSettings";
 import { useProfile } from "@/hooks/useProfile";
 import { useOfflineCalibration } from "@/hooks/useOfflineCalibration";
+import { useCalibrationValidation, validateShiftWithCurrentTime } from "@/hooks/useCalibrationValidation";
 import {
   calculateRatio,
-  validateCalibration,
   evaluateSemaphore,
   generateSuggestions,
   formatGrindDelta,
   calculateClicksDelta,
 } from "@/lib/calibration-utils";
+import { ShiftValidator } from "./ShiftValidator";
 import confetti from "canvas-confetti";
 
 interface CalibrationCalculatorProps {
@@ -37,7 +38,27 @@ type Turno = "mañana" | "tarde" | "noche";
 
 export function CalibrationCalculator({ open, onOpenChange, locationId }: CalibrationCalculatorProps) {
   const { profile } = useProfile();
-  const { data: coffeeProfiles = [] } = useCoffeeProfiles(locationId);
+  
+  // Protection against undefined locationId
+  if (!locationId) {
+    return (
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Error de Configuración</DialogTitle>
+          </DialogHeader>
+          <Alert variant="destructive">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription>
+              No se pudo cargar la ubicación. Por favor, selecciona una ubicación válida desde el menú principal.
+            </AlertDescription>
+          </Alert>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+  
+  const { data: recipes = [] } = useRecipes({ status: 'active' });
   const { data: settings } = useCalibrationSettings();
   const { isOnline, saveDraft, loadLatestDraft, enableAutoSave, cacheProfile } = useOfflineCalibration();
 
@@ -48,8 +69,17 @@ export function CalibrationCalculator({ open, onOpenChange, locationId }: Calibr
   });
 
   // Form state
-  const [selectedProfileId, setSelectedProfileId] = useState<string>("");
-  const [turno, setTurno] = useState<Turno>("mañana");
+  const [selectedRecipeId, setSelectedRecipeId] = useState<string>("");
+  
+  // Auto-detect shift based on current time
+  const [turno, setTurno] = useState<Turno>(() => {
+    const now = new Date();
+    const hour = now.getHours();
+    
+    if (hour >= 6 && hour < 14) return "mañana";
+    if (hour >= 14 && hour < 22) return "tarde";
+    return "noche";
+  });
   const [doseG, setDoseG] = useState(18);
   const [yieldValue, setYieldValue] = useState(36);
   const [yieldUnit, setYieldUnit] = useState<YieldUnit>("g");
@@ -69,12 +99,12 @@ export function CalibrationCalculator({ open, onOpenChange, locationId }: Calibr
   const debouncedTempC = useDebounce(tempC, 200);
   const debouncedGrindPoints = useDebounce(grindPoints, 200);
 
-  const selectedProfile = useMemo(
-    () => coffeeProfiles.find((p) => p.id === selectedProfileId),
-    [coffeeProfiles, selectedProfileId]
+  const selectedRecipe = useMemo(
+    () => recipes.find((r) => r.id === selectedRecipeId),
+    [recipes, selectedRecipeId]
   );
 
-  const { data: approvedEntry } = useTodayApprovedEntry(selectedProfileId, turno);
+  const { data: approvedEntry } = useTodayApprovedEntry(selectedRecipeId, turno);
 
   const createEntry = useCreateCalibrationEntry();
   const updateEntry = useUpdateCalibrationEntry();
@@ -89,11 +119,11 @@ export function CalibrationCalculator({ open, onOpenChange, locationId }: Calibr
 
   // Auto-save draft every 30 seconds
   useEffect(() => {
-    if (!open || !selectedProfileId) return;
+    if (!open || !selectedRecipeId) return;
 
-    const draftId = `calibration-${selectedProfileId}-${turno}`;
+    const draftId = `calibration-${selectedRecipeId}-${turno}`;
     const getData = () => ({
-      selectedProfileId,
+      selectedRecipeId,
       turno,
       doseG,
       yieldValue,
@@ -108,7 +138,7 @@ export function CalibrationCalculator({ open, onOpenChange, locationId }: Calibr
 
     const cleanup = enableAutoSave(draftId, getData, 30000);
     return cleanup;
-  }, [open, selectedProfileId, turno, doseG, yieldValue, yieldUnit, timeS, tempC, grindPoints, grindLabel, notesTags, notesText, enableAutoSave]);
+  }, [open, selectedRecipeId, turno, doseG, yieldValue, yieldUnit, timeS, tempC, grindPoints, grindLabel, notesTags, notesText, enableAutoSave]);
 
   // Load draft on open
   useEffect(() => {
@@ -116,8 +146,8 @@ export function CalibrationCalculator({ open, onOpenChange, locationId }: Calibr
       loadLatestDraft().then((draft) => {
         if (draft && draft.data) {
           const data = draft.data;
-          setSelectedProfileId(data.selectedProfileId || "");
-          setTurno(data.turno || "mañana");
+          setSelectedRecipeId(data.selectedRecipeId || data.selectedProfileId || "");
+          setTurno(data.turno || turno); // Keep auto-detected turno if no draft
           setDoseG(data.doseG || 18);
           setYieldValue(data.yieldValue || 36);
           setYieldUnit(data.yieldUnit || "g");
@@ -132,12 +162,12 @@ export function CalibrationCalculator({ open, onOpenChange, locationId }: Calibr
     }
   }, [open, loadLatestDraft]);
 
-  // Cache active profile
+  // Cache active recipe
   useEffect(() => {
-    if (selectedProfile) {
-      cacheProfile(selectedProfile.id, selectedProfile);
+    if (selectedRecipe) {
+      cacheProfile(selectedRecipe.id, selectedRecipe);
     }
-  }, [selectedProfile, cacheProfile]);
+  }, [selectedRecipe, cacheProfile]);
 
   // Calculate ratio with density conversion (debounced)
   const ratio = useMemo(() => {
@@ -145,16 +175,9 @@ export function CalibrationCalculator({ open, onOpenChange, locationId }: Calibr
     return calculateRatio(debouncedYieldValue, yieldUnit, debouncedDoseG, density);
   }, [debouncedDoseG, debouncedYieldValue, yieldUnit, settings]);
 
-  // Validations
-  const validation = useMemo(() => {
-    const maxGrindDelta = settings?.max_grind_delta || 1.5;
-    const grindDelta = previousGrindPoints !== undefined ? debouncedGrindPoints - previousGrindPoints : 0;
-    return validateCalibration(debouncedDoseG, debouncedYieldValue, debouncedTimeS, grindDelta, maxGrindDelta);
-  }, [debouncedDoseG, debouncedYieldValue, debouncedTimeS, debouncedGrindPoints, previousGrindPoints, settings]);
-
   // Semaphore status and suggestions (debounced)
   const { timeStatus, ratioStatus, overallStatus, suggestion } = useMemo(() => {
-    if (!selectedProfile) {
+    if (!selectedRecipe) {
       return { 
         timeStatus: "good" as const, 
         ratioStatus: "good" as const, 
@@ -163,16 +186,24 @@ export function CalibrationCalculator({ open, onOpenChange, locationId }: Calibr
       };
     }
 
-    const { target_time_min, target_time_max, target_ratio_min, target_ratio_max } = selectedProfile;
+    // Extract parameters from recipe
+    const targetDoseG = parseFloat(selectedRecipe.coffee_amount || "18");
+    const targetYieldG = parseFloat(selectedRecipe.water_amount || "36");
+    const recipeRatio = targetYieldG / targetDoseG;
+    
+    const targetTimeMin = 25;
+    const targetTimeMax = 32;
+    const targetRatioMin = recipeRatio - 0.2;
+    const targetRatioMax = recipeRatio + 0.2;
 
     // Evaluate semaphore
     const semaphore = evaluateSemaphore({
       timeS: debouncedTimeS,
       ratio,
-      targetTimeMin: target_time_min,
-      targetTimeMax: target_time_max,
-      targetRatioMin: target_ratio_min,
-      targetRatioMax: target_ratio_max,
+      targetTimeMin,
+      targetTimeMax,
+      targetRatioMin,
+      targetRatioMax,
     });
 
     // Generate intelligent suggestions
@@ -180,17 +211,27 @@ export function CalibrationCalculator({ open, onOpenChange, locationId }: Calibr
     const suggestionText = generateSuggestions({
       timeS: debouncedTimeS,
       ratio,
-      targetTimeMin: target_time_min,
-      targetTimeMax: target_time_max,
-      targetRatioMin: target_ratio_min,
-      targetRatioMax: target_ratio_max,
+      targetTimeMin,
+      targetTimeMax,
+      targetRatioMin,
+      targetRatioMax,
       notesTags,
       grindDelta,
       maxGrindDelta: settings?.max_grind_delta || 1.5,
     });
 
     return { ...semaphore, suggestion: suggestionText };
-  }, [selectedProfile, debouncedTimeS, ratio, notesTags, debouncedGrindPoints, previousGrindPoints, settings]);
+  }, [selectedRecipe, debouncedTimeS, ratio, notesTags, debouncedGrindPoints, previousGrindPoints, settings]);
+
+  // Use proper validation hook after semaphore calculation
+  const validation = useCalibrationValidation({
+    doseG: debouncedDoseG,
+    yieldValue: debouncedYieldValue,
+    timeS: debouncedTimeS,
+    turno,
+    selectedRecipeId,
+    semaphoreStatus: overallStatus
+  });
 
   // Calculate grind delta display
   const grindDeltaDisplay = useMemo(() => {
@@ -198,12 +239,10 @@ export function CalibrationCalculator({ open, onOpenChange, locationId }: Calibr
   }, [grindPoints, previousGrindPoints]);
 
   const clicksDelta = useMemo(() => {
-    const grinder = selectedProfile?.grinders;
-    const clicksPerPoint = grinder && typeof grinder === 'object' && 'clicks_per_point' in grinder 
-      ? (grinder as any).clicks_per_point 
-      : 1;
+    // Default clicks per point to 1 for recipes (can be enhanced later)
+    const clicksPerPoint = 1;
     return calculateClicksDelta(grindPoints, previousGrindPoints, clicksPerPoint);
-  }, [grindPoints, previousGrindPoints, selectedProfile]);
+  }, [grindPoints, previousGrindPoints]);
 
   // Stepper component
   const Stepper = ({ 
@@ -268,15 +307,16 @@ export function CalibrationCalculator({ open, onOpenChange, locationId }: Calibr
   };
 
   const handleSave = async () => {
-    if (!selectedProfileId || !profile?.id) return;
+    if (!selectedRecipeId || !profile?.id) return;
 
     // Validate before saving
     if (!validation.isValid) {
       return;
     }
 
-    const entryData = {
-      coffee_profile_id: selectedProfileId,
+    const entryData: any = {
+      recipe_id: selectedRecipeId,
+      coffee_profile_id: null, // Explicitly set to null for recipe-based calibrations
       barista_id: profile.id,
       turno,
       dose_g: doseG,
@@ -369,19 +409,22 @@ export function CalibrationCalculator({ open, onOpenChange, locationId }: Calibr
           {/* Metadata Row */}
           <div className="grid grid-cols-2 gap-4 mt-4">
             <div className="space-y-2">
-              <Label>Café</Label>
-              <Select value={selectedProfileId} onValueChange={setSelectedProfileId}>
+              <Label>Receta</Label>
+              <Select value={selectedRecipeId} onValueChange={setSelectedRecipeId}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Seleccionar café" />
+                  <SelectValue placeholder="Seleccionar receta" />
                 </SelectTrigger>
                 <SelectContent>
-                  {coffeeProfiles.map((profile) => (
-                    <SelectItem key={profile.id} value={profile.id}>
-                      {profile.name} {profile.lote && `- ${profile.lote}`}
+                  {recipes.map((recipe) => (
+                    <SelectItem key={recipe.id} value={recipe.id}>
+                      {recipe.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
+              {!selectedRecipeId && (
+                <p className="text-sm text-destructive">Debes seleccionar una receta</p>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -436,10 +479,20 @@ export function CalibrationCalculator({ open, onOpenChange, locationId }: Calibr
             </Alert>
           )}
           
+          {/* Shift Validator */}
+          <ShiftValidator turno={turno} />
+          
           {/* Calibration Guide */}
-          {selectedProfile && (
+          {selectedRecipe && (
             <CalibrationGuide
-              targetProfile={selectedProfile}
+              targetProfile={{
+                target_dose_g: parseFloat(selectedRecipe.coffee_amount || "18"),
+                target_time_min: 25,
+                target_time_max: 32,
+                target_ratio_min: parseFloat(selectedRecipe.water_amount || "36") / parseFloat(selectedRecipe.coffee_amount || "18") - 0.2,
+                target_ratio_max: parseFloat(selectedRecipe.water_amount || "36") / parseFloat(selectedRecipe.coffee_amount || "18") + 0.2,
+                target_temp_c: parseFloat(selectedRecipe.temperature || "93"),
+              } as any}
               currentValues={{
                 dose_g: debouncedDoseG,
                 ratio,
@@ -595,7 +648,7 @@ export function CalibrationCalculator({ open, onOpenChange, locationId }: Calibr
 
         {/* Fixed Footer */}
         <div className="sticky bottom-0 bg-background border-t p-6 flex gap-3">
-          <Button onClick={handleSave} disabled={!selectedProfileId || !validation.isValid}>
+          <Button onClick={handleSave} disabled={!selectedRecipeId || !validation.isValid}>
             <Save className="w-4 h-4 mr-2" />
             Guardar
           </Button>
@@ -610,7 +663,7 @@ export function CalibrationCalculator({ open, onOpenChange, locationId }: Calibr
           <Button 
             variant="default" 
             onClick={handleApprove} 
-            disabled={!selectedProfileId || !validation.isValid || overallStatus === "error"}
+            disabled={!selectedRecipeId || !validation.isValid || overallStatus === "error"}
           >
             <CheckCircle className="w-4 h-4 mr-2" />
             Aprobar

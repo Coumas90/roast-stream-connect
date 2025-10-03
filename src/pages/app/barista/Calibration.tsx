@@ -19,6 +19,21 @@ export default function BaristaCalibration() {
   const { profile } = useProfile();
   const { data: metrics } = useBaristaMetrics(profile?.id);
 
+  // Protection against undefined locationId
+  if (!locationId) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-background to-muted/20 flex items-center justify-center p-4">
+        <div className="text-center space-y-4">
+          <Coffee className="h-16 w-16 text-muted-foreground mx-auto" />
+          <h2 className="text-2xl font-bold">Ubicación no seleccionada</h2>
+          <p className="text-muted-foreground">
+            Por favor, selecciona una ubicación desde el menú principal para acceder a la calibración.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   const scrollToEvolution = () => {
     const evolutionSection = document.querySelector('[data-evolution-section]');
     if (evolutionSection) {

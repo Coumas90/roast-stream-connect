@@ -76,15 +76,15 @@ export function validateShiftWithCurrentTime(turno: string): {
   const hour = now.getHours();
 
   const expectedShift = 
-    hour >= 6 && hour < 14 ? "morning" :
-    hour >= 14 && hour < 22 ? "afternoon" :
-    "night";
+    hour >= 6 && hour < 14 ? "mañana" :
+    hour >= 14 && hour < 22 ? "tarde" :
+    "noche";
 
   if (turno !== expectedShift) {
     const shiftNames = {
-      morning: "Mañana (6:00-14:00)",
-      afternoon: "Tarde (14:00-22:00)",
-      night: "Noche (22:00-6:00)"
+      mañana: "Mañana (6:00-14:00)",
+      tarde: "Tarde (14:00-22:00)",
+      noche: "Noche (22:00-6:00)"
     };
 
     return {

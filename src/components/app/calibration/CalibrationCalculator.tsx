@@ -62,11 +62,20 @@ export function CalibrationCalculator({ open, onOpenChange, locationId }: Calibr
   const { data: settings } = useCalibrationSettings();
   const { isOnline, saveDraft, loadLatestDraft, enableAutoSave, cacheProfile } = useOfflineCalibration();
 
-  // Find active recipe (is_active = true)
-  const activeRecipe = useMemo(() => 
-    recipes.find(r => r.is_active === true),
+  // Find active recipe (is_active = true) - Validate multiple active recipes
+  const activeRecipes = useMemo(() => 
+    recipes.filter(r => r.is_active === true),
     [recipes]
   );
+  
+  // Warn if multiple active recipes detected
+  useEffect(() => {
+    if (activeRecipes.length > 1) {
+      console.warn(`⚠️ Múltiples recetas activas detectadas (${activeRecipes.length}). Se usará la primera.`);
+    }
+  }, [activeRecipes]);
+  
+  const activeRecipe = activeRecipes[0];
 
   // Telemetry session tracking
   const [sessionRef] = useState(() => {
@@ -167,10 +176,10 @@ export function CalibrationCalculator({ open, onOpenChange, locationId }: Calibr
           // Pre-select active recipe if no draft exists
           setSelectedRecipeId(activeRecipe.id);
           
-          // Pre-fill parameters from active recipe
-          const targetDose = parseFloat(activeRecipe.coffee_amount || "18");
-          const targetYield = parseFloat(activeRecipe.water_amount || "36");
-          const targetTemp = parseFloat(activeRecipe.temperature || "93");
+          // Pre-fill parameters from active recipe with sanitization
+          const targetDose = Math.max(1, Math.min(30, parseFloat(activeRecipe.coffee_amount) || 18));
+          const targetYield = Math.max(1, Math.min(100, parseFloat(activeRecipe.water_amount) || 36));
+          const targetTemp = Math.max(80, Math.min(100, parseFloat(activeRecipe.temperature) || 93));
           
           setDoseG(targetDose);
           setYieldValue(targetYield);
@@ -532,8 +541,9 @@ export function CalibrationCalculator({ open, onOpenChange, locationId }: Calibr
             <Stepper
               label="Dosis"
               value={doseG}
-              onChange={setDoseG}
+              onChange={(val) => setDoseG(Math.max(1, Math.min(30, val)))}
               step={settings?.default_steps.dose_g || 0.1}
+              min={1}
               unit="g"
               size="large"
             />
@@ -544,8 +554,9 @@ export function CalibrationCalculator({ open, onOpenChange, locationId }: Calibr
                 <Stepper
                   label=""
                   value={yieldValue}
-                  onChange={setYieldValue}
+                  onChange={(val) => setYieldValue(Math.max(1, Math.min(100, val)))}
                   step={1}
+                  min={1}
                   unit={yieldUnit}
                   size="large"
                 />
@@ -563,8 +574,9 @@ export function CalibrationCalculator({ open, onOpenChange, locationId }: Calibr
             <Stepper
               label="Tiempo"
               value={timeS}
-              onChange={setTimeS}
+              onChange={(val) => setTimeS(Math.max(1, Math.min(120, val)))}
               step={settings?.default_steps.time_s || 1}
+              min={1}
               unit="s"
               size="large"
             />
@@ -572,8 +584,9 @@ export function CalibrationCalculator({ open, onOpenChange, locationId }: Calibr
             <Stepper
               label="Temperatura"
               value={tempC}
-              onChange={setTempC}
+              onChange={(val) => setTempC(Math.max(80, Math.min(100, val)))}
               step={settings?.default_steps.temp_c || 1}
+              min={80}
               unit="°C"
               size="large"
             />

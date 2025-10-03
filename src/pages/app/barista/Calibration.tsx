@@ -5,6 +5,8 @@ import { BaristaHeroSection } from "@/components/app/barista/BaristaHeroSection"
 import { CoffeeEvolutionTimeline } from "@/components/app/barista/CoffeeEvolutionTimeline";
 import { CalibrationHistoryCards } from "@/components/app/barista/CalibrationHistoryCards";
 import { ActiveRecipesWidget } from "@/components/app/barista/ActiveRecipesWidget";
+import { CoffeeEvolutionChart } from "@/components/app/barista/CoffeeEvolutionChart";
+import { BaristaBadgesWidget } from "@/components/app/barista/BaristaBadgesWidget";
 import { useTenant } from "@/lib/tenant";
 import { Coffee } from "lucide-react";
 
@@ -46,12 +48,21 @@ export default function BaristaCalibration() {
               {/* Coffee Evolution Timeline */}
               <CoffeeEvolutionTimeline />
               
+              {/* Coffee Evolution Chart */}
+              <CoffeeEvolutionChart />
+              
               {/* Active Recipes */}
               <ActiveRecipesWidget />
             </div>
 
-            {/* Right Column - My Calibrations */}
-            <CalibrationHistoryCards />
+            {/* Right Column */}
+            <div className="space-y-6">
+              {/* Badges & Achievements */}
+              <BaristaBadgesWidget />
+              
+              {/* My Calibrations */}
+              <CalibrationHistoryCards />
+            </div>
           </div>
         </div>
 

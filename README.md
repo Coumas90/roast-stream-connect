@@ -60,6 +60,29 @@ This project is built with:
 - shadcn-ui
 - Tailwind CSS
 
+## Arquitectura
+
+La aplicación se organiza en varios módulos principales:
+
+- `src/`: código fuente del frontend (componentes, hooks y utilidades de React).
+- `supabase/`: funciones Edge, migraciones y pruebas asociadas a la base de datos.
+- `sdk/`: tipos y contratos reutilizables para integraciones POS.
+- `docs/`: documentación técnica adicional del proyecto.
+- `tests/`: pruebas unitarias ejecutadas con Vitest.
+
+## Configuración local
+
+1. Copia `.env.example` a `.env` y completa los valores necesarios.
+2. Variables de entorno requeridas:
+   - `VITE_SUPABASE_URL`: URL de tu proyecto Supabase.
+   - `VITE_SUPABASE_ANON_KEY`: clave pública (anon) de Supabase.
+3. Comandos principales:
+   - `npm install` – instala las dependencias.
+   - `npm run dev` – levanta el servidor de desarrollo.
+   - `npm run lint` – ejecuta el linter.
+   - `npm test` – corre las pruebas unitarias.
+   - `npm run build` – genera el build de producción.
+
 ## How can I deploy this project?
 
 Simply open [Lovable](https://lovable.dev/projects/d8e52863-f7db-4118-a636-1de5db9c95b3) and click on Share -> Publish.
@@ -71,6 +94,17 @@ Yes, you can!
 To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
 
 Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+
+## Documentación y despliegue
+
+- Documentos en [docs/](./docs):
+  - [Guía de seguridad](docs/SECURITY.md)
+  - [Pruebas CORS para funciones Edge](docs/edge-functions-cors-testing.md)
+  - [Operación de sincronización POS](docs/pos-sync/operacion.md)
+  - [Informe técnico TUPÁ Hub](docs/tupa-hub-tech-report.md)
+- Guías de despliegue:
+  - Revisa [How can I deploy this project?](#how-can-i-deploy-this-project) para publicar desde Lovable.
+  - [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
 
 ## CI & Branch Protection
 

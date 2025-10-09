@@ -5,11 +5,18 @@ export type POSKind = "products" | "orders" | "sales";
 
 export type POSProviderId = "fudo" | "maxirest" | "bistrosoft" | "other" | (string & {});
 
+/**
+ * Basic configuration required to create a POS adapter.
+ * Additional provider-specific options can be supplied via extra keys.
+ */
 export interface POSConfig {
+  /** Identifier of the POS provider implementation. */
   provider: POSProviderId;
+  /** API key or token used for authenticating with the provider. */
   apiKey?: string;
+  /** Optional location identifier when the provider supports multiple stores. */
   locationId?: string;
-  // Allow provider-specific settings without breaking typing
+  /** Allow provider-specific settings without breaking typing. */
   [k: string]: unknown;
 }
 
@@ -55,10 +62,20 @@ export interface POSMeta {
 }
 
 
-// High-level service used by the app to perform sync tasks
+/**
+ * High-level service used by the app to perform sync tasks against a POS.
+ */
 export interface POSService {
+  /** Static metadata describing the adapter implementation. */
   readonly meta: POSMeta;
-  sync(kind: POSKind, since?: string): Promise<number>; // returns number of items processed
+  /**
+   * Synchronize data for a given entity kind.
+   *
+   * @param kind - Type of entity to synchronize (e.g. "sales").
+   * @param since - Optional ISO timestamp to resume incremental syncs.
+   * @returns Number of items processed.
+   */
+  sync(kind: POSKind, since?: string): Promise<number>;
 }
 
 export type POSAdapterFactory = (config: POSConfig) => POSService;

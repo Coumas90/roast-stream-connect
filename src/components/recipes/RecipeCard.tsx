@@ -7,7 +7,7 @@ import {
   DropdownMenuItem, 
   DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu";
-import { MoreHorizontal, FileText, Eye, Edit, Copy, Share, Archive } from "lucide-react";
+import { MoreHorizontal, FileText, Eye, Edit, Copy, Share, Archive, Trash2 } from "lucide-react";
 import { RecipeStatusBadge, type RecipeStatus, type RecipeType } from "./RecipeStatusBadge";
 import { RecipeKPIGrid } from "./RecipeKPIGrid";
 import { Badge } from "@/components/ui/badge";
@@ -57,6 +57,7 @@ interface RecipeCardProps {
   onDuplicate?: (recipe: Recipe) => void;
   onShare?: (recipe: Recipe) => void;
   onArchive?: (recipe: Recipe) => void;
+  onDelete?: (recipe: Recipe) => void;
   onToggleActive?: (recipe: Recipe, isActive: boolean) => void;
   onViewPDF?: (recipe: Recipe) => void;
   onView?: (recipe: Recipe) => void;
@@ -69,10 +70,13 @@ export function RecipeCard({
   onEdit, 
   onDuplicate, 
   onShare, 
-  onArchive, 
+  onArchive,
+  onDelete,
   onToggleActive,
   onViewPDF,
-  onView 
+  onView,
+  onAction,
+  showAdminActions = false
 }: RecipeCardProps) {
   const isInteractive = recipe.status !== "archived";
   const isActive = recipe.isActive ?? recipe.is_active ?? false;
@@ -127,10 +131,31 @@ export function RecipeCard({
                   </DropdownMenuItem>
                 </>
               )}
-              <DropdownMenuItem onClick={() => onArchive?.(recipe)}>
+              <DropdownMenuItem onClick={() => {
+                if (onArchive) {
+                  onArchive(recipe);
+                } else if (onAction) {
+                  onAction("archive", recipe);
+                }
+              }}>
                 <Archive className="h-4 w-4 mr-2" />
                 {recipe.status === "archived" ? "Desarchivar" : "Archivar"}
               </DropdownMenuItem>
+              {showAdminActions && (recipe.type === "official" || recipe.type === "template") && (
+                <DropdownMenuItem 
+                  onClick={() => {
+                    if (onDelete) {
+                      onDelete(recipe);
+                    } else if (onAction) {
+                      onAction("delete", recipe);
+                    }
+                  }}
+                  className="text-destructive focus:text-destructive"
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Eliminar
+                </DropdownMenuItem>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
         </div>

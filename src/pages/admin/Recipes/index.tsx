@@ -8,12 +8,18 @@ import { RecipeFilters, type RecipeFilters as RecipeFiltersType } from "@/compon
 import { RecipeCard, type Recipe } from "@/components/recipes/RecipeCard";
 import { RecipeEmptyState } from "@/components/recipes/RecipeEmptyStates";
 import { CreateRecipeModal } from "@/components/recipes/CreateRecipeModal";
-import { useRecipes, useCreateRecipe, useToggleRecipeActive } from "@/hooks/useRecipes";
+import { DeleteRecipeModal } from "@/components/recipes/DeleteRecipeModal";
+import { useRecipes, useCreateRecipe, useToggleRecipeActive, useArchiveRecipe } from "@/hooks/useRecipes";
 
 export default function AdminRecipes() {
   const [activeTab, setActiveTab] = useState<RecipeTab>("all");
   const [filters, setFilters] = useState<RecipeFiltersType>({});
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [deleteModal, setDeleteModal] = useState<{
+    open: boolean;
+    recipe: Recipe | null;
+    action: "delete" | "archive";
+  }>({ open: false, recipe: null, action: "archive" });
 
   // Fetch recipes data - admin sees all recipes
   const { data: allRecipes = [], isLoading } = useRecipes(filters);
@@ -53,6 +59,7 @@ export default function AdminRecipes() {
 
   const { mutate: createRecipe } = useCreateRecipe();
   const { mutate: toggleActive } = useToggleRecipeActive();
+  const archiveRecipe = useArchiveRecipe();
 
   const handleRecipeAction = (action: string, recipe: Recipe) => {
     switch (action) {
@@ -61,6 +68,12 @@ export default function AdminRecipes() {
         break;
       case "deactivate":
         toggleActive({ id: recipe.id, isActive: false });
+        break;
+      case "archive":
+        setDeleteModal({ open: true, recipe, action: "archive" });
+        break;
+      case "delete":
+        setDeleteModal({ open: true, recipe, action: "delete" });
         break;
       default:
         console.log("Recipe action:", action, recipe);
@@ -204,6 +217,21 @@ export default function AdminRecipes() {
             createRecipe(recipeData);
             setIsCreateModalOpen(false);
           }}
+        />
+
+        {/* Delete/Archive Recipe Modal */}
+        <DeleteRecipeModal
+          open={deleteModal.open}
+          onOpenChange={(open) => setDeleteModal({ ...deleteModal, open })}
+          onConfirm={() => {
+            if (deleteModal.recipe) {
+              archiveRecipe.mutate({ id: deleteModal.recipe.id, archive: true });
+            }
+            setDeleteModal({ open: false, recipe: null, action: "archive" });
+          }}
+          recipeId={deleteModal.recipe?.id || ""}
+          recipeName={deleteModal.recipe?.name || ""}
+          action={deleteModal.action}
         />
       </div>
     </>

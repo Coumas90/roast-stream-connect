@@ -19,6 +19,7 @@ import { ShareRecipeModal } from "@/components/recipes/ShareRecipeModal";
 import { RecipeAnalyticsDashboard } from "@/components/recipes/RecipeAnalyticsDashboard";
 import { AdvancedRecipeSearch } from "@/components/recipes/AdvancedRecipeSearch";
 import { RecipeRecommendations } from "@/components/recipes/RecipeRecommendations";
+import { DeleteRecipeModal } from "@/components/recipes/DeleteRecipeModal";
 import { 
   useRecipes, 
   useCreateRecipe, 
@@ -41,6 +42,11 @@ export default function Recipes() {
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
   const [editingRecipe, setEditingRecipe] = useState<Recipe | null>(null);
   const [mainActiveTab, setMainActiveTab] = useState("recipes");
+  const [deleteModal, setDeleteModal] = useState<{
+    open: boolean;
+    recipe: Recipe | null;
+    action: "delete" | "archive";
+  }>({ open: false, recipe: null, action: "archive" });
 
   const { profile } = useProfile();
 
@@ -157,7 +163,7 @@ export default function Recipes() {
         setIsShareModalOpen(true);
         break;
       case "archive":
-        archiveRecipe.mutate({ id: recipe.id, archive: true });
+        setDeleteModal({ open: true, recipe, action: "archive" });
         break;
       case "activate":
         toggleActive.mutate({ id: recipe.id, isActive: true });
@@ -429,6 +435,20 @@ export default function Recipes() {
         <CalibrationPanel
           open={isCalibrationOpen}
           onOpenChange={setIsCalibrationOpen}
+        />
+
+        <DeleteRecipeModal
+          open={deleteModal.open}
+          onOpenChange={(open) => setDeleteModal({ ...deleteModal, open })}
+          onConfirm={() => {
+            if (deleteModal.recipe) {
+              archiveRecipe.mutate({ id: deleteModal.recipe.id, archive: true });
+            }
+            setDeleteModal({ open: false, recipe: null, action: "archive" });
+          }}
+          recipeId={deleteModal.recipe?.id || ""}
+          recipeName={deleteModal.recipe?.name || ""}
+          action={deleteModal.action}
         />
       </div>
     </>

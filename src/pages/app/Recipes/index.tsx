@@ -28,6 +28,7 @@ import {
   useDuplicateRecipe, 
   useArchiveRecipe, 
   useShareRecipe,
+  useDeleteRecipe,
   type Recipe
 } from "@/hooks/useRecipes";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -60,6 +61,7 @@ export default function Recipes() {
   const duplicateRecipe = useDuplicateRecipe();
   const archiveRecipe = useArchiveRecipe();
   const shareRecipe = useShareRecipe();
+  const deleteRecipe = useDeleteRecipe();
 
   // Filter recipes based on active tab and filters
   const filteredRecipes = useMemo(() => {
@@ -165,6 +167,9 @@ export default function Recipes() {
       case "archive":
         setDeleteModal({ open: true, recipe, action: "archive" });
         break;
+      case "delete":
+        setDeleteModal({ open: true, recipe, action: "delete" });
+        break;
       case "activate":
         toggleActive.mutate({ id: recipe.id, isActive: true });
         break;
@@ -180,6 +185,21 @@ export default function Recipes() {
         setIsDetailModalOpen(true);
         break;
     }
+  };
+
+  const handleDeleteConfirm = () => {
+    if (!deleteModal.recipe) return;
+    
+    if (deleteModal.action === "archive") {
+      archiveRecipe.mutate({ 
+        id: deleteModal.recipe.id, 
+        archive: true 
+      });
+    } else if (deleteModal.action === "delete") {
+      deleteRecipe.mutate(deleteModal.recipe.id);
+    }
+    
+    setDeleteModal({ open: false, recipe: null, action: "archive" });
   };
 
   return (
@@ -298,19 +318,8 @@ export default function Recipes() {
                       <RecipeCard
                         key={recipe.id}
                         recipe={recipe}
-                        onEdit={handleEditRecipe}
-                        onDuplicate={(recipe) => duplicateRecipe.mutate(recipe.id)}
-                        onShare={(recipe) => {
-                          setSelectedRecipe(recipe as any);
-                          setIsShareModalOpen(true);
-                        }}
-                        onArchive={(recipe) => archiveRecipe.mutate({ id: recipe.id, archive: true })}
-                        onToggleActive={(recipe, isActive) => toggleActive.mutate({ id: recipe.id, isActive })}
-                        onViewPDF={(recipe) => console.log("View PDF:", recipe.id)}
-                        onView={(recipe) => {
-                          setSelectedRecipe(recipe as any);
-                          setIsDetailModalOpen(true);
-                        }}
+                        onAction={handleRecipeAction}
+                        currentUserId={profile?.id ?? undefined}
                       />
                     ))}
                   </div>
@@ -440,12 +449,7 @@ export default function Recipes() {
         <DeleteRecipeModal
           open={deleteModal.open}
           onOpenChange={(open) => setDeleteModal({ ...deleteModal, open })}
-          onConfirm={() => {
-            if (deleteModal.recipe) {
-              archiveRecipe.mutate({ id: deleteModal.recipe.id, archive: true });
-            }
-            setDeleteModal({ open: false, recipe: null, action: "archive" });
-          }}
+          onConfirm={handleDeleteConfirm}
           recipeId={deleteModal.recipe?.id || ""}
           recipeName={deleteModal.recipe?.name || ""}
           action={deleteModal.action}

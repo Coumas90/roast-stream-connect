@@ -565,3 +565,46 @@ export function useShareRecipe() {
     },
   });
 }
+
+// Hook to delete a recipe permanently
+export function useDeleteRecipe() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async (recipeId: string) => {
+      // Delete recipe_steps first (foreign key constraint)
+      const { error: stepsError } = await supabase
+        .from('recipe_steps')
+        .delete()
+        .eq('recipe_id', recipeId);
+      
+      if (stepsError) throw stepsError;
+      
+      // Delete recipe
+      const { error } = await supabase
+        .from('recipes')
+        .delete()
+        .eq('id', recipeId);
+      
+      if (error) throw error;
+      
+      return recipeId;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['recipes'] });
+      toast({
+        title: "Receta eliminada",
+        description: "La receta ha sido eliminada exitosamente",
+      });
+    },
+    onError: (error: any) => {
+      console.error('Error deleting recipe:', error);
+      toast({
+        title: "Error al eliminar",
+        description: error.message || "No se pudo eliminar la receta",
+        variant: "destructive",
+      });
+    },
+  });
+}

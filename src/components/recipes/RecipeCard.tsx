@@ -53,6 +53,7 @@ export interface Recipe {
 
 interface RecipeCardProps {
   recipe: Recipe;
+  currentUserId?: string;
   onEdit?: (recipe: Recipe) => void;
   onDuplicate?: (recipe: Recipe) => void;
   onShare?: (recipe: Recipe) => void;
@@ -66,7 +67,8 @@ interface RecipeCardProps {
 }
 
 export function RecipeCard({ 
-  recipe, 
+  recipe,
+  currentUserId,
   onEdit, 
   onDuplicate, 
   onShare, 
@@ -131,17 +133,24 @@ export function RecipeCard({
                   </DropdownMenuItem>
                 </>
               )}
-              <DropdownMenuItem onClick={() => {
-                if (onArchive) {
-                  onArchive(recipe);
-                } else if (onAction) {
-                  onAction("archive", recipe);
-                }
-              }}>
-                <Archive className="h-4 w-4 mr-2" />
-                {recipe.status === "archived" ? "Desarchivar" : "Archivar"}
-              </DropdownMenuItem>
-              {showAdminActions && (recipe.type === "official" || recipe.type === "template") && (
+              {(showAdminActions && (recipe.type === "official" || recipe.type === "template")) && (
+                <DropdownMenuItem onClick={() => {
+                  if (onArchive) {
+                    onArchive(recipe);
+                  } else if (onAction) {
+                    onAction("archive", recipe);
+                  }
+                }}>
+                  <Archive className="h-4 w-4 mr-2" />
+                  Archivar
+                </DropdownMenuItem>
+              )}
+              
+              {/* Eliminar: Admins en recetas oficiales/template O creadores de recetas personales */}
+              {(
+                (showAdminActions && (recipe.type === "official" || recipe.type === "template")) ||
+                (recipe.type === "personal" && recipe.created_by === currentUserId)
+              ) && (
                 <DropdownMenuItem 
                   onClick={() => {
                     if (onDelete) {

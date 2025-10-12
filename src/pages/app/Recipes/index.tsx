@@ -1,7 +1,7 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useRef } from "react";
 import { Helmet } from "react-helmet-async";
 import { Button } from "@/components/ui/button";
-import { Download, Plus, Settings, Search, BarChart, Calculator, History, FileText, Activity } from "lucide-react";
+import { Download, Plus, Settings, Search, BarChart, Calculator, History, FileText, Activity, Star } from "lucide-react";
 import { RecipeTabNavigation, type RecipeTab } from "@/components/recipes/RecipeTabNavigation";
 import { CalibrationPanel } from "@/components/app/calibration/CalibrationPanel";
 import { CalibrationHistory } from "@/components/app/calibration/CalibrationHistory";
@@ -20,6 +20,7 @@ import { RecipeAnalyticsDashboard } from "@/components/recipes/RecipeAnalyticsDa
 import { AdvancedRecipeSearch } from "@/components/recipes/AdvancedRecipeSearch";
 import { RecipeRecommendations } from "@/components/recipes/RecipeRecommendations";
 import { DeleteRecipeModal } from "@/components/recipes/DeleteRecipeModal";
+import { RecipeCalibrationsModal } from "@/components/recipes/RecipeCalibrationsModal";
 import { 
   useRecipes, 
   useCreateRecipe, 
@@ -31,7 +32,10 @@ import {
   useDeleteRecipe,
   type Recipe
 } from "@/hooks/useRecipes";
+import { useRecipeFavorites } from "@/hooks/useRecipeFavorites";
+import { exportRecipeAsImage } from "@/lib/exportRecipeAsImage";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useToast } from "@/hooks/use-toast";
 
 export default function Recipes() {
   const [activeTab, setActiveTab] = useState<RecipeTab>("active");
@@ -40,6 +44,7 @@ export default function Recipes() {
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [isCalibrationOpen, setIsCalibrationOpen] = useState(false);
+  const [isCalibrationsModalOpen, setIsCalibrationsModalOpen] = useState(false);
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
   const [editingRecipe, setEditingRecipe] = useState<Recipe | null>(null);
   const [mainActiveTab, setMainActiveTab] = useState("recipes");
@@ -49,7 +54,9 @@ export default function Recipes() {
     action: "delete" | "archive";
   }>({ open: false, recipe: null, action: "archive" });
 
+  const recipeCardRef = useRef<HTMLDivElement>(null);
   const { profile } = useProfile();
+  const { toast } = useToast();
 
   // Fetch recipes data
   const { data: allRecipes = [], isLoading } = useRecipes(filters);
@@ -62,6 +69,9 @@ export default function Recipes() {
   const archiveRecipe = useArchiveRecipe();
   const shareRecipe = useShareRecipe();
   const deleteRecipe = useDeleteRecipe();
+
+  // Favorites
+  const { isFavorite, toggleFavorite } = useRecipeFavorites(profile?.id);
 
   // Filter recipes based on active tab and filters
   const filteredRecipes = useMemo(() => {
@@ -78,11 +88,13 @@ export default function Recipes() {
           return recipe.type === "official" || recipe.type === "template";
         case "templates":
           return recipe.type === "template";
+        case "favorites":
+          return isFavorite(recipe.id);
         default:
           return true;
       }
     });
-  }, [allRecipes, activeTab]);
+  }, [allRecipes, activeTab, isFavorite]);
 
   // Calculate counts for tabs
   const tabCounts = useMemo(() => {
@@ -93,8 +105,9 @@ export default function Recipes() {
       team: allRecipes.filter(r => r.type === "team").length,
       official: allRecipes.filter(r => r.type === "official" || r.type === "template").length,
       templates: allRecipes.filter(r => r.type === "template").length,
+      favorites: allRecipes.filter(r => isFavorite(r.id)).length,
     };
-  }, [allRecipes]);
+  }, [allRecipes, isFavorite]);
 
   // Find active recipe for hero section
   const activeRecipe = useMemo(() => {
@@ -184,6 +197,38 @@ export default function Recipes() {
         setSelectedRecipe(recipe);
         setIsDetailModalOpen(true);
         break;
+      case "view-calibrations":
+        setSelectedRecipe(recipe);
+        setIsCalibrationsModalOpen(true);
+        break;
+      case "export-image":
+        handleExportImage(recipe);
+        break;
+    }
+  };
+
+  const handleExportImage = async (recipe: Recipe) => {
+    if (!recipeCardRef.current) {
+      toast({
+        title: "Error",
+        description: "No se pudo exportar la imagen",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      await exportRecipeAsImage(recipe.name, recipeCardRef.current);
+      toast({
+        title: "Imagen exportada",
+        description: "La receta se descargó como imagen",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "No se pudo exportar la imagen",
+        variant: "destructive",
+      });
     }
   };
 
@@ -319,7 +364,14 @@ export default function Recipes() {
                         key={recipe.id}
                         recipe={recipe}
                         onAction={handleRecipeAction}
+                        onViewCalibrations={(r) => {
+                          setSelectedRecipe(r as Recipe);
+                          setIsCalibrationsModalOpen(true);
+                        }}
+                        onExportImage={handleExportImage}
                         currentUserId={profile?.id ?? undefined}
+                        isFavorite={isFavorite(recipe.id)}
+                        onToggleFavorite={(r) => toggleFavorite(r.id)}
                       />
                     ))}
                   </div>
@@ -454,6 +506,15 @@ export default function Recipes() {
           recipeName={deleteModal.recipe?.name || ""}
           action={deleteModal.action}
         />
+
+        {selectedRecipe && (
+          <RecipeCalibrationsModal
+            recipeId={selectedRecipe.id}
+            recipeName={selectedRecipe.name}
+            open={isCalibrationsModalOpen}
+            onOpenChange={setIsCalibrationsModalOpen}
+          />
+        )}
       </div>
     </>
   );

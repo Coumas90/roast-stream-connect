@@ -1,7 +1,7 @@
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
-export type RecipeTab = "all" | "active" | "personal" | "team" | "official" | "templates";
+export type RecipeTab = "all" | "active" | "personal" | "team" | "official" | "templates" | "favorites";
 
 interface RecipeTabNavigationProps {
   activeTab: RecipeTab;
@@ -19,6 +19,7 @@ export function RecipeTabNavigation({
   const tabs = [
     { id: "all" as const, label: "Todas", adminOnly: false },
     { id: "active" as const, label: "Activa", adminOnly: false },
+    { id: "favorites" as const, label: "⭐ Favoritas", adminOnly: false },
     { id: "personal" as const, label: "Mi Receta", adminOnly: false },
     { id: "team" as const, label: "Equipo", adminOnly: false },
     { id: "official" as const, label: "Oficial TUPÁ", adminOnly: false },

@@ -4,13 +4,15 @@ import { Switch } from "@/components/ui/switch";
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
-  DropdownMenuItem, 
+  DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu";
-import { MoreHorizontal, FileText, Eye, Edit, Copy, Share, Archive, Trash2 } from "lucide-react";
+import { MoreHorizontal, FileText, Eye, Edit, Copy, Share, Archive, Trash2, Star, Link2, TrendingUp, Image } from "lucide-react";
 import { RecipeStatusBadge, type RecipeStatus, type RecipeType } from "./RecipeStatusBadge";
 import { RecipeKPIGrid } from "./RecipeKPIGrid";
 import { Badge } from "@/components/ui/badge";
+import { useToast } from "@/hooks/use-toast";
 
 export interface Recipe {
   id: string;
@@ -62,8 +64,12 @@ interface RecipeCardProps {
   onToggleActive?: (recipe: Recipe, isActive: boolean) => void;
   onViewPDF?: (recipe: Recipe) => void;
   onView?: (recipe: Recipe) => void;
+  onViewCalibrations?: (recipe: Recipe) => void;
+  onExportImage?: (recipe: Recipe) => void;
   onAction?: (action: string, recipe?: Recipe) => void;
   showAdminActions?: boolean;
+  isFavorite?: boolean;
+  onToggleFavorite?: (recipe: Recipe) => void;
 }
 
 export function RecipeCard({ 
@@ -77,11 +83,25 @@ export function RecipeCard({
   onToggleActive,
   onViewPDF,
   onView,
+  onViewCalibrations,
+  onExportImage,
   onAction,
-  showAdminActions = false
+  showAdminActions = false,
+  isFavorite = false,
+  onToggleFavorite
 }: RecipeCardProps) {
+  const { toast } = useToast();
   const isInteractive = recipe.status !== "archived";
   const isActive = recipe.isActive ?? recipe.is_active ?? false;
+
+  const handleCopyLink = () => {
+    const url = `${window.location.origin}/app/recipes?view=${recipe.id}`;
+    navigator.clipboard.writeText(url);
+    toast({
+      title: "Link copiado",
+      description: "El link de la receta se copió al portapapeles",
+    });
+  };
 
   return (
     <Card className="group hover:shadow-lg hover:border-primary/20 transition-all duration-300 animate-fade-in">
@@ -90,6 +110,7 @@ export function RecipeCard({
           <div className="flex-1 min-w-0">
             <div className="flex items-start gap-2 mb-2">
               <h3 className="font-semibold text-foreground line-clamp-1 flex-1">{recipe.name}</h3>
+              {isFavorite && <Star className="h-4 w-4 fill-yellow-500 text-yellow-500 flex-shrink-0 mt-1" />}
               {isActive && (
                 <div className="h-2 w-2 rounded-full bg-success animate-pulse flex-shrink-0 mt-2" />
               )}
@@ -110,63 +131,98 @@ export function RecipeCard({
             </div>
           </div>
           
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-8 w-8">
-                <MoreHorizontal className="h-4 w-4" />
+          <div className="flex items-center gap-1">
+            {onToggleFavorite && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8"
+                onClick={() => onToggleFavorite(recipe)}
+              >
+                <Star className={`h-4 w-4 ${isFavorite ? "fill-yellow-500 text-yellow-500" : ""}`} />
               </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48">
-              {isInteractive && (
-                <>
-                  <DropdownMenuItem onClick={() => onEdit?.(recipe)}>
-                    <Edit className="h-4 w-4 mr-2" />
-                    Editar
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => onDuplicate?.(recipe)}>
-                    <Copy className="h-4 w-4 mr-2" />
-                    Duplicar
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => onShare?.(recipe)}>
-                    <Share className="h-4 w-4 mr-2" />
-                    Compartir
-                  </DropdownMenuItem>
-                </>
-              )}
-              {(showAdminActions && (recipe.type === "official" || recipe.type === "template")) && (
-                <DropdownMenuItem onClick={() => {
-                  if (onArchive) {
-                    onArchive(recipe);
-                  } else if (onAction) {
-                    onAction("archive", recipe);
-                  }
-                }}>
-                  <Archive className="h-4 w-4 mr-2" />
-                  Archivar
-                </DropdownMenuItem>
-              )}
-              
-              {/* Eliminar: Admins en recetas oficiales/template O creadores de recetas personales */}
-              {(
-                (showAdminActions && (recipe.type === "official" || recipe.type === "template")) ||
-                (recipe.type === "personal" && recipe.created_by === currentUserId)
-              ) && (
-                <DropdownMenuItem 
-                  onClick={() => {
-                    if (onDelete) {
-                      onDelete(recipe);
-                    } else if (onAction) {
-                      onAction("delete", recipe);
-                    }
-                  }}
-                  className="text-destructive focus:text-destructive"
-                >
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Eliminar
-                </DropdownMenuItem>
-              )}
-            </DropdownMenuContent>
-          </DropdownMenu>
+            )}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-8 w-8">
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                {isInteractive && (
+                  <>
+                    <DropdownMenuItem onClick={() => onEdit?.(recipe)}>
+                      <Edit className="h-4 w-4 mr-2" />
+                      Editar
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => onDuplicate?.(recipe)}>
+                      <Copy className="h-4 w-4 mr-2" />
+                      Duplicar
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={handleCopyLink}>
+                      <Link2 className="h-4 w-4 mr-2" />
+                      Copiar Link
+                    </DropdownMenuItem>
+                    {onViewCalibrations && (
+                      <DropdownMenuItem onClick={() => onViewCalibrations(recipe)}>
+                        <TrendingUp className="h-4 w-4 mr-2" />
+                        Ver Calibraciones
+                      </DropdownMenuItem>
+                    )}
+                    {onExportImage && (
+                      <DropdownMenuItem onClick={() => onExportImage(recipe)}>
+                        <Image className="h-4 w-4 mr-2" />
+                        Exportar Imagen
+                      </DropdownMenuItem>
+                    )}
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => onShare?.(recipe)}>
+                      <Share className="h-4 w-4 mr-2" />
+                      Compartir
+                    </DropdownMenuItem>
+                  </>
+                )}
+                {(showAdminActions && (recipe.type === "official" || recipe.type === "template")) && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => {
+                      if (onArchive) {
+                        onArchive(recipe);
+                      } else if (onAction) {
+                        onAction("archive", recipe);
+                      }
+                    }}>
+                      <Archive className="h-4 w-4 mr-2" />
+                      Archivar
+                    </DropdownMenuItem>
+                  </>
+                )}
+                
+                {/* Eliminar: Admins en recetas oficiales/template O creadores de recetas personales */}
+                {(
+                  (showAdminActions && (recipe.type === "official" || recipe.type === "template")) ||
+                  (recipe.type === "personal" && recipe.created_by === currentUserId)
+                ) && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem 
+                      onClick={() => {
+                        if (onDelete) {
+                          onDelete(recipe);
+                        } else if (onAction) {
+                          onAction("delete", recipe);
+                        }
+                      }}
+                      className="text-destructive focus:text-destructive"
+                    >
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Eliminar
+                    </DropdownMenuItem>
+                  </>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </div>
       </CardHeader>
 

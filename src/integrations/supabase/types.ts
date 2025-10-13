@@ -2777,6 +2777,7 @@ export type Database = {
         Returns: {
           days_until_expiry: number
           expires_at: string
+          last_rotation_attempt_at: string
           location_id: string
           secret_ref: string
         }[]
@@ -3031,11 +3032,7 @@ export type Database = {
         Args:
           | { _expires_in_minutes?: number; _invitation_id: string }
           | { _invitation_id: string }
-        Returns: {
-          expires_at: string
-          id: string
-          token: string
-        }[]
+        Returns: Json
       }
       run_pos_rotation: {
         Args: Record<PropertyKey, never>

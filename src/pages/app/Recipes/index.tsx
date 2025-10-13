@@ -372,6 +372,7 @@ export default function Recipes() {
                         currentUserId={profile?.id ?? undefined}
                         isFavorite={isFavorite(recipe.id)}
                         onToggleFavorite={(r) => toggleFavorite(r.id)}
+                        isMainRecipe={recipe.id === activeRecipe?.id}
                       />
                     ))}
                   </div>

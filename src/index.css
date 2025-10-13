@@ -36,6 +36,9 @@ All colors MUST be HSL.
     --success-foreground: 0 0% 98%;
     --warning: 45 93% 47%;
     --warning-foreground: 24 32% 12%;
+    
+    --gold: 45 90% 55%;
+    --gold-foreground: 24 32% 12%;
 
     --border: 28 30% 90%;
     --input: 28 30% 90%;
@@ -91,6 +94,9 @@ All colors MUST be HSL.
     --success-foreground: 22 22% 10%;
     --warning: 45 85% 55%;
     --warning-foreground: 22 22% 10%;
+    
+    --gold: 45 95% 60%;
+    --gold-foreground: 22 22% 10%;
 
     --border: 24 14% 20%;
     --input: 24 14% 20%;

@@ -39,8 +39,8 @@ export function RecipeHeroCard({
         <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
           <div className="space-y-3">
             <div className="flex flex-wrap items-center gap-2">
-              <Badge variant="outline" className="text-primary border-primary/40 bg-primary/10">
-                Receta Activa
+              <Badge className="bg-gradient-to-r from-[hsl(var(--gold))] to-[hsl(45_85%_50%)] text-[hsl(var(--gold-foreground))] border-none shadow-md">
+                🏆 Receta Principal
               </Badge>
               <RecipeStatusBadge status={recipe.status} type={recipe.type} />
             </div>

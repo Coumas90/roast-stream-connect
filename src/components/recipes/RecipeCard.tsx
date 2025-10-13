@@ -13,6 +13,7 @@ import { RecipeStatusBadge, type RecipeStatus, type RecipeType } from "./RecipeS
 import { RecipeKPIGrid } from "./RecipeKPIGrid";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
 
 export interface Recipe {
   id: string;
@@ -70,6 +71,7 @@ interface RecipeCardProps {
   showAdminActions?: boolean;
   isFavorite?: boolean;
   onToggleFavorite?: (recipe: Recipe) => void;
+  isMainRecipe?: boolean;
 }
 
 export function RecipeCard({ 
@@ -88,7 +90,8 @@ export function RecipeCard({
   onAction,
   showAdminActions = false,
   isFavorite = false,
-  onToggleFavorite
+  onToggleFavorite,
+  isMainRecipe = false
 }: RecipeCardProps) {
   const { toast } = useToast();
   const isInteractive = recipe.status !== "archived";
@@ -104,7 +107,15 @@ export function RecipeCard({
   };
 
   return (
-    <Card className="group hover:shadow-lg hover:border-primary/20 transition-all duration-300 animate-fade-in">
+    <Card className={cn(
+      "group hover:shadow-lg hover:border-primary/20 transition-all duration-300 animate-fade-in",
+      isMainRecipe && "border-2 border-[hsl(var(--gold))]/60 shadow-lg shadow-[hsl(var(--gold))]/20"
+    )}>
+      {isMainRecipe && (
+        <Badge className="absolute top-2 right-2 bg-[hsl(var(--gold))] text-[hsl(var(--gold-foreground))] z-10 shadow-md">
+          ✨ Activa
+        </Badge>
+      )}
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between gap-3">
           <div className="flex-1 min-w-0">

@@ -2782,6 +2782,20 @@ export type Database = {
           secret_ref: string
         }[]
       }
+      get_invitation_details: {
+        Args: { _token: string }
+        Returns: {
+          email: string
+          expires_at: string
+          inviter_email: string
+          inviter_name: string
+          location_id: string
+          location_name: string
+          role: Database["public"]["Enums"]["app_role"]
+          tenant_id: string
+          tenant_name: string
+        }[]
+      }
       get_pos_credentials_public: {
         Args: Record<PropertyKey, never>
         Returns: {

@@ -53,6 +53,9 @@ interface SendInvitePayload {
   to: string;
   inviteUrl: string;
   tenantName?: string | null;
+  role?: string | null;
+  locationName?: string | null;
+  inviterName?: string | null;
 }
 
 serve(withCORS(async (req) => {
@@ -73,7 +76,7 @@ serve(withCORS(async (req) => {
       });
     }
 
-    const { to, inviteUrl, tenantName }: SendInvitePayload = await req.json();
+    const { to, inviteUrl, tenantName, role, locationName, inviterName }: SendInvitePayload = await req.json();
     if (!to || !inviteUrl) {
       return new Response(JSON.stringify({ error: "Missing 'to' or 'inviteUrl'" }), {
         status: 400,
@@ -89,19 +92,69 @@ serve(withCORS(async (req) => {
       });
     }
 
+    const roleLabels: Record<string, string> = {
+      owner: "Propietario",
+      manager: "Gerente", 
+      coffee_master: "Coffee Master",
+      barista: "Barista",
+    };
+
     const brand = tenantName ? `${tenantName} — TUPÁ Hub` : "TUPÁ Hub";
     const subject = tenantName ? `Invitación a ${tenantName} · TUPÁ Hub` : "Invitación a TUPÁ Hub";
+    const roleDisplay = role ? roleLabels[role] || role : "miembro del equipo";
+    const locationText = locationName ? ` en la sucursal <strong>${locationName}</strong>` : "";
+    const inviterText = inviterName ? `<p style="margin:16px 0;">${inviterName} te ha invitado a unirte al equipo.</p>` : "";
+
     const html = `
-      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif; line-height:1.6; color:#0f172a;">
-        <h2 style="margin:0 0 12px;">Invitación a ${brand}</h2>
-        <p>Has sido invitado/a a unirte. Haz clic en el botón para aceptar la invitación:</p>
-        <p>
-          <a href="${inviteUrl}" target="_blank" style="display:inline-block; background:#111827; color:#ffffff; padding:10px 16px; border-radius:8px; text-decoration:none;">Aceptar invitación</a>
-        </p>
-        <p>Si el botón no funciona, copia y pega este enlace en tu navegador:</p>
-        <p><a href="${inviteUrl}" target="_blank">${inviteUrl}</a></p>
-        <hr style="margin:20px 0; border:none; border-top:1px solid #e5e7eb;" />
-        <p style="font-size:12px; color:#64748b;">Este enlace expira en 7 días.</p>
+      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif; max-width:600px; margin:0 auto; padding:20px; color:#0f172a;">
+        
+        <!-- Header -->
+        <div style="text-align:center; margin-bottom:32px;">
+          <h1 style="margin:0 0 8px; font-size:28px; font-weight:700; color:#111827;">¡Bienvenido/a a TUPÁ Hub! 🎉</h1>
+          <p style="margin:0; color:#64748b; font-size:16px;">Tu invitación para unirte a ${brand}</p>
+        </div>
+
+        <!-- Invitation Card -->
+        <div style="background:#ffffff; border:1px solid #e5e7eb; border-radius:12px; padding:24px; margin-bottom:24px;">
+          ${inviterText}
+          
+          <p style="margin:0 0 20px; font-size:15px; line-height:1.6;">
+            Has sido invitado/a como <strong style="color:#111827;">${roleDisplay}</strong>${locationText}.
+          </p>
+
+          <!-- Benefits -->
+          <div style="background:#f8fafc; border-radius:8px; padding:16px; margin:20px 0;">
+            <p style="margin:0 0 12px; font-weight:600; font-size:14px; color:#111827;">✨ Tendrás acceso a:</p>
+            <ul style="margin:0; padding-left:20px; font-size:14px; color:#475569; line-height:1.8;">
+              <li>Sistema profesional de calibración de café</li>
+              <li>Gestión de inventario en tiempo real</li>
+              <li>Herramientas de formación y capacitación</li>
+              <li>Panel de métricas y analytics</li>
+            </ul>
+          </div>
+
+          <!-- CTA Button -->
+          <div style="text-align:center; margin:28px 0;">
+            <a href="${inviteUrl}" target="_blank" style="display:inline-block; background:#111827; color:#ffffff; padding:14px 32px; border-radius:8px; text-decoration:none; font-weight:600; font-size:16px;">
+              Aceptar invitación →
+            </a>
+          </div>
+
+          <p style="margin:20px 0 0; font-size:13px; color:#64748b; text-align:center;">
+            Si el botón no funciona, copia y pega este enlace:<br/>
+            <a href="${inviteUrl}" target="_blank" style="color:#3b82f6; word-break:break-all;">${inviteUrl}</a>
+          </p>
+        </div>
+
+        <!-- Footer -->
+        <div style="text-align:center; padding-top:20px; border-top:1px solid #e5e7eb;">
+          <p style="margin:0 0 8px; font-size:13px; color:#64748b;">
+            ⏱️ Esta invitación expira en 7 días
+          </p>
+          <p style="margin:0; font-size:12px; color:#94a3b8;">
+            Si no solicitaste esta invitación, puedes ignorar este correo.
+          </p>
+        </div>
       </div>
     `;
 

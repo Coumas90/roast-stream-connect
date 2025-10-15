@@ -1,0 +1,10 @@
+{
+  "name": "@roast-stream/connect-sdk",
+  "version": "0.1.0",
+  "description": "SDK para integrar adaptadores de puntos de venta con Roast Stream.",
+  "type": "module",
+  "main": "pos/index.ts",
+  "types": "pos/index.d.ts",
+  "files": ["pos"],
+  "license": "MIT"
+}
